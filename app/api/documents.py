@@ -6,6 +6,7 @@ import uuid
 import redis.asyncio as aioredis
 import arq
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -122,7 +123,7 @@ async def upload_document(
     )
 
 
-@router.delete("/{document_id}", status_code=204)
+@router.delete("/{document_id}", status_code=204, response_class=Response)
 async def delete_document(
     document_id: str,
     db: AsyncSession = Depends(get_db),
