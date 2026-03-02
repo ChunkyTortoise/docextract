@@ -20,6 +20,8 @@ services:
         sync: false
       - key: API_KEY_SECRET
         generateValue: true
+      - key: AES_KEY
+        generateValue: true
       - key: STORAGE_BACKEND
         value: local
       - key: STORAGE_LOCAL_PATH
@@ -32,7 +34,31 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python -m arq worker.main.WorkerSettings
     envVars:
-      - fromGroup: docextract-shared
+      - key: DATABASE_URL
+        fromDatabase:
+          name: docextract-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: docextract-redis
+          property: connectionString
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: API_KEY_SECRET
+        fromService:
+          type: web
+          name: docextract-api
+          envVarKey: API_KEY_SECRET
+      - key: AES_KEY
+        fromService:
+          type: web
+          name: docextract-api
+          envVarKey: AES_KEY
+      - key: STORAGE_BACKEND
+        value: local
+      - key: STORAGE_LOCAL_PATH
+        value: /tmp/docextract-storage
 
   - type: web
     name: docextract-frontend
