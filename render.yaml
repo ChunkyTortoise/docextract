@@ -13,7 +13,7 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          type: redis
+          type: keyvalue
           name: docextract-redis
           property: connectionString
       - key: ANTHROPIC_API_KEY
@@ -40,7 +40,7 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          type: redis
+          type: keyvalue
           name: docextract-redis
           property: connectionString
       - key: ANTHROPIC_API_KEY
@@ -73,12 +73,15 @@ services:
           name: docextract-api
           property: host
 
+  - type: keyvalue
+    name: docextract-redis
+    plan: standard
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: allow all (internal only via Render private network)
+
 databases:
   - name: docextract-db
-    plan: standard
+    plan: basic-1gb
     databaseName: docextract
     user: docextract
-
-  - name: docextract-redis
-    type: redis
-    plan: standard
