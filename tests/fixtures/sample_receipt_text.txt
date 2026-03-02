@@ -1,0 +1,21 @@
+RECEIPT
+
+Home Depot
+Store #4821
+1234 Commercial Ave
+Portland, OR 97201
+(503) 555-0100
+
+Date: 02/28/2026
+Receipt #: 4821-2026-88432
+
+Description           Qty   Price    Amount
+PVC Pipe 3/4"          4    $3.49    $13.96
+Pipe Cement             1    $6.99     $6.99
+Teflon Tape             2    $1.29     $2.58
+
+                    Subtotal:        $23.53
+                    Tax (8.5%):       $2.00
+                    Total:           $25.53
+
+Payment: VISA **** 4821

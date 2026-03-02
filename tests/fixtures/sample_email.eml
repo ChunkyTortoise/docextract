@@ -1,0 +1,9 @@
+From: sender@example.com
+To: recipient@example.com
+Subject: Test Invoice Email
+Date: Mon, 01 Mar 2026 12:00:00 +0000
+Content-Type: text/plain; charset=utf-8
+
+Please find attached invoice #INV-2026-001 for $1,250.00.
+Vendor: ABC Maintenance LLC
+Due Date: March 15, 2026

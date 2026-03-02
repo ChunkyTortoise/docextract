@@ -1,0 +1,26 @@
+INVOICE
+
+Invoice Number: INV-2026-0042
+Date: March 1, 2026
+Due Date: March 31, 2026
+
+From:
+ABC Maintenance LLC
+123 Main Street
+Portland, OR 97201
+
+Bill To:
+Cascade Property Management
+456 Oak Avenue, Suite 200
+Portland, OR 97204
+
+Description                    Qty    Unit Price    Amount
+Plumbing repair - Unit 4B       1      $450.00     $450.00
+HVAC filter replacement         12      $25.00     $300.00
+Parking lot sweeping             1     $200.00     $200.00
+
+                              Subtotal:            $950.00
+                              Tax (8.5%):           $80.75
+                              Total:             $1,030.75
+
+Payment Terms: Net 30

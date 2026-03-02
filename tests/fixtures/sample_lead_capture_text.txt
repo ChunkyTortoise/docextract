@@ -1,0 +1,16 @@
+LEAD CAPTURE FORM
+
+First Name: Sarah
+Last Name: Johnson
+Email: sarah.johnson@email.com
+Phone: (503) 555-0199
+Company: Johnson & Associates
+
+Property Interest: 2BR apartment downtown
+Budget Range: $1,500 - $2,000/month
+Move-in Date: April 1, 2026
+Bedrooms Needed: 2
+Pet Owner: Yes (1 cat)
+
+Source: Walk-in
+Notes: Interested in units with in-unit laundry. Flexible on move date.

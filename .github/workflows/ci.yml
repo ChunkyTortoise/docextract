@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install linting deps
+        run: pip install ruff mypy
+      - name: Ruff check
+        run: ruff check app/ worker/ scripts/ frontend/
+      - name: mypy
+        run: mypy app/ worker/ --ignore-missing-imports
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: ankane/pgvector:latest
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: docextract_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install system deps
+        run: sudo apt-get install -y tesseract-ocr libmagic1
+      - name: Install Python deps
+        run: pip install -r requirements.txt aiosqlite
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/docextract_test
+          REDIS_URL: redis://localhost:6379/0
+          ANTHROPIC_API_KEY: test-key
+          API_KEY_SECRET: test-secret-32-chars-minimum-here
+        run: pytest tests/unit/ tests/integration/ -v --tb=short
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -f Dockerfile -t docextract-api .
+      - name: Build Worker image
+        run: docker build -f Dockerfile.worker -t docextract-worker .
+      - name: Build Frontend image
+        run: docker build -f Dockerfile.frontend -t docextract-frontend .

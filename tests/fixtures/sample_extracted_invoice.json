@@ -1,0 +1,40 @@
+{
+  "document_type": "vendor_invoice",
+  "invoice_number": "INV-2026-0042",
+  "invoice_date": "2026-03-01",
+  "due_date": "2026-03-31",
+  "vendor_name": "ABC Maintenance LLC",
+  "vendor_address": "123 Main Street, Portland, OR 97201",
+  "bill_to_name": "Cascade Property Management",
+  "bill_to_address": "456 Oak Avenue, Suite 200, Portland, OR 97204",
+  "currency": "USD",
+  "line_items": [
+    {
+      "line_number": 1,
+      "description": "Plumbing repair - Unit 4B",
+      "quantity": "1",
+      "unit_price": "450.00",
+      "amount": "450.00"
+    },
+    {
+      "line_number": 2,
+      "description": "HVAC filter replacement",
+      "quantity": "12",
+      "unit_price": "25.00",
+      "amount": "300.00"
+    },
+    {
+      "line_number": 3,
+      "description": "Parking lot sweeping",
+      "quantity": "1",
+      "unit_price": "200.00",
+      "amount": "200.00"
+    }
+  ],
+  "subtotal": "950.00",
+  "tax_total": "80.75",
+  "discount_amount": "0",
+  "total_amount": "1030.75",
+  "payment_terms": "Net 30",
+  "confidence_score": 0.95
+}
