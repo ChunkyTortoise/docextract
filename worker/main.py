@@ -7,6 +7,7 @@ import signal
 from datetime import datetime, timedelta, timezone
 
 import redis.asyncio as aioredis
+from arq.connections import RedisSettings
 
 from app.config import settings
 from worker.tasks import process_document
@@ -71,7 +72,7 @@ class WorkerSettings:
     functions = [process_document]
     on_startup = startup
     on_shutdown = shutdown
-    redis_settings = None  # Set at runtime
+    redis_settings = RedisSettings.from_dsn(settings.redis_url)
     queue_name = settings.worker_queue
     max_jobs = settings.worker_max_jobs
     job_timeout = settings.job_timeout_seconds
