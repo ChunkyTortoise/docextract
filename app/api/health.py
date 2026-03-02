@@ -1,6 +1,7 @@
 """Health check endpoints -- no auth required."""
 from __future__ import annotations
 
+import asyncio
 import uuid
 
 from fastapi import APIRouter, Depends
@@ -41,12 +42,13 @@ async def health_check(
 
     try:
         probe_key = f"_health_probe/{uuid.uuid4()}"
-        await storage.upload(probe_key, b"\x00")
-        await storage.delete(probe_key)
+        await asyncio.wait_for(storage.upload(probe_key, b"\x00"), timeout=5.0)
+        await asyncio.wait_for(storage.delete(probe_key), timeout=5.0)
         storage_ok = True
     except Exception:
         pass
 
-    all_ok = db_ok and redis_ok and storage_ok
+    # DB + Redis are the critical path; storage degradation doesn't block traffic
+    all_ok = db_ok and redis_ok
     status = "healthy" if all_ok else "degraded"
     return HealthResponse(status=status, db_ok=db_ok, redis_ok=redis_ok, storage_ok=storage_ok)
