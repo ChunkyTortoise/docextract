@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.middleware import get_api_key
 from app.dependencies import get_db
 from app.models.api_key import APIKey
+from app.models.embedding import DocumentEmbedding
 from app.models.record import ExtractedRecord
 from app.schemas.requests import ReviewRequest
 from app.schemas.responses import PaginatedRecords, RecordItem
@@ -74,6 +75,57 @@ async def list_records(
         page_size=page_size,
         has_next=(page * page_size) < total,
     )
+
+
+@router.get("/search")
+async def search_records(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    api_key: APIKey = Depends(get_api_key),
+):
+    """Semantic search over extracted records using embeddings."""
+    from app.services.embedder import embed
+
+    query_vector = embed(q)
+
+    # Join content_embeddings on record_id, order by cosine distance
+    stmt = (
+        select(
+            ExtractedRecord,
+            DocumentEmbedding.embedding.cosine_distance(query_vector).label(
+                "distance"
+            ),
+        )
+        .join(
+            DocumentEmbedding,
+            DocumentEmbedding.record_id == ExtractedRecord.id,
+        )
+        .order_by("distance")
+        .limit(limit)
+    )
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    return [
+        {
+            "record": RecordItem(
+                id=str(record.id),
+                job_id=str(record.job_id),
+                document_id=str(record.document_id),
+                document_type=record.document_type,
+                extracted_data=record.extracted_data,
+                confidence_score=record.confidence_score,
+                needs_review=record.needs_review,
+                validation_status=record.validation_status,
+                review_status=None,
+                created_at=record.created_at,
+            ),
+            "similarity": round(1 - distance, 4),
+        }
+        for record, distance in rows
+    ]
 
 
 @router.get("/{record_id}")

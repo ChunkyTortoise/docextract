@@ -75,48 +75,62 @@ def extract(
 
     client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
-    # Pass 1: Extract
-    try:
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=4096,
-            system=EXTRACT_SYSTEM_PROMPT,
-            messages=[
-                {
-                    "role": "user",
-                    "content": EXTRACT_PROMPT.format(doc_type=doc_type, text=text[:8000]),
-                }
-            ],
-        )
-
-        raw_text = response.content[0].text
-
-        # Parse JSON from response
-        extracted = _parse_json_response(raw_text)
-        confidence = float(extracted.pop("_confidence", 0.5))
-
-        # Pass 2: Correction if low confidence
-        corrections_applied = False
-        if confidence < settings.extraction_confidence_threshold:
-            extracted, corrections_applied = _apply_corrections_pass(
-                client, text, doc_type, extracted, confidence
+    # Pass 1: Extract (with rate limit retry)
+    for attempt in range(3):
+        try:
+            response = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=4096,
+                system=EXTRACT_SYSTEM_PROMPT,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": EXTRACT_PROMPT.format(doc_type=doc_type, text=text[:8000]),
+                    }
+                ],
             )
 
-        return ExtractionResult(
-            data=extracted,
-            confidence=confidence,
-            corrections_applied=corrections_applied,
-            raw_response=raw_text,
-        )
+            raw_text = response.content[0].text
 
-    except anthropic.RateLimitError:
-        time.sleep(60)
-        return extract(text, doc_type, schema_class)
+            # Parse JSON from response
+            extracted = _parse_json_response(raw_text)
+            confidence = float(extracted.pop("_confidence", 0.5))
 
-    except anthropic.APIStatusError as e:
-        if e.status_code >= 400 and e.status_code < 500:
+            # Pass 2: Correction if low confidence
+            corrections_applied = False
+            if confidence < settings.extraction_confidence_threshold:
+                extracted, corrections_applied = _apply_corrections_pass(
+                    client, text, doc_type, extracted, confidence
+                )
+
+            return ExtractionResult(
+                data=extracted,
+                confidence=confidence,
+                corrections_applied=corrections_applied,
+                raw_response=raw_text,
+            )
+
+        except anthropic.RateLimitError:
+            if attempt == 2:
+                raise
+            wait_time = 60 * (2 ** attempt)
+            logger.warning(
+                "Rate limit hit, retrying in %ds (attempt %d/3)",
+                wait_time, attempt + 1,
+            )
+            time.sleep(wait_time)
+
+        except anthropic.APIStatusError as e:
+            if e.status_code >= 400 and e.status_code < 500:
+                raise
             raise
-        raise
+
+    # Unreachable, but satisfies type checker
+    raise anthropic.RateLimitError(  # pragma: no cover
+        message="Rate limit exceeded after 3 attempts",
+        response=None,  # type: ignore[arg-type]
+        body=None,
+    )
 
 
 def _parse_json_response(text: str) -> dict[str, Any]:

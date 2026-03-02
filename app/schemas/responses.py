@@ -72,6 +72,7 @@ class HealthResponse(BaseModel):
     status: Literal["healthy", "degraded"]
     db_ok: bool
     redis_ok: bool
+    storage_ok: bool = True
     version: str = "1.0.0"
 
 

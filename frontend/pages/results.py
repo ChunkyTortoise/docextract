@@ -13,18 +13,13 @@ def render() -> None:
         return
 
     try:
-        # Get job to find record
-        records = api.get_records(page_size=1)  # Get latest
-        # In real impl: filter by job_id
+        # Get record for this specific job
+        full_record = api.get_job_record(job_id)
 
         st.subheader("Extracted Data")
 
-        if records.get("items"):
-            record = records["items"][0]
-            record_id = record["id"]
-
-            # Load full record
-            full_record = api.get_record(record_id)
+        if full_record:
+            record_id = full_record["id"]
 
             col1, col2 = st.columns([1, 1])
 

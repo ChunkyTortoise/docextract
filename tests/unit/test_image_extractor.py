@@ -129,3 +129,46 @@ def test_empty_image_returns_empty_text() -> None:
     result = extract_image(image, engine="tesseract")
 
     assert result.text == ""
+
+
+def test_tesseract_not_found_returns_empty() -> None:
+    """Gracefully returns empty text when Tesseract binary is missing at runtime.
+
+    TesseractNotFoundError inherits from EnvironmentError (alias for OSError),
+    so we simulate it with an EnvironmentError.
+    """
+    from app.services.image_extractor import extract_image
+
+    _mock_pytesseract.image_to_data.side_effect = EnvironmentError("tesseract not found")
+
+    image = np.zeros((100, 200), dtype=np.uint8)
+    result = extract_image(image, engine="tesseract")
+
+    assert result.text == ""
+    assert result.metadata["engine"] == "tesseract"
+
+
+def test_tesseract_oserror_returns_empty() -> None:
+    """Gracefully returns empty text on OSError (e.g., broken tesseract install)."""
+    from app.services.image_extractor import extract_image
+
+    _mock_pytesseract.image_to_data.side_effect = OSError("tesseract crashed")
+
+    image = np.zeros((100, 200), dtype=np.uint8)
+    result = extract_image(image, engine="tesseract")
+
+    assert result.text == ""
+    assert result.metadata["engine"] == "tesseract"
+
+
+def test_tesseract_file_not_found_returns_empty() -> None:
+    """Gracefully returns empty text on FileNotFoundError."""
+    from app.services.image_extractor import extract_image
+
+    _mock_pytesseract.image_to_data.side_effect = FileNotFoundError("tesseract binary missing")
+
+    image = np.zeros((100, 200), dtype=np.uint8)
+    result = extract_image(image, engine="tesseract")
+
+    assert result.text == ""
+    assert result.metadata["engine"] == "tesseract"

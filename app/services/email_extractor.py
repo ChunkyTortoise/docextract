@@ -102,7 +102,7 @@ def extract_eml(data: bytes) -> ExtractedContent:
         if payload is None:
             continue
 
-        extracted = _process_attachment(payload, mime, filename)
+        extracted = _process_attachment(payload, mime, filename, _depth=0)
         if extracted:
             attachment_texts.append(
                 f"\n--- ATTACHMENT: {filename} ---\n{extracted}"
@@ -170,7 +170,7 @@ def extract_msg_file(data: bytes) -> ExtractedContent:
                 att_name = att.longFilename or att.shortFilename or "attachment"
                 mime = _guess_mime_from_filename(att_name)
                 if att_data and mime:
-                    extracted = _process_attachment(att_data, mime, att_name)
+                    extracted = _process_attachment(att_data, mime, att_name, _depth=0)
                     if extracted:
                         attachment_texts.append(
                             f"\n--- ATTACHMENT: {att_name} ---\n{extracted}"
@@ -199,9 +199,13 @@ def extract_msg_file(data: bytes) -> ExtractedContent:
 
 
 def _process_attachment(
-    payload: bytes, mime: str, filename: str
+    payload: bytes, mime: str, filename: str, _depth: int = 0
 ) -> str | None:
     """Recursively process a PDF or image attachment."""
+    if _depth >= 3:
+        logger.warning("Max email attachment depth (3) reached, skipping deeper attachments")
+        return ""
+
     try:
         if mime == _PDF_MIME:
             from app.services.pdf_extractor import extract_pdf

@@ -141,3 +141,39 @@ def test_extract_msg_not_installed() -> None:
     """Raises RuntimeError when extract-msg is not installed."""
     with pytest.raises(RuntimeError, match="extract-msg"):
         extract_msg_file(b"fake-msg-data")
+
+
+class TestAttachmentDepthLimit:
+    def test_process_attachment_within_depth(self) -> None:
+        """Attachments within depth limit are processed normally."""
+        from app.services.email_extractor import _process_attachment
+
+        with patch("app.services.pdf_extractor.extract_pdf") as mock_pdf:
+            mock_pdf.return_value = MagicMock(text="Extracted PDF")
+            result = _process_attachment(b"pdf-bytes", "application/pdf", "doc.pdf", _depth=0)
+
+        assert result == "Extracted PDF"
+
+    def test_process_attachment_at_max_depth_returns_empty(self) -> None:
+        """Attachments at depth >= 3 return empty string (no recursion)."""
+        from app.services.email_extractor import _process_attachment
+
+        result = _process_attachment(b"pdf-bytes", "application/pdf", "doc.pdf", _depth=3)
+        assert result == ""
+
+    def test_process_attachment_beyond_max_depth_returns_empty(self) -> None:
+        """Attachments beyond depth 3 return empty string."""
+        from app.services.email_extractor import _process_attachment
+
+        result = _process_attachment(b"pdf-bytes", "application/pdf", "doc.pdf", _depth=5)
+        assert result == ""
+
+    def test_depth_limit_does_not_block_shallow(self) -> None:
+        """Depth 2 (below limit) still processes normally."""
+        from app.services.email_extractor import _process_attachment
+
+        with patch("app.services.pdf_extractor.extract_pdf") as mock_pdf:
+            mock_pdf.return_value = MagicMock(text="Deep PDF")
+            result = _process_attachment(b"pdf-bytes", "application/pdf", "deep.pdf", _depth=2)
+
+        assert result == "Deep PDF"

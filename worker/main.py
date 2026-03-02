@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 import redis.asyncio as aioredis
 from arq.connections import RedisSettings
+from arq.cron import cron
 
 from app.config import settings
 from worker.tasks import process_document
@@ -68,8 +69,15 @@ async def recover_stale_jobs(redis: aioredis.Redis) -> None:
             logger.info("Recovered %d stale jobs", len(stale_jobs))
 
 
+async def recover_stale_jobs_cron(ctx: dict) -> None:
+    """Cron wrapper: recover stale jobs every 10 minutes."""
+    redis: aioredis.Redis = ctx["redis"]
+    await recover_stale_jobs(redis)
+
+
 class WorkerSettings:
     functions = [process_document]
+    cron_jobs = [cron(recover_stale_jobs_cron, minute={0, 10, 20, 30, 40, 50})]
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = RedisSettings.from_dsn(settings.redis_url)

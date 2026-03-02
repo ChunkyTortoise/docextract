@@ -74,7 +74,13 @@ def extract_image(
 
 def _extract_with_tesseract(image: np.ndarray) -> str:
     """Extract text using pytesseract with reading-order reconstruction."""
-    data = pytesseract.image_to_data(image, output_type=Output.DICT)
+    try:
+        data = pytesseract.image_to_data(image, output_type=Output.DICT)
+    except OSError:
+        # Catches TesseractNotFoundError (subclass of EnvironmentError/OSError),
+        # FileNotFoundError, and other OS-level failures
+        logger.warning("Tesseract unavailable, returning empty text")
+        return ""
 
     # Build word entries with positions for reading-order sorting
     entries: list[tuple[int, int, str]] = []

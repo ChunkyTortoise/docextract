@@ -46,6 +46,14 @@ def get_job(job_id: str) -> dict[str, Any]:
         return response.json()
 
 
+def get_job_record(job_id: str) -> dict[str, Any]:
+    """Get the extracted record for a specific job."""
+    with get_client() as client:
+        response = client.get(f"/jobs/{job_id}/record")
+        response.raise_for_status()
+        return response.json()
+
+
 def get_records(
     page: int = 1,
     page_size: int = 20,
@@ -92,6 +100,14 @@ def review_record(
                 "reviewer_notes": reviewer_notes,
             },
         )
+        response.raise_for_status()
+        return response.json()
+
+
+def search_records(query: str, limit: int = 10) -> dict[str, Any]:
+    """Search records using semantic search."""
+    with get_client() as client:
+        response = client.get("/records/search", params={"q": query, "limit": limit})
         response.raise_for_status()
         return response.json()
 

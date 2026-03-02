@@ -180,11 +180,11 @@ class TestParseJsonResponse:
 class TestExtractErrorHandling:
     @patch("app.services.claude_extractor.time.sleep")
     @patch("app.services.claude_extractor.anthropic.Anthropic")
-    def test_rate_limit_retries(self, mock_cls, mock_sleep):
+    def test_rate_limit_retries_with_backoff(self, mock_cls, mock_sleep):
+        """Rate limit retry uses exponential backoff (60s, 120s)."""
         client = MagicMock()
         mock_cls.return_value = client
 
-        # First call: rate limit, second call: success
         rate_limit_error = anthropic.RateLimitError(
             message="rate limited",
             response=MagicMock(status_code=429, headers={}),
@@ -198,6 +198,52 @@ class TestExtractErrorHandling:
         result = extract("test", "invoice")
         assert result.confidence == 0.9
         mock_sleep.assert_called_once_with(60)
+
+    @patch("app.services.claude_extractor.time.sleep")
+    @patch("app.services.claude_extractor.anthropic.Anthropic")
+    def test_rate_limit_second_retry_doubles_wait(self, mock_cls, mock_sleep):
+        """Second retry waits 120s (exponential backoff)."""
+        client = MagicMock()
+        mock_cls.return_value = client
+
+        rate_limit_error = anthropic.RateLimitError(
+            message="rate limited",
+            response=MagicMock(status_code=429, headers={}),
+            body=None,
+        )
+        success_response = _make_response(
+            [_make_text_block(json.dumps({"_confidence": 0.85}))]
+        )
+        client.messages.create.side_effect = [
+            rate_limit_error, rate_limit_error, success_response
+        ]
+
+        result = extract("test", "invoice")
+        assert result.confidence == 0.85
+        assert mock_sleep.call_count == 2
+        mock_sleep.assert_any_call(60)
+        mock_sleep.assert_any_call(120)
+
+    @patch("app.services.claude_extractor.time.sleep")
+    @patch("app.services.claude_extractor.anthropic.Anthropic")
+    def test_rate_limit_raises_after_3_failures(self, mock_cls, mock_sleep):
+        """Raises RateLimitError after 3 consecutive failures (no infinite recursion)."""
+        client = MagicMock()
+        mock_cls.return_value = client
+
+        rate_limit_error = anthropic.RateLimitError(
+            message="rate limited",
+            response=MagicMock(status_code=429, headers={}),
+            body=None,
+        )
+        client.messages.create.side_effect = rate_limit_error
+
+        with pytest.raises(anthropic.RateLimitError):
+            extract("test", "invoice")
+
+        # Should have attempted 3 times, slept twice (after attempt 0 and 1)
+        assert client.messages.create.call_count == 3
+        assert mock_sleep.call_count == 2
 
     @patch("app.services.claude_extractor.anthropic.Anthropic")
     def test_4xx_error_re_raises(self, mock_cls):

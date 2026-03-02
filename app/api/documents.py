@@ -123,6 +123,85 @@ async def upload_document(
     )
 
 
+@router.post("/batch", status_code=202)
+async def batch_upload(
+    files: list[UploadFile] = File(...),
+    priority: str = Form("standard"),
+    force: bool = Query(False),
+    db: AsyncSession = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
+    redis: aioredis.Redis = Depends(get_redis),
+    api_key: APIKey = Depends(get_api_key),
+):
+    """Upload multiple documents for processing."""
+    job_ids: list[str] = []
+    duplicates: list[str] = []
+
+    for uploaded_file in files:
+        file_bytes = await uploaded_file.read()
+
+        if len(file_bytes) > settings.max_file_size_mb * 1024 * 1024:
+            continue  # skip oversized files silently
+
+        mime_type = detect_mime_type(file_bytes)
+        if not is_allowed_mime_type(mime_type):
+            continue  # skip unsupported types
+
+        sha256 = hash_file(file_bytes)
+
+        # Dedup check
+        if not force:
+            existing = await db.execute(
+                select(Document).where(Document.sha256_hash == sha256)
+            )
+            doc = existing.scalar_one_or_none()
+            if doc:
+                duplicates.append(uploaded_file.filename or "unknown")
+                continue
+
+        doc_id = uuid.uuid4()
+        key = f"documents/{doc_id}/{uploaded_file.filename}"
+        await storage.upload(key, file_bytes, mime_type)
+
+        doc = Document(
+            id=doc_id,
+            original_filename=uploaded_file.filename or "unknown",
+            stored_path=key,
+            mime_type=mime_type,
+            file_size_bytes=len(file_bytes),
+            sha256_hash=sha256,
+            uploaded_by=api_key.id,
+        )
+        db.add(doc)
+
+        job_id = uuid.uuid4()
+        job = ExtractionJob(
+            id=job_id,
+            document_id=doc_id,
+            status="queued",
+            priority=priority,
+        )
+        db.add(job)
+        await db.flush()
+
+        # Enqueue ARQ job
+        arq_redis = await arq.create_pool(
+            arq.connections.RedisSettings.from_dsn(settings.redis_url)
+        )
+        await arq_redis.enqueue_job(
+            "process_document",
+            str(job_id),
+            _queue_name=settings.worker_queue,
+            _job_id=str(job_id),
+        )
+        await arq_redis.aclose()
+
+        job_ids.append(str(job_id))
+
+    await db.commit()
+    return {"job_ids": job_ids, "duplicates": duplicates}
+
+
 @router.delete("/{document_id}")
 async def delete_document(
     document_id: str,
