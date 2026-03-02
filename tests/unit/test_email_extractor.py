@@ -177,3 +177,140 @@ class TestAttachmentDepthLimit:
             result = _process_attachment(b"pdf-bytes", "application/pdf", "deep.pdf", _depth=2)
 
         assert result == "Deep PDF"
+
+
+class TestProcessAttachmentImage:
+    def test_image_attachment_processed(self) -> None:
+        """Image attachments are preprocessed and OCR'd."""
+        from app.services.email_extractor import _process_attachment
+
+        with (
+            patch("app.services.preprocessor.preprocess_bytes") as mock_preprocess,
+            patch("app.services.image_extractor.extract_image") as mock_extract,
+            patch("app.config.settings") as mock_settings,
+        ):
+            mock_preprocess.return_value = "preprocessed-image"
+            mock_extract.return_value = MagicMock(text="OCR text from image")
+            mock_settings.ocr_engine = "tesseract"
+
+            result = _process_attachment(b"img-bytes", "image/jpeg", "scan.jpg", _depth=0)
+
+        assert result == "OCR text from image"
+        mock_preprocess.assert_called_once_with(b"img-bytes")
+
+    def test_attachment_exception_returns_none(self) -> None:
+        """Failed attachment processing returns None."""
+        from app.services.email_extractor import _process_attachment
+
+        with patch("app.services.pdf_extractor.extract_pdf", side_effect=Exception("corrupt")):
+            result = _process_attachment(b"bad-pdf", "application/pdf", "bad.pdf", _depth=0)
+
+        assert result is None
+
+    def test_unknown_mime_returns_none(self) -> None:
+        """Unknown MIME types are not processed."""
+        from app.services.email_extractor import _process_attachment
+
+        result = _process_attachment(b"data", "text/plain", "file.txt", _depth=0)
+        assert result is None
+
+
+class TestGuesseMimeFromFilename:
+    def test_known_extensions(self) -> None:
+        from app.services.email_extractor import _guess_mime_from_filename
+
+        assert _guess_mime_from_filename("doc.pdf") == "application/pdf"
+        assert _guess_mime_from_filename("photo.jpg") == "image/jpeg"
+        assert _guess_mime_from_filename("scan.png") == "image/png"
+        assert _guess_mime_from_filename("email.eml") == "message/rfc822"
+
+    def test_unknown_extension(self) -> None:
+        from app.services.email_extractor import _guess_mime_from_filename
+
+        assert _guess_mime_from_filename("data.xyz") is None
+        assert _guess_mime_from_filename("readme.txt") is None
+
+
+class TestExtractMsgFile:
+    @pytest.fixture(autouse=True)
+    def _inject_extract_msg(self):
+        """Inject a mock extract_msg module so extract_msg_file can run."""
+        import sys
+        import app.services.email_extractor as mod
+
+        mock_module = MagicMock()
+        sys.modules["extract_msg"] = mock_module
+        mod.extract_msg = mock_module
+        original_flag = mod.HAS_EXTRACT_MSG
+        mod.HAS_EXTRACT_MSG = True
+        self._mock_extract_msg = mock_module
+        yield
+        mod.HAS_EXTRACT_MSG = original_flag
+        if hasattr(mod, "extract_msg"):
+            delattr(mod, "extract_msg")
+        sys.modules.pop("extract_msg", None)
+
+    def test_extract_msg_basic(self) -> None:
+        """MSG extraction parses sender, to, subject, body."""
+        mock_msg = MagicMock()
+        mock_msg.sender = "sender@test.com"
+        mock_msg.to = "recipient@test.com"
+        mock_msg.cc = ""
+        mock_msg.subject = "Test MSG"
+        mock_msg.date = "2026-01-01"
+        mock_msg.body = "Message body text"
+        mock_msg.attachments = []
+        mock_msg.close = MagicMock()
+        self._mock_extract_msg.Message.return_value = mock_msg
+
+        result = extract_msg_file(b"fake-msg-data")
+
+        assert "Message body text" in result.text
+        assert result.metadata["from"] == "sender@test.com"
+        assert result.metadata["subject"] == "Test MSG"
+
+    def test_extract_msg_with_attachments(self) -> None:
+        """MSG with attachments processes them."""
+        mock_att = MagicMock()
+        mock_att.data = b"fake-pdf-data"
+        mock_att.longFilename = "report.pdf"
+        mock_att.shortFilename = "rep.pdf"
+
+        mock_msg = MagicMock()
+        mock_msg.sender = "sender@test.com"
+        mock_msg.to = "to@test.com"
+        mock_msg.cc = None
+        mock_msg.subject = "With attachment"
+        mock_msg.date = None
+        mock_msg.body = "See attached"
+        mock_msg.attachments = [mock_att]
+        mock_msg.close = MagicMock()
+        self._mock_extract_msg.Message.return_value = mock_msg
+
+        with (
+            patch("app.services.email_extractor._process_attachment", return_value="Extracted PDF"),
+            patch("app.services.email_extractor._guess_mime_from_filename", return_value="application/pdf"),
+        ):
+            result = extract_msg_file(b"fake-msg-data")
+
+        assert result.metadata["attachment_count"] == 1
+        assert "ATTACHMENT: report.pdf" in result.text
+
+    def test_extract_msg_none_fields(self) -> None:
+        """MSG with None fields uses empty strings."""
+        mock_msg = MagicMock()
+        mock_msg.sender = None
+        mock_msg.to = None
+        mock_msg.cc = None
+        mock_msg.subject = None
+        mock_msg.date = None
+        mock_msg.body = None
+        mock_msg.attachments = None
+        mock_msg.close = MagicMock()
+        self._mock_extract_msg.Message.return_value = mock_msg
+
+        result = extract_msg_file(b"fake-msg-data")
+
+        assert result.metadata["from"] == ""
+        assert result.metadata["to"] == ""
+        assert result.metadata["attachment_count"] == 0

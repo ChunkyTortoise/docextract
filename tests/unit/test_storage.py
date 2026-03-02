@@ -1,6 +1,8 @@
 """Tests for storage backends."""
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import pytest
 
 from app.storage.local import LocalStorageBackend
@@ -139,3 +141,58 @@ async def test_r2_presigned_url(mock_r2_storage):
     mock_client.generate_presigned_url.return_value = "https://presigned-url.example.com"
     url = await backend.get_presigned_url("test.pdf", expires_in=600)
     assert url == "https://presigned-url.example.com"
+
+
+@pytest.mark.asyncio
+async def test_r2_delete_nosuchkey(mock_r2_storage):
+    """R2 delete returns False on NoSuchKey error."""
+    from botocore.exceptions import ClientError
+
+    backend, mock_client = mock_r2_storage
+    error_response = {"Error": {"Code": "NoSuchKey", "Message": "Not found"}}
+    mock_client.delete_object.side_effect = ClientError(error_response, "DeleteObject")
+    result = await backend.delete("nonexistent.pdf")
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_r2_delete_other_error_raises(mock_r2_storage):
+    """R2 delete re-raises non-NoSuchKey ClientError."""
+    from botocore.exceptions import ClientError
+
+    backend, mock_client = mock_r2_storage
+    error_response = {"Error": {"Code": "AccessDenied", "Message": "Forbidden"}}
+    mock_client.delete_object.side_effect = ClientError(error_response, "DeleteObject")
+    with pytest.raises(ClientError):
+        await backend.delete("forbidden.pdf")
+
+
+@pytest.mark.asyncio
+async def test_r2_list_keys(mock_r2_storage):
+    """R2 list_keys returns keys from paginated results."""
+    backend, mock_client = mock_r2_storage
+
+    mock_paginator = MagicMock()
+    mock_client.get_paginator.return_value = mock_paginator
+
+    pages = [
+        {"Contents": [{"Key": "file1.pdf"}, {"Key": "file2.pdf"}]},
+        {"Contents": [{"Key": "file3.pdf"}]},
+    ]
+    mock_paginator.paginate.return_value = pages
+
+    keys = await backend.list_keys(prefix="docs/")
+    assert keys == ["file1.pdf", "file2.pdf", "file3.pdf"]
+
+
+@pytest.mark.asyncio
+async def test_r2_list_keys_empty(mock_r2_storage):
+    """R2 list_keys returns empty list when no objects found."""
+    backend, mock_client = mock_r2_storage
+
+    mock_paginator = MagicMock()
+    mock_client.get_paginator.return_value = mock_paginator
+    mock_paginator.paginate.return_value = [{}]
+
+    keys = await backend.list_keys()
+    assert keys == []

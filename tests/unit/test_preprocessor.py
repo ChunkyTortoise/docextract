@@ -44,3 +44,26 @@ def test_preprocess_bytes():
     _, encoded = cv2.imencode(".png", img)
     result = preprocess_bytes(encoded.tobytes())
     assert result is not None
+
+
+def test_preprocess_bytes_invalid_data():
+    """Invalid image bytes raise ValueError."""
+    with pytest.raises(ValueError, match="Could not decode"):
+        preprocess_bytes(b"not-an-image")
+
+
+def test_preprocess_bytes_jpeg():
+    """JPEG encoded bytes are preprocessed correctly."""
+    import cv2
+
+    img = make_test_image(h=50, w=80)
+    _, encoded = cv2.imencode(".jpg", img)
+    result = preprocess_bytes(encoded.tobytes())
+    assert len(result.shape) == 2  # grayscale
+
+
+def test_deskew_preserves_dimensions():
+    """Deskew does not change image dimensions."""
+    img = make_test_image(h=100, w=200)
+    result = preprocess_image(img)
+    assert result.shape == (100, 200)

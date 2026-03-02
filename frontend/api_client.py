@@ -124,6 +124,21 @@ def export_records(format: str = "csv", document_type: str | None = None) -> byt
         return response.content
 
 
+def list_jobs(
+    page: int = 1,
+    page_size: int = 100,
+    status: str | None = None,
+) -> list[dict[str, Any]]:
+    """List jobs with optional status filter."""
+    params: dict[str, Any] = {"page": page, "page_size": page_size}
+    if status:
+        params["status"] = status
+    with get_client() as client:
+        response = client.get("/jobs", params=params)
+        response.raise_for_status()
+        return response.json()
+
+
 def get_stats() -> dict[str, Any]:
     """Get aggregate statistics."""
     with get_client() as client:

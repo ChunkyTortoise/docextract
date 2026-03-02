@@ -139,3 +139,108 @@ def test_extract_pdf_max_pages_truncation(
 
     assert result.page_count == 2
     assert result.metadata["truncated"] is True
+
+
+@patch("app.services.pdf_extractor.settings")
+@patch("app.services.pdf_extractor.pdfplumber")
+@patch("app.services.pdf_extractor.fitz")
+def test_extract_pdf_scanned_page_ocr(
+    mock_fitz: MagicMock,
+    mock_pdfplumber: MagicMock,
+    mock_settings: MagicMock,
+) -> None:
+    """Scanned pages (no text blocks) are OCR'd via image_extractor."""
+    mock_settings.max_pages = 100
+    mock_settings.ocr_engine = "tesseract"
+
+    # Page with no text blocks -> triggers OCR path
+    scanned_page = MagicMock()
+    scanned_page.get_text.return_value = []  # No text blocks
+
+    mock_pixmap = MagicMock()
+    mock_pixmap.samples = b"\x00" * (100 * 100 * 3)  # 100x100 RGB
+    mock_pixmap.height = 100
+    mock_pixmap.width = 100
+    mock_pixmap.n = 3
+    scanned_page.get_pixmap.return_value = mock_pixmap
+
+    mock_doc = _make_mock_doc(pages=[scanned_page], page_count=1)
+    mock_fitz.open.return_value = mock_doc
+
+    mock_pdf = MagicMock()
+    mock_pdf.pages = [MagicMock()]
+    mock_pdf.pages[0].extract_tables.return_value = []
+    mock_pdf.__enter__ = lambda self: mock_pdf
+    mock_pdf.__exit__ = MagicMock(return_value=False)
+    mock_pdfplumber.open.return_value = mock_pdf
+
+    with (
+        patch("app.services.preprocessor.preprocess_image") as mock_preprocess,
+        patch("app.services.image_extractor.extract_image") as mock_extract,
+    ):
+        mock_preprocess.return_value = "preprocessed"
+        mock_extract.return_value = ExtractedContent(text="OCR scanned text", metadata={}, page_count=1)
+
+        result = extract_pdf(b"scanned-pdf")
+
+    assert "OCR scanned text" in result.text
+    mock_preprocess.assert_called_once()
+    mock_extract.assert_called_once()
+
+
+@patch("app.services.pdf_extractor.pdfplumber")
+@patch("app.services.pdf_extractor.fitz")
+def test_extract_pdf_with_tables(mock_fitz: MagicMock, mock_pdfplumber: MagicMock) -> None:
+    """Tables are extracted and appended as markdown."""
+    mock_doc = _make_mock_doc()
+    mock_fitz.open.return_value = mock_doc
+
+    mock_page = MagicMock()
+    mock_page.extract_tables.return_value = [
+        [["Name", "Amount"], ["Alice", "100"], ["Bob", "200"]]
+    ]
+    mock_pdf = MagicMock()
+    mock_pdf.pages = [mock_page]
+    mock_pdf.__enter__ = lambda self: mock_pdf
+    mock_pdf.__exit__ = MagicMock(return_value=False)
+    mock_pdfplumber.open.return_value = mock_pdf
+
+    result = extract_pdf(b"table-pdf")
+
+    assert "TABLES" in result.text
+    assert "Name" in result.text
+    assert "Alice" in result.text
+    assert result.metadata["has_tables"] is True
+
+
+@patch("app.services.pdf_extractor.pdfplumber")
+@patch("app.services.pdf_extractor.fitz")
+def test_extract_pdf_pdfplumber_failure(mock_fitz: MagicMock, mock_pdfplumber: MagicMock) -> None:
+    """pdfplumber failure is handled gracefully."""
+    mock_doc = _make_mock_doc()
+    mock_fitz.open.return_value = mock_doc
+
+    mock_pdfplumber.open.side_effect = Exception("pdfplumber crash")
+
+    result = extract_pdf(b"pdf-bytes")
+
+    assert isinstance(result, ExtractedContent)
+    assert "Sample text on page" in result.text
+
+
+def test_table_to_markdown_empty() -> None:
+    """Empty table returns empty string."""
+    from app.services.pdf_extractor import _table_to_markdown
+
+    assert _table_to_markdown([]) == ""
+
+
+def test_table_to_markdown_with_none_cells() -> None:
+    """None cells are converted to empty strings."""
+    from app.services.pdf_extractor import _table_to_markdown
+
+    result = _table_to_markdown([["Header", None], ["Value", "Data"]])
+    assert "Header" in result
+    assert "Value" in result
+    assert "Data" in result
+    assert "---" in result  # header separator
