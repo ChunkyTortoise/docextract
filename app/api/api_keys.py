@@ -5,6 +5,7 @@ import secrets
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -73,12 +74,12 @@ async def list_api_keys(
     ]
 
 
-@router.delete("/{key_id}", status_code=204)
+@router.delete("/{key_id}")
 async def revoke_api_key(
     key_id: str,
     db: AsyncSession = Depends(get_db),
     caller: APIKey = Depends(get_api_key),
-) -> None:
+) -> Response:
     """Revoke an API key by setting is_active=False."""
     result = await db.execute(
         select(APIKey).where(APIKey.id == key_id, APIKey.is_active == True)  # noqa: E712
@@ -89,3 +90,4 @@ async def revoke_api_key(
 
     key.is_active = False
     await db.commit()
+    return Response(status_code=204)
