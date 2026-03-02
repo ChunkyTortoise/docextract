@@ -123,13 +123,13 @@ async def upload_document(
     )
 
 
-@router.delete("/{document_id}", status_code=204, response_class=Response)
+@router.delete("/{document_id}")
 async def delete_document(
     document_id: str,
     db: AsyncSession = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
     api_key: APIKey = Depends(get_api_key),
-) -> None:
+) -> Response:
     """Delete a document and its storage file."""
     result = await db.execute(select(Document).where(Document.id == document_id))
     doc = result.scalar_one_or_none()
@@ -139,3 +139,4 @@ async def delete_document(
     await storage.delete(doc.stored_path)
     await db.delete(doc)
     await db.commit()
+    return Response(status_code=204)

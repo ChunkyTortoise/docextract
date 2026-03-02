@@ -1,6 +1,7 @@
 """FastAPI application factory."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from contextlib import asynccontextmanager
@@ -40,7 +41,7 @@ async def lifespan(app: FastAPI):
     try:
         from app.services.embedder import _get_model
 
-        _get_model()
+        await asyncio.wait_for(asyncio.to_thread(_get_model), timeout=60.0)
         logger.info("Embedding model loaded")
     except Exception as e:
         logger.warning("Embedding model pre-load failed (will load on demand): %s", e)
