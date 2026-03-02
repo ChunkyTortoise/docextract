@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects.postgresql import UUID
 
 revision: str = "002"
@@ -32,7 +33,7 @@ def upgrade() -> None:
             nullable=False, unique=True,
         ),
         sa.Column("content_text", sa.Text(), nullable=False),
-        sa.Column("embedding", sa.Text(), nullable=False),  # vector type added by pgvector
+        sa.Column("embedding", Vector(384), nullable=False),
         sa.Column(
             "created_at", sa.DateTime(timezone=True),
             server_default=sa.func.now(),
