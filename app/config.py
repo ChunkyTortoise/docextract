@@ -44,6 +44,16 @@ class Settings(BaseSettings):
     # Extraction
     extraction_confidence_threshold: float = 0.8
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def fix_database_url(cls, v: str) -> str:
+        # Render (and Heroku) provide postgres:// or postgresql:// — both need asyncpg driver
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        if v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str | list[str]) -> list[str]:
