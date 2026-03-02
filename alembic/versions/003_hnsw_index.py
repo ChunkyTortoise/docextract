@@ -18,11 +18,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.execute("""
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_embeddings_hnsw
+        CREATE INDEX IF NOT EXISTS idx_embeddings_hnsw
         ON content_embeddings USING hnsw (embedding vector_cosine_ops)
         WITH (m = 16, ef_construction = 64);
     """)
 
 
 def downgrade() -> None:
-    op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_embeddings_hnsw;")
+    op.execute("DROP INDEX IF EXISTS idx_embeddings_hnsw;")
