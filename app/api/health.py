@@ -17,13 +17,19 @@ from app.storage.base import StorageBackend
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health", response_model=HealthResponse)
-async def health_check(
+@router.get("/health")
+async def health_check() -> dict:
+    """Instant liveness check — no external deps, responds in < 1ms."""
+    return {"status": "healthy", "version": "1.0.0"}
+
+
+@router.get("/health/detailed", response_model=HealthResponse)
+async def health_check_detailed(
     db: AsyncSession = Depends(get_db),
     redis: aioredis.Redis = Depends(get_redis),
     storage: StorageBackend = Depends(get_storage),
 ) -> HealthResponse:
-    """Check system health: DB, Redis, and storage connectivity."""
+    """Full connectivity check: DB, Redis, storage. Use for monitoring, not Render health check."""
     db_ok = False
     redis_ok = False
     storage_ok = False
@@ -48,7 +54,6 @@ async def health_check(
     except Exception:
         pass
 
-    # DB + Redis are the critical path; storage degradation doesn't block traffic
     all_ok = db_ok and redis_ok
     status = "healthy" if all_ok else "degraded"
     return HealthResponse(status=status, db_ok=db_ok, redis_ok=redis_ok, storage_ok=storage_ok)

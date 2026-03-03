@@ -26,21 +26,9 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown."""
     logger.info("DocExtract AI starting up...")
-
-    from app.models.database import engine
-
-    async with engine.begin() as conn:
-        logger.info("Database connection pool initialized")
-
-    from app.dependencies import get_redis
-
-    redis = await get_redis()
-    await redis.ping()
-    logger.info("Redis connected")
-
     yield
-
     logger.info("DocExtract AI shutting down...")
+    from app.models.database import engine
     await engine.dispose()
     logger.info("Database connections closed")
 
