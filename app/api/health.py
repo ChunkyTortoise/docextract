@@ -18,9 +18,20 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
-async def health_check() -> dict:
-    """Instant liveness check — no external deps, responds in < 1ms."""
-    return {"status": "healthy", "version": "1.0.0"}
+async def health_check(
+    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
+    storage: StorageBackend = Depends(get_storage),
+) -> dict:
+    """Compatibility health endpoint that includes dependency status fields."""
+    detailed = await health_check_detailed(db=db, redis=redis, storage=storage)
+    return {
+        "status": detailed.status,
+        "version": detailed.version,
+        "db_ok": detailed.db_ok,
+        "redis_ok": detailed.redis_ok,
+        "storage_ok": detailed.storage_ok,
+    }
 
 
 @router.get("/health/detailed", response_model=HealthResponse)

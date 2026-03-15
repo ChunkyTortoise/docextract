@@ -1,0 +1,30 @@
+schema_version: 1
+name: docextract
+version: 1.0.0
+positioning: "Document intelligence with review queue, SLA tracking, and executive reporting"
+quickstart:
+  command: "make quickstart-client"
+  sla_days: 7
+environments:
+  required:
+    - database_url
+    - redis_url
+    - anthropic_api_key
+deliverables:
+  - Review queue API (/api/v1/review/*)
+  - ROI API (/api/v1/roi/*)
+  - Executive report API (/api/v1/reports/*)
+  - Two-pass extraction with human-in-the-loop fallback
+smoke_tests:
+  - "curl -s http://localhost:8000/api/v1/health"
+  - "curl -s http://localhost:8000/api/v1/review/metrics -H 'X-API-Key: <key>'"
+  - "pytest -q tests/integration/test_review_and_roi.py"
+acceptance_checklist:
+  - "Low-confidence items enter pending_review queue automatically"
+  - "Claim/approve/correct flow produces immutable audit entries"
+  - "SLA metrics expose stale queue and breach rate"
+  - "ROI and report endpoints provide client-shareable outcomes"
+handoff_outputs:
+  - "API key and onboarding credentials checklist"
+  - "Review queue baseline metrics snapshot"
+  - "Generated report artifact IDs and paths"

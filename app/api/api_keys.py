@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.middleware import get_api_key
+from app.auth.middleware import require_roles
 from app.dependencies import get_db
 from app.models.api_key import APIKey
 from app.schemas.api_keys import APIKeyInfo, CreateAPIKeyRequest, CreateAPIKeyResponse
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api-keys", tags=["api-keys"])
 async def create_api_key(
     body: CreateAPIKeyRequest | None = None,
     db: AsyncSession = Depends(get_db),
-    caller: APIKey = Depends(get_api_key),
+    caller: APIKey = Depends(require_roles("admin")),
 ) -> CreateAPIKeyResponse:
     """Generate a new API key. Plaintext is returned only once."""
     if body is None:
@@ -35,6 +35,7 @@ async def create_api_key(
     new_key = APIKey(
         id=key_id,
         name=body.name,
+        role=body.role,
         key_hash=key_hash,
         is_active=True,
         rate_limit_per_minute=body.rate_limit_per_minute,
@@ -46,6 +47,7 @@ async def create_api_key(
     return CreateAPIKeyResponse(
         id=key_id,
         name=new_key.name,
+        role=new_key.role,
         api_key=raw_key,
         rate_limit_per_minute=new_key.rate_limit_per_minute,
         created_at=new_key.created_at,
@@ -55,7 +57,7 @@ async def create_api_key(
 @router.get("", response_model=list[APIKeyInfo])
 async def list_api_keys(
     db: AsyncSession = Depends(get_db),
-    caller: APIKey = Depends(get_api_key),
+    caller: APIKey = Depends(require_roles("admin")),
 ) -> list[APIKeyInfo]:
     """List all active API keys. No plaintext keys returned."""
     result = await db.execute(
@@ -66,6 +68,7 @@ async def list_api_keys(
         APIKeyInfo(
             id=str(k.id),
             name=k.name,
+            role=k.role,
             created_at=k.created_at,
             last_used_at=k.last_used_at,
             rate_limit_per_minute=k.rate_limit_per_minute,
@@ -78,7 +81,7 @@ async def list_api_keys(
 async def revoke_api_key(
     key_id: str,
     db: AsyncSession = Depends(get_db),
-    caller: APIKey = Depends(get_api_key),
+    caller: APIKey = Depends(require_roles("admin")),
 ) -> Response:
     """Revoke an API key by setting is_active=False."""
     result = await db.execute(

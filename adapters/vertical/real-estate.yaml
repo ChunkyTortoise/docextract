@@ -1,0 +1,11 @@
+id: real-estate
+name: Real Estate Document Adapter
+intent: "Optimize extraction for listing packets, disclosures, and transaction docs"
+default_overrides:
+  document_type_priority:
+    - purchase_order
+    - invoice
+    - identity_document
+  review_rules:
+    - "confidence < 0.82 => review"
+    - "total_amount > 750000 => review"

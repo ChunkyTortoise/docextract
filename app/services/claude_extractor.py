@@ -1,6 +1,7 @@
 """Two-pass Claude document extraction service."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -60,7 +61,7 @@ CORRECTION_TOOL = {
 }
 
 
-def extract(
+async def extract(
     text: str,
     doc_type: str,
     schema_class: Type[BaseModel] | None = None,
@@ -118,7 +119,7 @@ def extract(
                 "Rate limit hit, retrying in %ds (attempt %d/3)",
                 wait_time, attempt + 1,
             )
-            time.sleep(wait_time)
+            await asyncio.sleep(wait_time)
 
         except anthropic.APIStatusError as e:
             if e.status_code >= 400 and e.status_code < 500:

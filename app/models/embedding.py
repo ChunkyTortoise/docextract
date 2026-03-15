@@ -26,7 +26,7 @@ class DocumentEmbedding(Base):
         unique=True,
     )
     content_text: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding = mapped_column(Vector(384), nullable=False)
+    embedding = mapped_column(Vector(768), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("NOW()")
     )

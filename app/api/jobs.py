@@ -35,6 +35,12 @@ async def get_job(
     if not job:
         raise HTTPException(404, "Job not found")
 
+    processing_time_ms = None
+    if job.started_at and job.completed_at:
+        processing_time_ms = int(
+            (job.completed_at - job.started_at).total_seconds() * 1000
+        )
+
     return JobResponse(
         id=str(job.id),
         document_id=str(job.document_id),
@@ -46,7 +52,7 @@ async def get_job(
         created_at=job.created_at,
         started_at=job.started_at,
         completed_at=job.completed_at,
-        processing_time_ms=None,
+        processing_time_ms=processing_time_ms,
     )
 
 
@@ -79,7 +85,11 @@ async def list_jobs(
             created_at=j.created_at,
             started_at=j.started_at,
             completed_at=j.completed_at,
-            processing_time_ms=None,
+            processing_time_ms=(
+                int((j.completed_at - j.started_at).total_seconds() * 1000)
+                if j.started_at and j.completed_at
+                else None
+            ),
         )
         for j in jobs
     ]

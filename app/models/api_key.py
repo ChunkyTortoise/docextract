@@ -19,6 +19,7 @@ class APIKey(Base):
         server_default=text("gen_random_uuid()"),
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(32), nullable=False, default="admin", server_default=text("'admin'"))
     key_hash: Mapped[str] = mapped_column(
         String(128), nullable=False, unique=True
     )

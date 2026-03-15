@@ -1,5 +1,5 @@
 """Tests for Claude extractor service."""
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 import json
 
 import pytest
@@ -36,7 +36,8 @@ def _make_response(content_blocks: list) -> MagicMock:
 
 class TestExtractPass1:
     @patch("app.services.claude_extractor.anthropic.Anthropic")
-    def test_successful_extraction(self, mock_cls):
+    @pytest.mark.asyncio
+    async def test_successful_extraction(self, mock_cls):
         client = MagicMock()
         mock_cls.return_value = client
 
@@ -49,7 +50,7 @@ class TestExtractPass1:
             [_make_text_block(json.dumps(extracted_json))]
         )
 
-        result = extract("Invoice #INV-001\nTotal: $500", "invoice")
+        result = await extract("Invoice #INV-001\nTotal: $500", "invoice")
 
         assert isinstance(result, ExtractionResult)
         assert result.data["invoice_number"] == "INV-001"
@@ -58,7 +59,8 @@ class TestExtractPass1:
         assert "_confidence" not in result.data
 
     @patch("app.services.claude_extractor.anthropic.Anthropic")
-    def test_uses_content_0_text(self, mock_cls):
+    @pytest.mark.asyncio
+    async def test_uses_content_0_text(self, mock_cls):
         """Verify response.content[0].text is used (not response.content.text)."""
         client = MagicMock()
         mock_cls.return_value = client
@@ -72,25 +74,27 @@ class TestExtractPass1:
         type(response.content).text = PropertyMock(side_effect=AttributeError("use content[0].text"))
         client.messages.create.return_value = response
 
-        result = extract("test", "invoice")
+        result = await extract("test", "invoice")
         assert result.confidence == 0.9
 
     @patch("app.services.claude_extractor.anthropic.Anthropic")
-    def test_default_confidence_when_missing(self, mock_cls):
+    @pytest.mark.asyncio
+    async def test_default_confidence_when_missing(self, mock_cls):
         client = MagicMock()
         mock_cls.return_value = client
         client.messages.create.return_value = _make_response(
             [_make_text_block(json.dumps({"invoice_number": "X"}))]
         )
 
-        result = extract("test", "invoice")
+        result = await extract("test", "invoice")
         assert result.confidence == 0.5
 
 
 class TestExtractPass2Corrections:
     @patch("app.services.claude_extractor.settings")
     @patch("app.services.claude_extractor.anthropic.Anthropic")
-    def test_corrections_applied_on_low_confidence(self, mock_cls, mock_settings):
+    @pytest.mark.asyncio
+    async def test_corrections_applied_on_low_confidence(self, mock_cls, mock_settings):
         mock_settings.anthropic_api_key = "test-key"
         mock_settings.extraction_confidence_threshold = 0.8
 
@@ -110,13 +114,14 @@ class TestExtractPass2Corrections:
 
         client.messages.create.side_effect = [pass1_response, pass2_response]
 
-        result = extract("test doc", "invoice")
+        result = await extract("test doc", "invoice")
         assert result.corrections_applied is True
         assert result.data["invoice_number"] == "INV-001-A"
 
     @patch("app.services.claude_extractor.settings")
     @patch("app.services.claude_extractor.anthropic.Anthropic")
-    def test_no_corrections_when_high_confidence(self, mock_cls, mock_settings):
+    @pytest.mark.asyncio
+    async def test_no_corrections_when_high_confidence(self, mock_cls, mock_settings):
         mock_settings.anthropic_api_key = "test-key"
         mock_settings.extraction_confidence_threshold = 0.8
 
@@ -128,7 +133,7 @@ class TestExtractPass2Corrections:
             [_make_text_block(json.dumps(pass1_data))]
         )
 
-        result = extract("test doc", "invoice")
+        result = await extract("test doc", "invoice")
         assert result.corrections_applied is False
         # Only one API call (no correction pass)
         assert client.messages.create.call_count == 1
@@ -178,9 +183,10 @@ class TestParseJsonResponse:
 
 
 class TestExtractErrorHandling:
-    @patch("app.services.claude_extractor.time.sleep")
+    @patch("app.services.claude_extractor.asyncio.sleep", new_callable=AsyncMock)
     @patch("app.services.claude_extractor.anthropic.Anthropic")
-    def test_rate_limit_retries_with_backoff(self, mock_cls, mock_sleep):
+    @pytest.mark.asyncio
+    async def test_rate_limit_retries_with_backoff(self, mock_cls, mock_sleep):
         """Rate limit retry uses exponential backoff (60s, 120s)."""
         client = MagicMock()
         mock_cls.return_value = client
@@ -195,13 +201,14 @@ class TestExtractErrorHandling:
         )
         client.messages.create.side_effect = [rate_limit_error, success_response]
 
-        result = extract("test", "invoice")
+        result = await extract("test", "invoice")
         assert result.confidence == 0.9
         mock_sleep.assert_called_once_with(60)
 
-    @patch("app.services.claude_extractor.time.sleep")
+    @patch("app.services.claude_extractor.asyncio.sleep", new_callable=AsyncMock)
     @patch("app.services.claude_extractor.anthropic.Anthropic")
-    def test_rate_limit_second_retry_doubles_wait(self, mock_cls, mock_sleep):
+    @pytest.mark.asyncio
+    async def test_rate_limit_second_retry_doubles_wait(self, mock_cls, mock_sleep):
         """Second retry waits 120s (exponential backoff)."""
         client = MagicMock()
         mock_cls.return_value = client
@@ -218,15 +225,16 @@ class TestExtractErrorHandling:
             rate_limit_error, rate_limit_error, success_response
         ]
 
-        result = extract("test", "invoice")
+        result = await extract("test", "invoice")
         assert result.confidence == 0.85
         assert mock_sleep.call_count == 2
         mock_sleep.assert_any_call(60)
         mock_sleep.assert_any_call(120)
 
-    @patch("app.services.claude_extractor.time.sleep")
+    @patch("app.services.claude_extractor.asyncio.sleep", new_callable=AsyncMock)
     @patch("app.services.claude_extractor.anthropic.Anthropic")
-    def test_rate_limit_raises_after_3_failures(self, mock_cls, mock_sleep):
+    @pytest.mark.asyncio
+    async def test_rate_limit_raises_after_3_failures(self, mock_cls, mock_sleep):
         """Raises RateLimitError after 3 consecutive failures (no infinite recursion)."""
         client = MagicMock()
         mock_cls.return_value = client
@@ -239,14 +247,15 @@ class TestExtractErrorHandling:
         client.messages.create.side_effect = rate_limit_error
 
         with pytest.raises(anthropic.RateLimitError):
-            extract("test", "invoice")
+            await extract("test", "invoice")
 
         # Should have attempted 3 times, slept twice (after attempt 0 and 1)
         assert client.messages.create.call_count == 3
         assert mock_sleep.call_count == 2
 
     @patch("app.services.claude_extractor.anthropic.Anthropic")
-    def test_4xx_error_re_raises(self, mock_cls):
+    @pytest.mark.asyncio
+    async def test_4xx_error_re_raises(self, mock_cls):
         client = MagicMock()
         mock_cls.return_value = client
 
@@ -258,4 +267,4 @@ class TestExtractErrorHandling:
         client.messages.create.side_effect = error
 
         with pytest.raises(anthropic.BadRequestError):
-            extract("test", "invoice")
+            await extract("test", "invoice")

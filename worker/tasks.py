@@ -61,6 +61,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     from app.models.embedding import DocumentEmbedding
     from app.models.job import ExtractionJob
     from app.models.record import ExtractedRecord
+    from app.models.audit_log import AuditLog
     from app.models.validation_error import ValidationError as ValidationErrorModel
     from app.schemas.document_types import DOCUMENT_TYPE_MAP
     from app.services.classifier import classify
@@ -107,7 +108,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # 6. Extract with Claude -> EXTRACTING_DATA
     await _update_job_status(db, redis, job, JobStatus.EXTRACTING_DATA)
     schema_class = DOCUMENT_TYPE_MAP.get(doc_type)
-    extraction_result = extract(extracted.text, doc_type, schema_class)
+    extraction_result = await extract(extracted.text, doc_type, schema_class)
 
     # 7. Validate -> VALIDATING
     await _update_job_status(db, redis, job, JobStatus.VALIDATING)
@@ -129,10 +130,35 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
         raw_text=extracted.text[:5000],
         confidence_score=extraction_result.confidence,
         needs_review=validation_result.needs_review,
-        validation_status="failed" if not validation_result.is_valid else "passed",
+        validation_status=(
+            "pending_review"
+            if validation_result.needs_review
+            else ("failed" if not validation_result.is_valid else "passed")
+        ),
+        review_reason=(
+            "Auto-queued due to validation/review triggers"
+            if validation_result.needs_review
+            else None
+        ),
     )
     db.add(record)
     await db.flush()
+
+    db.add(
+        AuditLog(
+            entity_type="record",
+            entity_id=record.id,
+            action="record.created",
+            actor="worker",
+            old_data=None,
+            new_data={
+                "validation_status": record.validation_status,
+                "needs_review": record.needs_review,
+                "confidence_score": record.confidence_score,
+            },
+            metadata_={"job_id": str(job.id), "document_type": doc_type},
+        )
+    )
 
     # Store validation errors
     for err in validation_result.errors:
@@ -155,7 +181,11 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     # 10. Complete job
     now = datetime.now(timezone.utc)
-    job.status = JobStatus.COMPLETED.value
+    job.status = (
+        JobStatus.NEEDS_REVIEW.value
+        if validation_result.needs_review
+        else JobStatus.COMPLETED.value
+    )
     job.document_type_detected = doc_type
     job.completed_at = now
     if job.started_at:
@@ -166,9 +196,15 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # Publish completion event
     await publish_event(redis, job_id, {
         "job_id": job_id,
-        "status": JobStatus.COMPLETED.value,
-        "progress": JOB_STATUS_PROGRESS[JobStatus.COMPLETED],
-        "message": f"Extraction complete. Document type: {doc_type}",
+        "status": job.status,
+        "progress": JOB_STATUS_PROGRESS[
+            JobStatus.NEEDS_REVIEW if validation_result.needs_review else JobStatus.COMPLETED
+        ],
+        "message": (
+            f"Extraction complete and queued for review. Document type: {doc_type}"
+            if validation_result.needs_review
+            else f"Extraction complete. Document type: {doc_type}"
+        ),
     })
 
     # 11. Send webhook if configured

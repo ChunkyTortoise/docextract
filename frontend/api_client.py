@@ -9,7 +9,7 @@ from typing import Any
 def get_client() -> httpx.Client:
     """Create configured httpx client with API key auth."""
     api_url = st.secrets.get("api_url", "http://localhost:8000")
-    api_key = st.secrets.get("api_key", "")
+    api_key = st.session_state.get("api_key") or st.secrets.get("api_key", "")
     return httpx.Client(
         base_url=f"{api_url}/api/v1",
         headers={"X-API-Key": api_key},

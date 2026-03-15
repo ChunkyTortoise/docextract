@@ -197,15 +197,22 @@ async def test_search_records_requires_query(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_search_records_calls_embedder():
     """Search endpoint invokes the embedder (unit test, pgvector needs PostgreSQL)."""
-    from app.services.embedder import embed
+    from unittest.mock import AsyncMock, MagicMock
 
-    with patch("app.services.embedder._get_model") as mock_model:
-        import numpy as np
+    fake_emb = MagicMock()
+    fake_emb.values = [0.0] * 768
+    fake_result = MagicMock()
+    fake_result.embeddings = [fake_emb]
 
-        mock_model.return_value.encode.return_value = np.zeros(384)
-        result = embed("test query")
-        assert len(result) == 384
-        mock_model.return_value.encode.assert_called_once()
+    mock_client = MagicMock()
+    mock_client.aio.models.embed_content = AsyncMock(return_value=fake_result)
+
+    with patch("app.services.embedder._get_client", return_value=mock_client):
+        from app.services.embedder import embed
+        result = await embed("test query")
+
+    assert len(result) == 768
+    mock_client.aio.models.embed_content.assert_called_once()
 
 
 # ---------------------------------------------------------------------------

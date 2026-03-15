@@ -1,0 +1,10 @@
+id: home-services
+name: Home Services Document Adapter
+intent: "Optimize extraction for invoices, receipts, and service work orders"
+default_overrides:
+  document_type_priority:
+    - invoice
+    - receipt
+  review_rules:
+    - "confidence < 0.78 => review"
+    - "missing invoice_number => review"

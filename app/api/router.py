@@ -3,7 +3,18 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api import api_keys, documents, export, health, jobs, records, stats, webhooks
+from app.api import (
+    api_keys,
+    documents,
+    export,
+    health,
+    jobs,
+    records,
+    review,
+    roi,
+    stats,
+    webhooks,
+)
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -18,3 +29,5 @@ api_router.include_router(records.router)
 api_router.include_router(webhooks.router)
 api_router.include_router(stats.router)
 api_router.include_router(api_keys.router)
+api_router.include_router(review.router)
+api_router.include_router(roi.router)

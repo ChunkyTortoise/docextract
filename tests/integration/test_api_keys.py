@@ -15,6 +15,7 @@ async def test_create_api_key(client: AsyncClient):
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == "my-test-key"
+    assert data["role"] == "viewer"
     assert data["rate_limit_per_minute"] == 100
     assert data["api_key"].startswith("dex_")
     assert len(data["api_key"]) == 4 + 64  # "dex_" + 32 bytes hex
@@ -29,6 +30,7 @@ async def test_create_api_key_defaults(client: AsyncClient):
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == "default"
+    assert data["role"] == "viewer"
     assert data["rate_limit_per_minute"] == 60
 
 
@@ -46,6 +48,7 @@ async def test_list_api_keys_empty_start(client: AsyncClient):
         assert "key_hash" not in key_info
         assert "id" in key_info
         assert "name" in key_info
+        assert "role" in key_info
         assert "rate_limit_per_minute" in key_info
 
 
@@ -131,7 +134,7 @@ async def test_created_key_is_usable(client: AsyncClient):
     """A newly created key can authenticate requests."""
     create_resp = await client.post(
         "/api/v1/api-keys",
-        json={"name": "usable-key", "rate_limit_per_minute": 1000},
+        json={"name": "usable-key", "role": "admin", "rate_limit_per_minute": 1000},
     )
     new_key = create_resp.json()["api_key"]
 

@@ -3,7 +3,17 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, String, Text, text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,8 +43,8 @@ class ExtractedRecord(Base):
     raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     confidence_score: Mapped[float] = mapped_column(Float, nullable=False)
     validation_status: Mapped[str] = mapped_column(
-        String(20), default="pending"
-    )  # pending, passed, failed, reviewed
+        String(20), default="pending_review"
+    )
     needs_review: Mapped[bool] = mapped_column(Boolean, default=False)
     review_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -51,6 +61,10 @@ class ExtractedRecord(Base):
     )
 
     __table_args__ = (
+        CheckConstraint(
+            "validation_status IN ('pending_review','claimed','approved','corrected','passed','failed')",
+            name="ck_extracted_records_validation_status_domain",
+        ),
         Index("idx_records_type", "document_type"),
         Index(
             "idx_records_review",
@@ -59,4 +73,11 @@ class ExtractedRecord(Base):
         ),
         Index("idx_records_confidence", "confidence_score"),
         Index("idx_records_data", "extracted_data", postgresql_using="gin"),
+        Index(
+            "idx_records_status_review_created",
+            "validation_status",
+            "needs_review",
+            "created_at",
+        ),
+        Index("idx_records_reviewer_reviewed_at", "reviewed_by", "reviewed_at"),
     )

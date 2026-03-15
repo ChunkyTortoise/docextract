@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.events import JobStatus
 
@@ -80,3 +80,35 @@ class ErrorResponse(BaseModel):
     error: str
     detail: str | None = None
     request_id: str | None = None
+
+
+class ReportArtifact(BaseModel):
+    path: str
+    content_type: str
+    content: str
+
+
+class ReportMetadata(BaseModel):
+    report_id: str
+    generated_at: datetime | None = None
+    from_: datetime | None = Field(default=None, alias="from")
+    to: datetime | None = None
+    format: str | None = None
+    status: str | None = None
+    error_message: str | None = None
+    files: list[str] = Field(default_factory=list)
+
+
+class ReportGenerateResponse(BaseModel):
+    report_id: str
+    files: list[str]
+    status: str
+
+
+class ReportGetResponse(BaseModel):
+    metadata: ReportMetadata
+    artifacts: list[ReportArtifact]
+
+
+class ReportListResponse(BaseModel):
+    items: list[ReportMetadata]

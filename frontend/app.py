@@ -1,4 +1,6 @@
 """DocExtract AI -- Streamlit frontend entry point."""
+import os
+
 import streamlit as st
 
 # Page config must be first
@@ -9,10 +11,20 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+DEMO_MODE = os.getenv("DEMO_MODE", "").lower() in ("true", "1", "yes")
+
 
 def authenticate() -> bool:
-    """Simple password gate."""
+    """Simple password gate. Bypassed in demo mode."""
     if st.session_state.get("authenticated"):
+        return True
+
+    # Demo mode: skip login, auto-populate demo API key
+    if DEMO_MODE:
+        st.session_state["authenticated"] = True
+        st.session_state["api_key"] = os.getenv(
+            "DEMO_API_KEY", "demo-key-docextract-2026"
+        )
         return True
 
     st.title("DocExtract AI")
@@ -48,6 +60,9 @@ def main() -> None:
 
     if not authenticate():
         return
+
+    if DEMO_MODE:
+        st.info("Demo mode — read-only access")
 
     # Sidebar navigation
     with st.sidebar:

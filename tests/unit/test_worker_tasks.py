@@ -166,6 +166,7 @@ class TestProcessPipeline:
             ),
             patch(
                 "app.services.claude_extractor.extract",
+                new_callable=AsyncMock,
                 return_value=ExtractionResult(
                     data={"invoice_number": "12345", "total_amount": 500.00},
                     confidence=0.92,
@@ -177,7 +178,7 @@ class TestProcessPipeline:
                     is_valid=True, errors=[], needs_review=False, confidence=0.92
                 ),
             ),
-            patch("app.services.embedder.embed", return_value=[0.1] * 384),
+            patch("app.services.embedder.embed", return_value=[0.1] * 768),
             patch("worker.events.publish_event", new_callable=AsyncMock),
         ]
 
@@ -275,8 +276,8 @@ class TestProcessPipeline:
             result = await _process(mock_db, mock_redis, job_id)
 
             assert result["status"] == "completed"
-            # db.add called for: record + validation_error + embedding = 3
-            assert mock_db.add.call_count == 3
+            # db.add called for: record + audit_log + validation_error + embedding = 4
+            assert mock_db.add.call_count == 4
         finally:
             validate_patch.stop()
             for p in patches:

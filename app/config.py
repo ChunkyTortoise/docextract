@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import List
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     # Auth
     anthropic_api_key: str = ""
+    gemini_api_key: str = ""
     api_key_secret: str = "change-me-32-chars-minimum-secret"
 
     # Storage
@@ -44,6 +45,13 @@ class Settings(BaseSettings):
     # Extraction
     extraction_confidence_threshold: float = 0.8
 
+    # Environment
+    environment: str = "development"
+
+    # Demo mode
+    demo_mode: bool = False
+    demo_api_key: str = "demo-key-docextract-2026"
+
     @field_validator("database_url", mode="before")
     @classmethod
     def fix_database_url(cls, v: str) -> str:
@@ -60,6 +68,15 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return json.loads(v)
         return v
+
+    @model_validator(mode='after')
+    def validate_production_secrets(self) -> 'Settings':
+        if self.environment != "development":
+            if self.api_key_secret == "change-me-32-chars-minimum-secret":
+                raise ValueError(
+                    "api_key_secret must be changed from the default value in non-development environments"
+                )
+        return self
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

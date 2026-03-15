@@ -1,39 +1,56 @@
-"""Document embedding using sentence-transformers."""
+"""Document embedding using Google Gemini Embedding API."""
 from __future__ import annotations
 
 import logging
 from functools import lru_cache
 
+from google import genai
+from google.genai import types as genai_types
+
+from app.config import settings
+
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "all-MiniLM-L6-v2"
-MAX_TOKENS = 512  # Model's max input length
+EMBEDDING_MODEL = "gemini-embedding-2-preview"
+OUTPUT_DIM = 768
+MAX_CHARS = 2048
 
 
 @lru_cache(maxsize=1)
-def _get_model():
-    """Load model once and cache."""
-    from sentence_transformers import SentenceTransformer
-    logger.info("Loading embedding model: %s", MODEL_NAME)
-    return SentenceTransformer(MODEL_NAME)
+def _get_client() -> genai.Client:
+    """Create and cache a Gemini client."""
+    logger.info("Initialising Gemini embedding client (model: %s)", EMBEDDING_MODEL)
+    return genai.Client(api_key=settings.gemini_api_key)
 
 
-def embed(text: str) -> list[float]:
+async def embed(text: str) -> list[float]:
     """Embed a single text string.
 
     Returns:
-        384-dimensional float vector
+        768-dimensional float vector
     """
-    # Truncate to avoid exceeding model's max input
-    truncated = text[:MAX_TOKENS * 4]  # rough char estimate
-    model = _get_model()
-    embedding = model.encode(truncated, normalize_embeddings=True)
-    return embedding.tolist()
+    client = _get_client()
+    result = await client.aio.models.embed_content(
+        model=EMBEDDING_MODEL,
+        contents=[text[:MAX_CHARS]],
+        config=genai_types.EmbedContentConfig(
+            task_type="RETRIEVAL_DOCUMENT",
+            output_dimensionality=OUTPUT_DIM,
+        ),
+    )
+    return list(result.embeddings[0].values)
 
 
-def embed_batch(texts: list[str]) -> list[list[float]]:
+async def embed_batch(texts: list[str]) -> list[list[float]]:
     """Embed multiple texts efficiently in batch."""
-    truncated = [t[:MAX_TOKENS * 4] for t in texts]
-    model = _get_model()
-    embeddings = model.encode(truncated, normalize_embeddings=True, batch_size=32)
-    return [e.tolist() for e in embeddings]
+    client = _get_client()
+    truncated = [t[:MAX_CHARS] for t in texts]
+    result = await client.aio.models.embed_content(
+        model=EMBEDDING_MODEL,
+        contents=truncated,
+        config=genai_types.EmbedContentConfig(
+            task_type="RETRIEVAL_DOCUMENT",
+            output_dimensionality=OUTPUT_DIM,
+        ),
+    )
+    return [list(e.values) for e in result.embeddings]

@@ -42,7 +42,7 @@ def _safe_uuid_bind_processor(self, dialect):  # type: ignore[override]
 _PG_UUID.bind_processor = _safe_uuid_bind_processor  # type: ignore[method-assign]
 
 from app.dependencies import get_db, get_redis, get_storage
-from app.models.api_key import APIKey
+from app.models import APIKey  # noqa: F401
 from app.models.database import Base
 from app.storage.base import StorageBackend
 from app.utils.hashing import hash_api_key
@@ -199,6 +199,7 @@ async def client(db_session, test_redis, fake_storage):
         api_key = APIKey(
             id=str(uuid.uuid4()),
             name="test-key",
+            role="admin",
             key_hash=key_hash,
             is_active=True,
             rate_limit_per_minute=1000,

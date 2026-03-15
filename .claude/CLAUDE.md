@@ -1,7 +1,7 @@
 # DocExtract AI
 
 ## Stack
-FastAPI | SQLAlchemy | pgvector | ARQ (async queue) | Redis | Anthropic | sentence-transformers | Streamlit | PostgreSQL | Python
+FastAPI | SQLAlchemy | pgvector | ARQ (async queue) | Redis | Anthropic | google-genai (Gemini Embedding) | Streamlit | PostgreSQL | Python
 
 ## Architecture
 3-service document extraction platform: API (FastAPI) + Worker (ARQ) + Frontend (Streamlit). Documents → extract → embed (pgvector) → semantic search. Migrations: `alembic/`. Key fix: migration `002_pgvector_extension.py` uses `sa.Text()` (not `Vector(384)`); `WorkerSettings.redis_settings` must be `RedisSettings.from_dsn(settings.redis_url)`.
@@ -15,10 +15,10 @@ Render — 3 live services:
 - API: https://docextract-api.onrender.com (srv-d6ijm7buibrs73ad84rg)
 - Worker: srv-d6ijm7buibrs73ad84s0
 - Frontend: https://docextract-frontend.onrender.com (srv-d6ivqtq4d50c73aq6cu0)
-Dev API key: `dex_dev_12a6f96e5b28029d5070f8968116d535b2293e28bd96d856`
+Dev API key: `[set in Render dashboard]`
 
 ## Test
-```pytest tests/  # 234 tests```
+```pytest tests/  # 335 tests```
 
 ## Key Env
 ANTHROPIC_API_KEY, DATABASE_URL, REDIS_URL, SECRET_KEY

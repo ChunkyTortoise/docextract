@@ -3,8 +3,11 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 
-def test_extract_invoice_two_pass():
+
+@pytest.mark.asyncio
+async def test_extract_invoice_two_pass():
     """Two-pass extraction runs correctly with high confidence (no Pass 2)."""
     mock_response = MagicMock()
     mock_response.content = [MagicMock()]
@@ -18,14 +21,15 @@ def test_extract_invoice_two_pass():
 
         from app.services.claude_extractor import extract
 
-        result = extract("Invoice INV-001 total $100", "invoice")
+        result = await extract("Invoice INV-001 total $100", "invoice")
 
         assert result.data.get("invoice_number") == "INV-001"
         assert result.confidence == 0.9
         assert not result.corrections_applied
 
 
-def test_extract_low_confidence_triggers_pass2():
+@pytest.mark.asyncio
+async def test_extract_low_confidence_triggers_pass2():
     """Low confidence triggers correction pass."""
     pass1_response = MagicMock()
     pass1_response.content = [MagicMock()]
@@ -48,7 +52,7 @@ def test_extract_low_confidence_triggers_pass2():
 
         from app.services.claude_extractor import extract
 
-        result = extract("Invoice INV-001 total $150", "invoice")
+        result = await extract("Invoice INV-001 total $150", "invoice")
 
         assert result.corrections_applied
         assert result.data["total_amount"] == 150.0

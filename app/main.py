@@ -42,6 +42,20 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
+        contact={"name": "Cayman Roden", "url": "https://chunkytortoise.github.io"},
+        license_info={"name": "MIT"},
+        openapi_tags=[
+            {"name": "health", "description": "Health check and dependency status endpoints"},
+            {"name": "documents", "description": "Document upload, batch upload, and deletion"},
+            {"name": "jobs", "description": "Job status, cancellation, and SSE progress streaming"},
+            {"name": "records", "description": "Extracted record listing, search, and review submission"},
+            {"name": "export", "description": "Streaming CSV/JSON export of extracted records"},
+            {"name": "webhooks", "description": "Webhook test endpoint for verifying receiver configuration"},
+            {"name": "stats", "description": "Aggregate dashboard statistics"},
+            {"name": "api-keys", "description": "Self-service API key creation, listing, and revocation"},
+            {"name": "review", "description": "Human-in-the-loop review queue: claim, approve, correct"},
+            {"name": "roi", "description": "ROI attribution, trends, and executive report generation"},
+        ],
     )
 
     # CORS

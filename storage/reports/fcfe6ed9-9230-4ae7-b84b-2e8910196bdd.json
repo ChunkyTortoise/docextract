@@ -1,0 +1,16 @@
+{
+  "from": "2026-02-01T05:44:44.969670+00:00",
+  "to": "2026-03-03T05:44:44.969670+00:00",
+  "kpis": {
+    "jobs_total": 14,
+    "jobs_completed": 3,
+    "records_total": 8,
+    "records_reviewed": 2,
+    "avg_confidence": 0.7025,
+    "avg_processing_indicator": 0.0,
+    "estimated_minutes_saved": 24.0,
+    "estimated_dollars_saved": 14.0,
+    "estimated_run_cost": 1.68,
+    "net_value": 12.32
+  }
+}

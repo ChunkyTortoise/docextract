@@ -16,6 +16,10 @@ jobs:
           python-version: "3.12"
       - name: Install linting deps
         run: pip install ruff mypy
+      - name: Dependency check
+        run: python -m pip check
+      - name: Validate offer-kit
+        run: python scripts/validate_offer_kit.py
       - name: Ruff check
         run: ruff check app/ worker/ scripts/ frontend/
       - name: mypy
@@ -50,6 +54,8 @@ jobs:
         run: sudo apt-get install -y tesseract-ocr libmagic1
       - name: Install Python deps
         run: pip install -r requirements.txt aiosqlite
+      - name: Dependency check
+        run: python -m pip check
       - name: Run tests
         env:
           DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/docextract_test
