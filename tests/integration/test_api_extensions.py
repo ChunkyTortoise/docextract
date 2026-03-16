@@ -238,11 +238,7 @@ async def test_batch_upload(client: AsyncClient):
     with (
         patch("app.api.documents.detect_mime_type", return_value="application/pdf"),
         patch("app.api.documents.is_allowed_mime_type", return_value=True),
-        patch("app.api.documents.arq.create_pool", new_callable=AsyncMock) as mock_pool,
     ):
-        mock_arq = AsyncMock()
-        mock_pool.return_value = mock_arq
-
         # Two different PDFs (different content → different hashes)
         files = [
             ("files", ("doc1.pdf", io.BytesIO(MINIMAL_PDF + b"a"), "application/pdf")),
@@ -262,11 +258,7 @@ async def test_batch_upload_with_duplicate(client: AsyncClient):
     with (
         patch("app.api.documents.detect_mime_type", return_value="application/pdf"),
         patch("app.api.documents.is_allowed_mime_type", return_value=True),
-        patch("app.api.documents.arq.create_pool", new_callable=AsyncMock) as mock_pool,
     ):
-        mock_arq = AsyncMock()
-        mock_pool.return_value = mock_arq
-
         content = MINIMAL_PDF + b"unique_batch_dedup"
 
         # First upload creates the document

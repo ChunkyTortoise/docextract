@@ -52,6 +52,9 @@ def ingest(file_bytes: bytes, mime_type: str, filename: str) -> ExtractedContent
         result = extract_eml(file_bytes)
     elif mime_type == "application/vnd.ms-outlook":
         result = extract_msg_file(file_bytes)
+    elif mime_type == "text/plain":
+        text = file_bytes.decode("utf-8", errors="replace")
+        result = ExtractedContent(text=text, page_count=1)
     else:
         raise UnsupportedMimeType(f"Unsupported MIME type: {mime_type}")
 

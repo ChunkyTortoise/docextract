@@ -26,11 +26,7 @@ async def test_upload_document(client: AsyncClient):
     with (
         patch("app.api.documents.detect_mime_type", return_value="application/pdf"),
         patch("app.api.documents.is_allowed_mime_type", return_value=True),
-        patch("app.api.documents.arq.create_pool", new_callable=AsyncMock) as mock_pool,
     ):
-        mock_arq = AsyncMock()
-        mock_pool.return_value = mock_arq
-
         response = await client.post(
             "/api/v1/documents/upload",
             files={"file": ("test.pdf", io.BytesIO(MINIMAL_PDF), "application/pdf")},
@@ -50,11 +46,7 @@ async def test_upload_duplicate_detection(client: AsyncClient):
     with (
         patch("app.api.documents.detect_mime_type", return_value="application/pdf"),
         patch("app.api.documents.is_allowed_mime_type", return_value=True),
-        patch("app.api.documents.arq.create_pool", new_callable=AsyncMock) as mock_pool,
     ):
-        mock_arq = AsyncMock()
-        mock_pool.return_value = mock_arq
-
         # First upload
         response1 = await client.post(
             "/api/v1/documents/upload",

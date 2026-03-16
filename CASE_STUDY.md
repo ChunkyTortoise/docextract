@@ -41,7 +41,7 @@ ARQ Worker (async Python)
   │       Pass 1: JSON extraction (claude-sonnet-4-6)
   │       Pass 2: tool_use correction (if confidence < 0.80)
   ├── 5. Business rule validation
-  ├── 6. pgvector HNSW embedding (all-MiniLM-L6-v2, 384-dim)
+  ├── 6. pgvector HNSW embedding (gemini-embedding-2-preview, 768-dim)
   └── 7. HMAC-signed webhook delivery (4-attempt retry)
 
 PostgreSQL + pgvector    Redis (rate limiting + pub/sub)
@@ -64,13 +64,13 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub)
 - **Storage**: pluggable backend (local filesystem or Cloudflare R2) behind a common interface
 - **OCR**: Tesseract or PaddleOCR depending on document type
 - **AI**: Anthropic Claude (claude-sonnet-4-6) for extraction and correction
-- **Embeddings**: sentence-transformers all-MiniLM-L6-v2 (384-dim, HNSW index)
+- **Embeddings**: Google Gemini gemini-embedding-2-preview (768-dim, HNSW index)
 - **Queue**: ARQ (async Redis queue) with ARQ worker as a separate Render service
 - **Frontend**: Streamlit 6-page dashboard (Upload, Progress, Results, Review, Records, Dashboard)
 
 ## The Results
 
-**234 tests passing** — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, load tests via Locust.
+**340 tests passing** — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, load tests via Locust.
 
 **12-step processing pipeline** with per-step progress tracking and real-time SSE streaming to connected clients.
 
@@ -86,8 +86,8 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub)
 
 | Metric | Value |
 |--------|-------|
-| Test suite runtime | 1.2 seconds (234 tests) |
-| Embedding model | all-MiniLM-L6-v2, 384-dim, HNSW index |
+| Test suite runtime | 2 seconds (340 tests) |
+| Embedding model | gemini-embedding-2-preview, 768-dim, HNSW index |
 | Extraction confidence threshold | 0.80 (configurable) |
 | Max file size | 50 MB |
 | Max pages (PDF) | 100 |
@@ -128,7 +128,7 @@ The ARQ worker runs the full pipeline in a single async function with granular s
 
 ### pgvector Semantic Search
 
-Documents are embedded using all-MiniLM-L6-v2 (384 dimensions) at the end of every successful extraction. The embeddings are stored in PostgreSQL via pgvector with an HNSW index for approximate nearest-neighbor queries. This enables semantic search across extracted records — finding invoices similar to a reference document, or surfacing contracts that mention specific concepts without exact keyword matching.
+Documents are embedded using gemini-embedding-2-preview (768 dimensions) at the end of every successful extraction. The embeddings are stored in PostgreSQL via pgvector with an HNSW index for approximate nearest-neighbor queries. This enables semantic search across extracted records — finding invoices similar to a reference document, or surfacing contracts that mention specific concepts without exact keyword matching.
 
 ## What I'd Do Differently
 
@@ -153,7 +153,7 @@ Three things I'm proud of in this build:
 
 - **Two-pass Claude extraction**: Pass 1 extracts structured JSON and returns a confidence score. If confidence < 80%, Pass 2 fires a tool_use correction call — Claude returns specific field fixes as structured data, not free text. Catches the silent failures that kill data quality in production.
 - **Real-time SSE streaming**: Every pipeline stage (text extraction → classification → AI extraction → embedding) publishes to Redis pub/sub. The frontend gets live progress updates without polling.
-- **234 tests in 1.2 seconds**: Full unit + integration coverage, async-native test suite, runs fast enough that it's never a reason to skip.
+- **340 tests in 2 seconds**: Full unit + integration coverage, async-native test suite, runs fast enough that it's never a reason to skip.
 
 Stack: FastAPI + ARQ + pgvector HNSW + Claude Sonnet + Streamlit
 Live: https://docextract-api.onrender.com | https://docextract-frontend.onrender.com

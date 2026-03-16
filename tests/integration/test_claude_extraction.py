@@ -1,7 +1,7 @@
 """Integration tests for Claude extraction with mocked API."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -15,9 +15,9 @@ async def test_extract_invoice_two_pass():
         '{"invoice_number": "INV-001", "total_amount": 100.0, "_confidence": 0.9}'
     )
 
-    with patch("anthropic.Anthropic") as MockAnthropic:
+    with patch("app.services.claude_extractor.AsyncAnthropic") as MockAnthropic:
         mock_client = MockAnthropic.return_value
-        mock_client.messages.create.return_value = mock_response
+        mock_client.messages.create = AsyncMock(return_value=mock_response)
 
         from app.services.claude_extractor import extract
 
@@ -46,9 +46,11 @@ async def test_extract_low_confidence_triggers_pass2():
     pass2_response = MagicMock()
     pass2_response.content = [tool_block]
 
-    with patch("anthropic.Anthropic") as MockAnthropic:
+    with patch("app.services.claude_extractor.AsyncAnthropic") as MockAnthropic:
         mock_client = MockAnthropic.return_value
-        mock_client.messages.create.side_effect = [pass1_response, pass2_response]
+        mock_client.messages.create = AsyncMock(
+            side_effect=[pass1_response, pass2_response]
+        )
 
         from app.services.claude_extractor import extract
 

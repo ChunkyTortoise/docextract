@@ -75,7 +75,8 @@ def test_allowed_mime_types() -> None:
     from app.utils.mime import is_allowed_mime_type
     assert is_allowed_mime_type("application/pdf") is True
     assert is_allowed_mime_type("image/jpeg") is True
-    assert is_allowed_mime_type("text/plain") is False
+    assert is_allowed_mime_type("text/plain") is True
+    assert is_allowed_mime_type("application/zip") is False
 
 
 def test_get_extension_mime() -> None:

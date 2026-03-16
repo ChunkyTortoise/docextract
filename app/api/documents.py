@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import uuid
 
-import redis.asyncio as aioredis
 import arq
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from sqlalchemy import select
@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.middleware import get_api_key
 from app.config import settings
-from app.dependencies import get_db, get_redis, get_storage
+from app.dependencies import get_arq_pool, get_db, get_redis, get_storage
 from app.models.api_key import APIKey
 from app.models.document import Document
 from app.models.job import ExtractionJob
@@ -35,6 +35,7 @@ async def upload_document(
     db: AsyncSession = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
     redis: aioredis.Redis = Depends(get_redis),
+    arq_pool: arq.ArqRedis = Depends(get_arq_pool),
     api_key: APIKey = Depends(get_api_key),
 ) -> UploadResponse:
     """Upload a document for processing."""
@@ -103,16 +104,12 @@ async def upload_document(
     await db.commit()
 
     # Enqueue ARQ job
-    arq_redis = await arq.create_pool(
-        arq.connections.RedisSettings.from_dsn(settings.redis_url)
-    )
-    await arq_redis.enqueue_job(
+    await arq_pool.enqueue_job(
         "process_document",
         str(job_id),
         _queue_name=settings.worker_queue,
         _job_id=str(job_id),
     )
-    await arq_redis.aclose()
 
     return UploadResponse(
         document_id=str(doc_id),
@@ -131,6 +128,7 @@ async def batch_upload(
     db: AsyncSession = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
     redis: aioredis.Redis = Depends(get_redis),
+    arq_pool: arq.ArqRedis = Depends(get_arq_pool),
     api_key: APIKey = Depends(get_api_key),
 ):
     """Upload multiple documents for processing."""
@@ -185,16 +183,12 @@ async def batch_upload(
         await db.flush()
 
         # Enqueue ARQ job
-        arq_redis = await arq.create_pool(
-            arq.connections.RedisSettings.from_dsn(settings.redis_url)
-        )
-        await arq_redis.enqueue_job(
+        await arq_pool.enqueue_job(
             "process_document",
             str(job_id),
             _queue_name=settings.worker_queue,
             _job_id=str(job_id),
         )
-        await arq_redis.aclose()
 
         job_ids.append(str(job_id))
 

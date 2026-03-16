@@ -1,6 +1,6 @@
 # DocExtract AI
 
-[![Tests](https://img.shields.io/badge/tests-335%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-340%20passing-brightgreen)]()
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688)]()
 
@@ -38,7 +38,7 @@ PostgreSQL + pgvector           Redis (pub/sub + rate limiting)
 
 ## Features
 
-- **6 document types**: PDF, DOCX, CSV, images (PNG/JPEG), email (.eml), and plain text
+- **5 document types**: PDF, images (PNG/JPEG/TIFF/BMP/GIF/WebP), email (.eml/.msg), and plain text
 - **Two-pass Claude extraction**: Pass 1 extracts structured JSON with a confidence score. If confidence < 0.80, Pass 2 fires a `tool_use` correction call for automatic error correction
 - **SSE streaming progress**: Real-time job status updates via Server-Sent Events (Redis pub/sub)
 - **HNSW vector search**: pgvector semantic search over extracted records (gemini-embedding-2-preview, 768-dim)
@@ -137,7 +137,7 @@ docker-compose exec api python -m scripts.seed_api_key
 ## Running Tests
 
 ```bash
-pytest tests/ -v  # 335 tests, ~2s
+pytest tests/ -v  # 340 tests, ~2s
 ```
 
 ## Project Structure
@@ -164,6 +164,10 @@ tests/          -- Unit + integration tests
 - **Frontend**: https://docextract-frontend.onrender.com
 - **Dev API key**: [set in Render dashboard]
 - **Docs**: https://docextract-api.onrender.com/docs
+
+## Case Study
+
+See [CASE_STUDY.md](CASE_STUDY.md) for architecture deep-dive.
 
 ## License
 

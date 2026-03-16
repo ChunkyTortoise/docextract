@@ -4,6 +4,7 @@ import json
 import logging
 
 import anthropic
+from anthropic import AsyncAnthropic
 
 from app.config import settings
 
@@ -63,18 +64,18 @@ class ClassificationResult:
     reasoning: str
 
 
-def classify(text: str) -> ClassificationResult:
+async def classify(text: str) -> ClassificationResult:
     """Classify document type using Claude.
 
     Returns ClassificationResult with doc_type='unknown' on low confidence or error.
     """
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
     # Use first 2000 chars for classification (fast + cheap)
     sample = text[:2000]
 
     try:
-        response = client.messages.create(
+        response = await client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=256,
             messages=[{"role": "user", "content": CLASSIFY_PROMPT.format(text=sample)}],

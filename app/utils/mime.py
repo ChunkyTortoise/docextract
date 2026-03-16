@@ -16,6 +16,7 @@ ALLOWED_MIME_TYPES: dict[str, str] = {
     ".webp": "image/webp",
     ".eml": "message/rfc822",
     ".msg": "application/vnd.ms-outlook",
+    ".txt": "text/plain",
 }
 
 _ALLOWED_MIME_SET = set(ALLOWED_MIME_TYPES.values())
@@ -32,6 +33,14 @@ def detect_mime_type(data: bytes) -> str:
     # Fallback: EML (RFC 822 email — plain text with headers)
     if b"Content-Type:" in data[:512] or data[:5] in (b"From ", b"Date:"):
         return "message/rfc822"
+    # Fallback: plain text (try UTF-8 decode, reject if contains null bytes)
+    sample = data[:512]
+    if b"\x00" not in sample:
+        try:
+            sample.decode("utf-8")
+            return "text/plain"
+        except (UnicodeDecodeError, ValueError):
+            pass
     return "application/octet-stream"
 
 

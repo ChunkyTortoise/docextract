@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Type
 
 import anthropic
+from anthropic import AsyncAnthropic
 from pydantic import BaseModel
 
 from app.config import settings
@@ -74,12 +75,12 @@ async def extract(
     if schema_class is None:
         schema_class = DOCUMENT_TYPE_MAP.get(doc_type)
 
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
     # Pass 1: Extract (with rate limit retry)
     for attempt in range(3):
         try:
-            response = client.messages.create(
+            response = await client.messages.create(
                 model="claude-sonnet-4-6",
                 max_tokens=4096,
                 system=EXTRACT_SYSTEM_PROMPT,
@@ -100,7 +101,7 @@ async def extract(
             # Pass 2: Correction if low confidence
             corrections_applied = False
             if confidence < settings.extraction_confidence_threshold:
-                extracted, corrections_applied = _apply_corrections_pass(
+                extracted, corrections_applied = await _apply_corrections_pass(
                     client, text, doc_type, extracted, confidence
                 )
 
@@ -162,8 +163,8 @@ def _parse_json_response(text: str) -> dict[str, Any]:
     return {}
 
 
-def _apply_corrections_pass(
-    client: anthropic.Anthropic,
+async def _apply_corrections_pass(
+    client: AsyncAnthropic,
     text: str,
     doc_type: str,
     original: dict[str, Any],
@@ -181,7 +182,7 @@ Current extraction:
 Use the apply_corrections tool to fix any incorrect or missing fields."""
 
     try:
-        response = client.messages.create(
+        response = await client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=2048,
             messages=[{"role": "user", "content": correction_prompt}],

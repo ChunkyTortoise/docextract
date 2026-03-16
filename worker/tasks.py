@@ -102,7 +102,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     # 5. Classify -> CLASSIFYING
     await _update_job_status(db, redis, job, JobStatus.CLASSIFYING)
-    classification = classify(extracted.text)
+    classification = await classify(extracted.text)
     doc_type = classification.doc_type
 
     # 6. Extract with Claude -> EXTRACTING_DATA
@@ -117,7 +117,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # 8. Embed -> EMBEDDING
     await _update_job_status(db, redis, job, JobStatus.EMBEDDING)
     embedding_text = extracted.text[:2000]
-    embedding_vector = embed(embedding_text)
+    embedding_vector = await embed(embedding_text)
 
     # 9. Store record
     record_id = str(uuid.uuid4())

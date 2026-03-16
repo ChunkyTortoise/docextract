@@ -110,10 +110,15 @@ async def _summary(db: AsyncSession, start: datetime, end: datetime) -> dict:
 
     avg_processing_ms = (
         await db.execute(
-            select(func.avg(ExtractionJob.progress_pct)).where(
+            select(
+                func.avg(
+                    func.extract('epoch', ExtractionJob.completed_at - ExtractionJob.started_at) * 1000
+                )
+            ).where(
                 ExtractionJob.created_at >= start,
                 ExtractionJob.created_at <= end,
                 ExtractionJob.status == "completed",
+                ExtractionJob.completed_at.is_not(None),
             )
         )
     ).scalar()

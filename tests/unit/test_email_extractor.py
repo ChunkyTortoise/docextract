@@ -224,11 +224,15 @@ class TestGuesseMimeFromFilename:
         assert _guess_mime_from_filename("scan.png") == "image/png"
         assert _guess_mime_from_filename("email.eml") == "message/rfc822"
 
+    def test_txt_extension(self) -> None:
+        from app.services.email_extractor import _guess_mime_from_filename
+
+        assert _guess_mime_from_filename("readme.txt") == "text/plain"
+
     def test_unknown_extension(self) -> None:
         from app.services.email_extractor import _guess_mime_from_filename
 
         assert _guess_mime_from_filename("data.xyz") is None
-        assert _guess_mime_from_filename("readme.txt") is None
 
 
 class TestExtractMsgFile:

@@ -160,6 +160,7 @@ class TestProcessPipeline:
             ),
             patch(
                 "app.services.classifier.classify",
+                new_callable=AsyncMock,
                 return_value=ClassificationResult(
                     doc_type="invoice", confidence=0.95, reasoning="Invoice detected"
                 ),
@@ -178,7 +179,7 @@ class TestProcessPipeline:
                     is_valid=True, errors=[], needs_review=False, confidence=0.92
                 ),
             ),
-            patch("app.services.embedder.embed", return_value=[0.1] * 768),
+            patch("app.services.embedder.embed", new_callable=AsyncMock, return_value=[0.1] * 768),
             patch("worker.events.publish_event", new_callable=AsyncMock),
         ]
 

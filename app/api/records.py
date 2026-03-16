@@ -87,7 +87,7 @@ async def search_records(
     """Semantic search over extracted records using embeddings."""
     from app.services.embedder import embed
 
-    query_vector = embed(q)
+    query_vector = await embed(q)
 
     # Join content_embeddings on record_id, order by cosine distance
     stmt = (

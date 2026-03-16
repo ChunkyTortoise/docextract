@@ -41,7 +41,7 @@ def _safe_uuid_bind_processor(self, dialect):  # type: ignore[override]
 
 _PG_UUID.bind_processor = _safe_uuid_bind_processor  # type: ignore[method-assign]
 
-from app.dependencies import get_db, get_redis, get_storage
+from app.dependencies import get_arq_pool, get_db, get_redis, get_storage
 from app.models import APIKey  # noqa: F401
 from app.models.database import Base
 from app.storage.base import StorageBackend
@@ -170,7 +170,13 @@ async def fake_storage():
 
 
 @pytest_asyncio.fixture
-async def client(db_session, test_redis, fake_storage):
+async def fake_arq_pool():
+    from unittest.mock import AsyncMock
+    return AsyncMock()
+
+
+@pytest_asyncio.fixture
+async def client(db_session, test_redis, fake_storage, fake_arq_pool):
     from app.main import create_app
 
     app = create_app()
@@ -184,9 +190,13 @@ async def client(db_session, test_redis, fake_storage):
     async def override_get_storage():
         return fake_storage
 
+    async def override_get_arq_pool():
+        return fake_arq_pool
+
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_redis] = override_get_redis
     app.dependency_overrides[get_storage] = override_get_storage
+    app.dependency_overrides[get_arq_pool] = override_get_arq_pool
 
     # Ensure test API key exists (idempotent — key_hash is unique)
     from sqlalchemy import select

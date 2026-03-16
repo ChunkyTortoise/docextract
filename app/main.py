@@ -25,9 +25,14 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown."""
+    import arq
     logger.info("DocExtract AI starting up...")
+    app.state.arq_pool = await arq.create_pool(
+        arq.connections.RedisSettings.from_dsn(settings.redis_url)
+    )
     yield
     logger.info("DocExtract AI shutting down...")
+    await app.state.arq_pool.aclose()
     from app.models.database import engine
     await engine.dispose()
     logger.info("Database connections closed")

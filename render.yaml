@@ -3,7 +3,7 @@ services:
     name: docextract-api
     plan: standard
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && alembic upgrade head
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/v1/health
     envVars:
@@ -17,6 +17,8 @@ services:
           name: docextract-redis
           property: connectionString
       - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
         sync: false
       - key: API_KEY_SECRET
         generateValue: true
@@ -44,6 +46,8 @@ services:
           name: docextract-redis
           property: connectionString
       - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
         sync: false
       - key: API_KEY_SECRET
         fromService:

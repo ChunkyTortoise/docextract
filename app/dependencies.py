@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 
+import arq
 import redis.asyncio as aioredis
+from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -44,3 +46,8 @@ async def get_storage():
 
             _storage = LocalStorageBackend()
     return _storage
+
+
+async def get_arq_pool(request: Request) -> arq.ArqRedis:
+    """Return the shared ARQ pool from app state."""
+    return request.app.state.arq_pool
