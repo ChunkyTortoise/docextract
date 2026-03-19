@@ -1,10 +1,14 @@
 """Screen 5: Human review interface."""
+import os
+
 import streamlit as st
 import frontend.api_client as api
 
 
 def render() -> None:
     st.title("Document Review")
+
+    demo_mode = os.environ.get("DEMO_MODE", "").lower() in ("1", "true", "yes")
 
     record_id = st.session_state.get("current_record_id")
     if not record_id:
@@ -51,6 +55,9 @@ def render() -> None:
 
         # Actions
         st.divider()
+        if demo_mode:
+            st.info("Review actions are disabled in demo mode.")
+            return
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Approve", type="primary"):

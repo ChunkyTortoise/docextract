@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocExtract AI — Live Demo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2d3148;
+    --text: #e2e8f0;
+    --muted: #8892a4;
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  a { color: var(--accent2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* Header */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 0;
+  }
+  header .inner {
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 1100px; margin: 0 auto; padding: 0 24px;
+  }
+  header h1 { font-size: 18px; font-weight: 700; color: var(--accent2); }
+  header h1 span { color: var(--muted); font-weight: 400; font-size: 14px; }
+  .badge {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--muted);
+  }
+  .badge b { color: var(--yellow); }
+
+  /* Banner */
+  .banner {
+    background: #1c1c2e; border: 1px solid #3b3b5c; border-radius: 8px;
+    padding: 12px 16px; margin: 24px 0;
+    display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--muted);
+  }
+  .banner strong { color: var(--text); }
+
+  /* Cards */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px;
+  }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 16px; }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px;
+  }
+  .stat-card .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+  .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--surface2); }
+  th { padding: 10px 14px; text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(99,102,241,.04); }
+
+  .pill {
+    display: inline-block; border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 600;
+  }
+  .pill.passed   { background: rgba(34,197,94,.15); color: #4ade80; }
+  .pill.pending  { background: rgba(234,179,8,.15);  color: #facc15; }
+  .pill.approved { background: rgba(99,102,241,.15); color: #a5b4fc; }
+  .pill.corrected{ background: rgba(249,115,22,.15); color: #fb923c; }
+
+  .conf { font-weight: 600; }
+  .conf.high { color: var(--green); }
+  .conf.mid  { color: var(--yellow); }
+  .conf.low  { color: var(--red); }
+
+  /* Expandable */
+  details summary { cursor: pointer; color: var(--accent2); font-size: 12px; list-style: none; user-select: none; }
+  details summary::before { content: "▶  "; font-size: 9px; }
+  details[open] summary::before { content: "▼  "; }
+  details pre {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px 12px; margin-top: 8px; font-size: 12px; color: #94a3b8;
+    white-space: pre-wrap; word-break: break-all; max-width: 360px;
+  }
+
+  /* ROI */
+  .roi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .roi-item { background: var(--surface2); border-radius: 8px; padding: 14px 16px; }
+  .roi-item .rlabel { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .roi-item .rvalue { font-size: 20px; font-weight: 700; }
+  .roi-item .rvalue.green { color: var(--green); }
+  .roi-item .rvalue.accent { color: var(--accent2); }
+
+  /* Layout */
+  main { padding: 24px 0 48px; }
+  .section { margin-bottom: 24px; }
+
+  /* Loading */
+  .loading { color: var(--muted); font-style: italic; font-size: 13px; }
+  .error-msg { color: var(--red); font-size: 13px; }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--border); padding: 24px 0; text-align: center; color: var(--muted); font-size: 13px; }
+  footer a { color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <h1>DocExtract AI <span>— Live Demo</span></h1>
+    <span class="badge"><b>Read-only</b> &nbsp;·&nbsp; Pre-seeded data &nbsp;·&nbsp; No uploads</span>
+  </div>
+</header>
+
+<main>
+<div class="container">
+
+  <div class="banner">
+    <span>ℹ️</span>
+    <div>
+      <strong>This is a read-only demo.</strong>
+      Uploads and mutations are disabled. The records below were pre-seeded to show the extraction pipeline output.
+      Source: <a href="https://github.com/ChunkyTortoise/docextract" target="_blank">github.com/ChunkyTortoise/docextract</a>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="section stats-grid" id="stats-grid">
+    <div class="stat-card"><div class="label">Total Documents</div><div class="value loading">—</div></div>
+    <div class="stat-card"><div class="label">Completed Jobs</div><div class="value loading">—</div></div>
+    <div class="stat-card"><div class="label">Avg Confidence</div><div class="value loading">—</div></div>
+    <div class="stat-card"><div class="label">Success Rate</div><div class="value loading">—</div></div>
+  </div>
+
+  <!-- Records -->
+  <div class="section card">
+    <h2>Extracted Records</h2>
+    <div class="table-wrap">
+      <table id="records-table">
+        <thead>
+          <tr>
+            <th>Document Type</th>
+            <th>Confidence</th>
+            <th>Status</th>
+            <th>Extracted At</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody id="records-body">
+          <tr><td colspan="5" class="loading">Loading records…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ROI -->
+  <div class="section card">
+    <h2>ROI Summary (Last 30 days)</h2>
+    <div class="roi-grid" id="roi-grid">
+      <div class="roi-item"><div class="rlabel">Minutes Saved</div><div class="rvalue accent" id="roi-minutes">—</div></div>
+      <div class="roi-item"><div class="rlabel">Dollars Saved</div><div class="rvalue green" id="roi-dollars">—</div></div>
+      <div class="roi-item"><div class="rlabel">Run Cost</div><div class="rvalue" id="roi-cost" style="color:var(--muted)">—</div></div>
+      <div class="roi-item"><div class="rlabel">Net Value</div><div class="rvalue green" id="roi-net">—</div></div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<footer>
+  <div class="container">
+    Built by <a href="https://chunkytortoise.github.io" target="_blank">Cayman Roden</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/ChunkyTortoise/docextract" target="_blank">GitHub</a>
+    &nbsp;·&nbsp;
+    <a href="/docs" target="_blank">API Docs</a>
+  </div>
+</footer>
+
+<script>
+const API_KEY = "demo-key-docextract-2026";
+const HEADERS = { "X-API-Key": API_KEY };
+
+function fmt(dt) {
+  if (!dt) return "—";
+  const d = new Date(dt);
+  return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function confClass(n) {
+  if (n >= 0.9) return "high";
+  if (n >= 0.75) return "mid";
+  return "low";
+}
+
+function pillClass(status) {
+  const s = (status || "").toLowerCase();
+  if (["passed", "approved"].includes(s)) return "passed";
+  if (s === "pending_review") return "pending";
+  if (s === "approved") return "approved";
+  if (s === "corrected") return "corrected";
+  return "pending";
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch("/api/v1/stats", { headers: HEADERS });
+    if (!r.ok) throw new Error("stats " + r.status);
+    const d = await r.json();
+    const grid = document.getElementById("stats-grid");
+    grid.innerHTML = `
+      <div class="stat-card"><div class="label">Total Documents</div><div class="value">${d.total_documents}</div><div class="sub">${d.total_jobs} jobs total</div></div>
+      <div class="stat-card"><div class="label">Completed Jobs</div><div class="value">${d.completed_jobs}</div><div class="sub">${d.failed_jobs} failed</div></div>
+      <div class="stat-card"><div class="label">Avg Confidence</div><div class="value">${((d.avg_confidence_score || 0) * 100).toFixed(1)}%</div><div class="sub">across all records</div></div>
+      <div class="stat-card"><div class="label">Success Rate</div><div class="value">${((d.success_rate || 0) * 100).toFixed(1)}%</div><div class="sub">${d.jobs_last_24h} jobs last 24h</div></div>
+    `;
+  } catch (e) {
+    document.getElementById("stats-grid").innerHTML = `<div class="error-msg">Could not load stats: ${e.message}</div>`;
+  }
+}
+
+async function loadRecords() {
+  const tbody = document.getElementById("records-body");
+  try {
+    const r = await fetch("/api/v1/records?page_size=20", { headers: HEADERS });
+    if (!r.ok) throw new Error("records " + r.status);
+    const d = await r.json();
+    const items = d.items || [];
+    if (!items.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="loading">No records found — run the seed script to populate demo data.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = items.map(rec => {
+      const type = (rec.document_type || "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const conf = (rec.confidence_score || 0);
+      const status = rec.validation_status || rec.review_status || "passed";
+      const json = JSON.stringify(rec.extracted_data || {}, null, 2);
+      return `<tr>
+        <td>${type}</td>
+        <td><span class="conf ${confClass(conf)}">${(conf * 100).toFixed(1)}%</span></td>
+        <td><span class="pill ${pillClass(status)}">${status.replace(/_/g, " ")}</span></td>
+        <td>${fmt(rec.created_at)}</td>
+        <td><details><summary>View JSON</summary><pre>${json}</pre></details></td>
+      </tr>`;
+    }).join("");
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" class="error-msg">Could not load records: ${e.message}</td></tr>`;
+  }
+}
+
+async function loadROI() {
+  try {
+    const r = await fetch("/api/v1/roi/summary", { headers: HEADERS });
+    if (!r.ok) throw new Error("roi " + r.status);
+    const d = await r.json();
+    const kpis = d.kpis || {};
+    document.getElementById("roi-minutes").textContent = (kpis.estimated_minutes_saved || 0).toFixed(0) + " min";
+    document.getElementById("roi-dollars").textContent = "$" + (kpis.estimated_dollars_saved || 0).toFixed(2);
+    document.getElementById("roi-cost").textContent = "$" + (kpis.estimated_run_cost || 0).toFixed(2);
+    document.getElementById("roi-net").textContent = "$" + (kpis.net_value || 0).toFixed(2);
+  } catch (e) {
+    document.getElementById("roi-grid").innerHTML = `<div class="error-msg">Could not load ROI: ${e.message}</div>`;
+  }
+}
+
+Promise.all([loadStats(), loadRecords(), loadROI()]);
+</script>
+</body>
+</html>

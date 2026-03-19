@@ -18,7 +18,7 @@ Render — 3 live services:
 Dev API key: `[set in Render dashboard]`
 
 ## Test
-```pytest tests/  # 335 tests```
+```pytest tests/  # 352 tests```
 
 ## Key Env
 ANTHROPIC_API_KEY, DATABASE_URL, REDIS_URL, SECRET_KEY

@@ -18,6 +18,8 @@ from app.models.executive_report import ExecutiveReport
 from app.models.job import ExtractionJob
 from app.models.record import ExtractedRecord
 from app.schemas.responses import (
+    ROISummaryResponse,
+    ROITrendsResponse,
     ReportGenerateResponse,
     ReportGetResponse,
     ReportListResponse,
@@ -171,7 +173,7 @@ def _index_metadata(report_id: str, metadata: dict) -> dict:
     }
 
 
-@router.get("/roi/summary")
+@router.get("/roi/summary", response_model=ROISummaryResponse)
 async def roi_summary(
     date_from: datetime | None = Query(default=None),
     date_to: datetime | None = Query(default=None),
@@ -182,7 +184,7 @@ async def roi_summary(
     return await _summary(db, start, end)
 
 
-@router.get("/roi/trends")
+@router.get("/roi/trends", response_model=ROITrendsResponse)
 async def roi_trends(
     interval: str = Query(default="week", pattern="^(week|month)$"),
     date_from: datetime | None = Query(default=None),

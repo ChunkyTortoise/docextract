@@ -143,14 +143,18 @@ async def claim_review_item(
     claimed = (
         await db.execute(select(ExtractedRecord).where(ExtractedRecord.id == item_id))
     ).scalar_one()
-    await _append_audit(
-        db,
-        record=claimed,
-        action="review.claimed",
-        actor=actor,
-        old_data={"status": row.validation_status, "assignee": row.reviewed_by},
-        new_data={"status": "claimed", "assignee": actor},
-    )
+    try:
+        await _append_audit(
+            db,
+            record=claimed,
+            action="review.claimed",
+            actor=actor,
+            old_data={"status": row.validation_status, "assignee": row.reviewed_by},
+            new_data={"status": "claimed", "assignee": actor},
+        )
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="Audit write failed")
     await db.commit()
 
     return {"status": "claimed", "item_id": item_id, "assignee": actor}
@@ -177,14 +181,18 @@ async def approve_review_item(
     item.reviewed_by = actor
     item.reviewed_at = datetime.now(timezone.utc)
 
-    await _append_audit(
-        db,
-        record=item,
-        action="review.approved",
-        actor=actor,
-        old_data=old,
-        new_data={"status": item.validation_status, "needs_review": item.needs_review},
-    )
+    try:
+        await _append_audit(
+            db,
+            record=item,
+            action="review.approved",
+            actor=actor,
+            old_data=old,
+            new_data={"status": item.validation_status, "needs_review": item.needs_review},
+        )
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="Audit write failed")
     await db.commit()
 
     return {"status": "approved", "item_id": item_id}
@@ -225,18 +233,22 @@ async def correct_review_item(
     item.reviewed_by = actor
     item.reviewed_at = datetime.now(timezone.utc)
 
-    await _append_audit(
-        db,
-        record=item,
-        action="review.corrected",
-        actor=actor,
-        old_data=old,
-        new_data={
-            "status": item.validation_status,
-            "needs_review": item.needs_review,
-            "corrected_data": corrections,
-        },
-    )
+    try:
+        await _append_audit(
+            db,
+            record=item,
+            action="review.corrected",
+            actor=actor,
+            old_data=old,
+            new_data={
+                "status": item.validation_status,
+                "needs_review": item.needs_review,
+                "corrected_data": corrections,
+            },
+        )
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="Audit write failed")
     await db.commit()
 
     return {"status": "corrected", "item_id": item_id}

@@ -112,3 +112,37 @@ class ReportGetResponse(BaseModel):
 
 class ReportListResponse(BaseModel):
     items: list[ReportMetadata]
+
+
+class KPIs(BaseModel):
+    jobs_total: int
+    jobs_completed: int
+    records_total: int
+    records_reviewed: int
+    avg_confidence: float
+    avg_processing_indicator: float
+    estimated_minutes_saved: float
+    estimated_dollars_saved: float
+    estimated_run_cost: float
+    net_value: float
+
+
+class ROISummaryResponse(BaseModel):
+    from_: str = Field(alias="from")
+    to: str
+    kpis: KPIs
+
+
+class TrendPoint(BaseModel):
+    bucket_start: str
+    bucket_end: str
+    jobs_completed: int
+    dollars_saved: float
+    net_value: float
+
+
+class ROITrendsResponse(BaseModel):
+    interval: str
+    from_: str = Field(alias="from")
+    to: str
+    points: list[TrendPoint]

@@ -1,4 +1,6 @@
 """Screen 1: Document upload."""
+import os
+
 import streamlit as st
 import frontend.api_client as api
 
@@ -25,6 +27,11 @@ DOCUMENT_TYPES = [
 
 def render() -> None:
     st.title("Upload Document")
+
+    if os.environ.get("DEMO_MODE", "").lower() in ("1", "true", "yes"):
+        st.warning("Uploads are disabled in demo mode. This page is read-only.")
+        return
+
     st.write("Upload a document to extract structured data using AI.")
 
     with st.form("upload_form"):

@@ -5,14 +5,19 @@ import asyncio
 import logging
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
+from app.api import demo as demo_module
 from app.api.router import api_router
 from app.config import settings
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper()),
@@ -111,6 +116,10 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(api_router)
+    app.include_router(demo_module.router)
+
+    if STATIC_DIR.is_dir():
+        app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
     return app
 

@@ -1,6 +1,6 @@
 # DocExtract AI
 
-[![Tests](https://img.shields.io/badge/tests-340%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-352%20passing-brightgreen)]()
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688)]()
 

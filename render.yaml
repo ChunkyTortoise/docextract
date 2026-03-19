@@ -3,7 +3,8 @@ services:
     name: docextract-api
     plan: standard
     env: python
-    buildCommand: pip install -r requirements.txt && alembic upgrade head
+    buildCommand: pip install -r requirements.txt
+    preDeployCommand: alembic upgrade head && python -m scripts.seed_demo
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/v1/health
     envVars:
@@ -28,6 +29,8 @@ services:
         value: local
       - key: STORAGE_LOCAL_PATH
         value: /tmp/docextract-storage
+      - key: DEMO_MODE
+        value: "true"
 
   - type: worker
     name: docextract-worker

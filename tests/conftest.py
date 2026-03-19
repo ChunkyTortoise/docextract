@@ -223,3 +223,95 @@ async def client(db_session, test_redis, fake_storage, fake_arq_pool):
         headers={"X-API-Key": TEST_API_KEY},
     ) as ac:
         yield ac
+
+
+@pytest_asyncio.fixture
+async def demo_client(db_session, test_redis, fake_storage, fake_arq_pool):
+    from app.config import settings
+    from app.main import create_app
+
+    original_demo_mode = settings.demo_mode
+    settings.demo_mode = True
+    try:
+        app = create_app()
+
+        async def override_get_db():
+            yield db_session
+
+        async def override_get_redis():
+            return test_redis
+
+        async def override_get_storage():
+            return fake_storage
+
+        async def override_get_arq_pool():
+            return fake_arq_pool
+
+        app.dependency_overrides[get_db] = override_get_db
+        app.dependency_overrides[get_redis] = override_get_redis
+        app.dependency_overrides[get_storage] = override_get_storage
+        app.dependency_overrides[get_arq_pool] = override_get_arq_pool
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+            headers={"X-API-Key": settings.demo_api_key},
+        ) as ac:
+            yield ac
+    finally:
+        settings.demo_mode = original_demo_mode
+
+
+@pytest_asyncio.fixture
+async def seed_stale_review_items(db_session):
+    """Factory: creates n_stale (>24h old) + n_fresh records with needs_review=True."""
+    import uuid
+    from datetime import datetime, timedelta, timezone
+
+    from app.models.document import Document
+    from app.models.job import ExtractionJob
+    from app.models.record import ExtractedRecord
+
+    async def _seed(n_stale: int, n_fresh: int) -> list[str]:
+        now = datetime.now(timezone.utc)
+        record_ids: list[str] = []
+
+        for i in range(n_stale + n_fresh):
+            doc_id = str(uuid.uuid4())
+            job_id = str(uuid.uuid4())
+            record_id = str(uuid.uuid4())
+            is_stale = i < n_stale
+            created = now - timedelta(hours=25) if is_stale else now
+
+            db_session.add(Document(
+                id=doc_id,
+                original_filename=f"stale_{i}.pdf",
+                stored_path=f"documents/{doc_id}/stale_{i}.pdf",
+                mime_type="application/pdf",
+                file_size_bytes=100,
+                sha256_hash=uuid.uuid4().hex,
+            ))
+            db_session.add(ExtractionJob(
+                id=job_id,
+                document_id=doc_id,
+                status="needs_review",
+                priority="standard",
+            ))
+            db_session.add(ExtractedRecord(
+                id=record_id,
+                job_id=job_id,
+                document_id=doc_id,
+                document_type="invoice",
+                extracted_data={"amount": "100.00"},
+                confidence_score=0.6,
+                needs_review=True,
+                validation_status="pending_review",
+                review_reason="low_confidence",
+                created_at=created,
+            ))
+            record_ids.append(record_id)
+
+        await db_session.commit()
+        return record_ids
+
+    return _seed
