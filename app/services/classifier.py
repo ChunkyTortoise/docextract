@@ -7,6 +7,7 @@ import anthropic
 from anthropic import AsyncAnthropic
 
 from app.config import settings
+from app.services.prompt_config import config as prompt_config
 
 logger = logging.getLogger(__name__)
 
@@ -71,14 +72,16 @@ async def classify(text: str) -> ClassificationResult:
     """
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
-    # Use first 2000 chars for classification (fast + cheap)
-    sample = text[:2000]
+    # Use first classify_text_limit chars for classification (fast + cheap)
+    sample = text[: prompt_config.params.classify_text_limit]
 
     try:
         response = await client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=256,
-            messages=[{"role": "user", "content": CLASSIFY_PROMPT.format(text=sample)}],
+            messages=[
+                {"role": "user", "content": prompt_config.classify_prompt.format(text=sample)}
+            ],
         )
 
         raw = response.content[0].text
@@ -89,7 +92,7 @@ async def classify(text: str) -> ClassificationResult:
         reasoning = result.get("reasoning", "")
 
         # Fall back to unknown on low confidence
-        if confidence < 0.6:
+        if confidence < prompt_config.params.classification_confidence_threshold:
             doc_type = "unknown"
 
         return ClassificationResult(

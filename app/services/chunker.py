@@ -1,8 +1,11 @@
 """Page-based text chunker for LLM processing."""
+from app.services.prompt_config import config as _prompt_config
 from app.utils.tokens import estimate_tokens
 
-MAX_CHUNK_TOKENS = 4000
-OVERLAP_CHARS = 200
+# Sourced from prompt_config so autoresearch can tune them; keep as module-level
+# names so existing imports (tests, other modules) continue to work.
+MAX_CHUNK_TOKENS = _prompt_config.params.max_chunk_tokens
+OVERLAP_CHARS = _prompt_config.params.overlap_chars
 PAGE_MARKER_PREFIX = "---PAGE "
 
 

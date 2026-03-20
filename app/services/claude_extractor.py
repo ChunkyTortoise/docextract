@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.schemas.document_types import DOCUMENT_TYPE_MAP
+from app.services.prompt_config import config as prompt_config
 
 logger = logging.getLogger(__name__)
 
@@ -27,18 +28,9 @@ class ExtractionResult:
     raw_response: str = ""
 
 
-EXTRACT_SYSTEM_PROMPT = """You are a document data extraction specialist.
-Extract all structured data from the document according to the schema provided.
-Be precise and extract exactly what's in the document — do not infer or hallucinate data.
-For each field, extract the value exactly as it appears in the document.
-If a field is not present, use null."""
-
-EXTRACT_PROMPT = """Extract all data from this {doc_type} document into the provided JSON schema.
-
-Document text:
-{text}
-
-Return a valid JSON object matching the schema. Include a "_confidence" field (0.0-1.0) indicating your overall confidence in the extraction."""
+# Re-exported for backwards compatibility (tests may import these)
+EXTRACT_SYSTEM_PROMPT = prompt_config.extract_system_prompt
+EXTRACT_PROMPT = prompt_config.extract_prompt
 
 
 CORRECTION_TOOL = {
@@ -83,11 +75,14 @@ async def extract(
             response = await client.messages.create(
                 model="claude-sonnet-4-6",
                 max_tokens=4096,
-                system=EXTRACT_SYSTEM_PROMPT,
+                system=prompt_config.extract_system_prompt,
                 messages=[
                     {
                         "role": "user",
-                        "content": EXTRACT_PROMPT.format(doc_type=doc_type, text=text[:8000]),
+                        "content": prompt_config.extract_prompt.format(
+                            doc_type=doc_type,
+                            text=text[: prompt_config.params.extract_text_limit],
+                        ),
                     }
                 ],
             )
@@ -171,15 +166,14 @@ async def _apply_corrections_pass(
     confidence: float,
 ) -> tuple[dict[str, Any], bool]:
     """Pass 2: Use tool_use to correct low-confidence extractions."""
-    correction_prompt = f"""Review this {doc_type} extraction (confidence: {confidence:.2f}) and correct any errors.
-
-Original document text (first 3000 chars):
-{text[:3000]}
-
-Current extraction:
-{json.dumps(original, indent=2)}
-
-Use the apply_corrections tool to fix any incorrect or missing fields."""
+    text_limit = prompt_config.params.correction_text_limit
+    correction_prompt = prompt_config.correction_prompt.format(
+        doc_type=doc_type,
+        confidence=confidence,
+        text_limit=text_limit,
+        text=text[:text_limit],
+        extraction_json=json.dumps(original, indent=2),
+    )
 
     try:
         response = await client.messages.create(

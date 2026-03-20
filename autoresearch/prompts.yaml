@@ -1,0 +1,59 @@
+version: 1
+
+# Tunable parameters
+params:
+  max_chunk_tokens: 4000
+  overlap_chars: 200
+  extract_text_limit: 8000
+  correction_text_limit: 3000
+  classify_text_limit: 2000
+  extraction_confidence_threshold: 0.8
+  classification_confidence_threshold: 0.6
+
+# Pass 1 extraction — system prompt
+extract_system_prompt: |
+  You are a document data extraction specialist.
+  Extract all structured data from the document according to the schema provided.
+  Be precise and extract exactly what's in the document — do not infer or hallucinate data.
+  For each field, extract the value exactly as it appears in the document.
+  If a field is not present, use null.
+
+# Pass 1 extraction — user prompt template
+# Variables: {doc_type}, {text}
+extract_prompt: |
+  Extract all data from this {doc_type} document into the provided JSON schema.
+
+  Document text:
+  {text}
+
+  Return a valid JSON object matching the schema. Include a "_confidence" field (0.0-1.0) indicating your overall confidence in the extraction.
+
+# Pass 2 correction — user prompt template
+# Variables: {doc_type}, {confidence}, {text_limit}, {text}, {extraction_json}
+correction_prompt: |
+  Review this {doc_type} extraction (confidence: {confidence:.2f}) and correct any errors.
+
+  Original document text (first {text_limit} chars):
+  {text}
+
+  Current extraction:
+  {extraction_json}
+
+  Use the apply_corrections tool to fix any incorrect or missing fields.
+
+# Classification prompt template
+# Variables: {text}
+classify_prompt: |
+  Analyze this document and classify it into one of these types:
+  - invoice: A bill from a vendor requesting payment
+  - purchase_order: A buyer's order requesting goods/services
+  - receipt: Proof of purchase/payment
+  - bank_statement: Bank account transaction history
+  - identity_document: Passport, driver's license, national ID
+  - medical_record: Patient health record, visit notes, prescriptions
+  - unknown: Cannot determine type
+
+  Document text (first 2000 chars):
+  {text}
+
+  Respond with JSON matching the schema.

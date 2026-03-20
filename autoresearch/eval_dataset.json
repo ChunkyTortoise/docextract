@@ -1,0 +1,159 @@
+[
+  {
+    "id": "invoice_01",
+    "doc_type": "invoice",
+    "weight": 1.0,
+    "critical_fields": ["invoice_number", "total_amount", "vendor_name", "customer_name"],
+    "input_text": "INVOICE\n\nInvoice Number: INV-2024-001\nInvoice Date: 2024-01-15\nDue Date: 2024-02-15\n\nFrom:\nAcme Corp\n123 Main St, New York, NY 10001\n\nTo:\nTechStart Inc\n456 Oak Ave, San Francisco, CA 94102\n\nDescription                    Qty    Unit Price    Total\n-----------                    ---    ----------    -----\nSoftware License               1      $800.00       $800.00\nImplementation Services        2      $100.00       $200.00\n\nSubtotal: $1,000.00\nTax (8%): $80.00\nTotal Due: $1,080.00\n\nCurrency: USD\nPayment Terms: Net 30\nPlease remit payment within 30 days.",
+    "expected": {
+      "invoice_number": "INV-2024-001",
+      "invoice_date": "2024-01-15",
+      "due_date": "2024-02-15",
+      "vendor_name": "Acme Corp",
+      "vendor_address": "123 Main St, New York, NY 10001",
+      "customer_name": "TechStart Inc",
+      "customer_address": "456 Oak Ave, San Francisco, CA 94102",
+      "line_items": [
+        {"description": "Software License", "quantity": 1.0, "unit_price": 800.0, "total": 800.0},
+        {"description": "Implementation Services", "quantity": 2.0, "unit_price": 100.0, "total": 200.0}
+      ],
+      "subtotal": 1000.0,
+      "tax_amount": 80.0,
+      "total_amount": 1080.0,
+      "currency": "USD",
+      "payment_terms": "Net 30"
+    }
+  },
+  {
+    "id": "invoice_02",
+    "doc_type": "invoice",
+    "weight": 1.0,
+    "critical_fields": ["invoice_number", "total_amount", "vendor_name", "customer_name"],
+    "input_text": "FACTURA / INVOICE\n\nRechnungsnummer: EUR-2024-0892\nDatum: 15.03.2024\nFaellig: 15.04.2024\n\nLieferant / Vendor:\nBerlin Software GmbH\nKurfuerstendamm 45, 10719 Berlin, Deutschland\n\nKunde / Customer:\nParis Analytics SAS\n12 Rue de Rivoli, 75001 Paris, France\n\nPosition    Beschreibung              Menge    Preis/Einh    Betrag\n1           API Access License        1        950,00 EUR    950,00 EUR\n2           Support & Maintenance     12       25,00 EUR     300,00 EUR\n\nZwischensumme / Subtotal: 1.250,00 EUR\nMwSt. / VAT (19%): 237,50 EUR\nGesamtbetrag / Total: 1.487,50 EUR\n\nWaehrung: EUR\nZahlungsbedingungen: 30 Tage netto",
+    "expected": {
+      "invoice_number": "EUR-2024-0892",
+      "invoice_date": "2024-03-15",
+      "due_date": "2024-04-15",
+      "vendor_name": "Berlin Software GmbH",
+      "vendor_address": "Kurfuerstendamm 45, 10719 Berlin, Deutschland",
+      "customer_name": "Paris Analytics SAS",
+      "customer_address": "12 Rue de Rivoli, 75001 Paris, France",
+      "line_items": [
+        {"description": "API Access License", "quantity": 1.0, "unit_price": 950.0, "total": 950.0},
+        {"description": "Support & Maintenance", "quantity": 12.0, "unit_price": 25.0, "total": 300.0}
+      ],
+      "subtotal": 1250.0,
+      "tax_amount": 237.5,
+      "total_amount": 1487.5,
+      "currency": "EUR",
+      "payment_terms": "30 Tage netto"
+    }
+  },
+  {
+    "id": "receipt_01",
+    "doc_type": "receipt",
+    "weight": 1.0,
+    "critical_fields": ["merchant_name", "total", "transaction_date"],
+    "input_text": "RECEIPT\n\nMerchant: The Coffee House\n234 Broadway, New York, NY 10013\n\nReceipt #: RCP-20240318-0042\nDate: 2024-03-18\n\nItem                     Price\n----                     -----\nCaffe Latte              $5.50\nAvocado Toast            $12.00\nOrange Juice             $4.50\n\nSubtotal:    $22.00\nTax (8.875%): $1.95\nTip:         $4.00\nTotal:       $27.95\n\nPayment: Visa ***4521\nThank you for your visit!",
+    "expected": {
+      "receipt_number": "RCP-20240318-0042",
+      "merchant_name": "The Coffee House",
+      "merchant_address": "234 Broadway, New York, NY 10013",
+      "transaction_date": "2024-03-18",
+      "items": [
+        {"description": "Caffe Latte", "total": 5.5},
+        {"description": "Avocado Toast", "total": 12.0},
+        {"description": "Orange Juice", "total": 4.5}
+      ],
+      "subtotal": 22.0,
+      "tax_amount": 1.95,
+      "tip_amount": 4.0,
+      "total": 27.95,
+      "currency": "USD",
+      "payment_method": "Visa ***4521"
+    }
+  },
+  {
+    "id": "purchase_order_01",
+    "doc_type": "purchase_order",
+    "weight": 1.0,
+    "critical_fields": ["po_number", "total_amount", "vendor_name", "customer_name"],
+    "input_text": "PURCHASE ORDER\n\nPO Number: PO-2024-00456\nOrder Date: 2024-02-01\nExpected Delivery: 2024-02-20\n\nPurchase From (Vendor):\nOfficeSupply Direct\n789 Commerce Blvd, Chicago, IL 60601\n\nShip To (Customer):\nMidwest Manufacturing Co.\n321 Industrial Park Rd, Detroit, MI 48201\n\nLine    Description              Qty    Unit Cost    Line Total\n1       Ergonomic Office Chair   10     $250.00      $2,500.00\n2       Standing Desk            5      $400.00      $2,000.00\n3       Monitor Stand            15     $45.00       $675.00\n\nSubtotal: $5,175.00\nShipping: $0.00\nTax (6%): $310.50\nTotal: $5,485.50\n\nCurrency: USD\nPayment Terms: Net 45\nShipping Method: FedEx Ground\nAuthorized By: James Wilson, Procurement Manager",
+    "expected": {
+      "po_number": "PO-2024-00456",
+      "order_date": "2024-02-01",
+      "delivery_date": "2024-02-20",
+      "vendor_name": "OfficeSupply Direct",
+      "vendor_address": "789 Commerce Blvd, Chicago, IL 60601",
+      "customer_name": "Midwest Manufacturing Co.",
+      "customer_address": "321 Industrial Park Rd, Detroit, MI 48201",
+      "line_items": [
+        {"description": "Ergonomic Office Chair", "quantity": 10.0, "unit_price": 250.0, "total": 2500.0},
+        {"description": "Standing Desk", "quantity": 5.0, "unit_price": 400.0, "total": 2000.0},
+        {"description": "Monitor Stand", "quantity": 15.0, "unit_price": 45.0, "total": 675.0}
+      ],
+      "subtotal": 5175.0,
+      "tax_amount": 310.5,
+      "total_amount": 5485.5,
+      "currency": "USD",
+      "payment_terms": "Net 45",
+      "shipping_method": "FedEx Ground"
+    }
+  },
+  {
+    "id": "bank_statement_01",
+    "doc_type": "bank_statement",
+    "weight": 1.0,
+    "critical_fields": ["account_number", "account_holder", "closing_balance"],
+    "input_text": "FIRST NATIONAL BANK\nMonthly Statement\n\nAccount Holder: Sarah Johnson\nAccount Number: ****-****-1847\nStatement Period: 2024-01-01 to 2024-01-31\n\nOpening Balance: $3,250.00\n\nDate         Description                    Amount       Balance\n2024-01-03   Direct Deposit - Employer      +$4,500.00   $7,750.00\n2024-01-05   Online Bill Pay - Rent         -$1,800.00   $5,950.00\n2024-01-08   Grocery Store Purchase         -$124.50     $5,825.50\n2024-01-12   ATM Withdrawal                 -$200.00     $5,625.50\n2024-01-15   Insurance Payment              -$185.00     $5,440.50\n2024-01-22   Freelance Payment              +$750.00     $6,190.50\n2024-01-28   Utility Bill - Electric        -$95.00      $6,095.50\n\nTotal Credits: $5,250.00\nTotal Debits: $2,404.50\nClosing Balance: $6,095.50\nCurrency: USD",
+    "expected": {
+      "account_number": "****-****-1847",
+      "account_holder": "Sarah Johnson",
+      "bank_name": "First National Bank",
+      "statement_period_start": "2024-01-01",
+      "statement_period_end": "2024-01-31",
+      "opening_balance": 3250.0,
+      "closing_balance": 6095.5,
+      "total_credits": 5250.0,
+      "total_debits": 2404.5,
+      "currency": "USD",
+      "transactions": [
+        {"date": "2024-01-03", "description": "Direct Deposit - Employer", "amount": 4500.0, "transaction_type": "credit", "balance": 7750.0},
+        {"date": "2024-01-05", "description": "Online Bill Pay - Rent", "amount": 1800.0, "transaction_type": "debit", "balance": 5950.0},
+        {"date": "2024-01-08", "description": "Grocery Store Purchase", "amount": 124.5, "transaction_type": "debit", "balance": 5825.5},
+        {"date": "2024-01-12", "description": "ATM Withdrawal", "amount": 200.0, "transaction_type": "debit", "balance": 5625.5},
+        {"date": "2024-01-15", "description": "Insurance Payment", "amount": 185.0, "transaction_type": "debit", "balance": 5440.5},
+        {"date": "2024-01-22", "description": "Freelance Payment", "amount": 750.0, "transaction_type": "credit", "balance": 6190.5},
+        {"date": "2024-01-28", "description": "Utility Bill - Electric", "amount": 95.0, "transaction_type": "debit", "balance": 6095.5}
+      ]
+    }
+  },
+  {
+    "id": "medical_record_01",
+    "doc_type": "medical_record",
+    "weight": 1.0,
+    "critical_fields": ["patient_name", "visit_date", "provider_name"],
+    "input_text": "PATIENT VISIT RECORD\n\nPatient: Robert Chen\nDate of Birth: 1978-04-22\nMRN: MRN-00293847\nVisit Date: 2024-03-10\n\nProvider: Dr. Amanda Torres, MD\nSpecialty: Internal Medicine\nFacility: Riverside Community Health Center\n\nChief Complaint:\nPatient presents with persistent cough and fatigue for 2 weeks.\n\nDiagnoses:\n1. J06.9 - Acute Upper Respiratory Infection, unspecified\n2. R53.83 - Other fatigue\n\nMedications Prescribed:\n1. Amoxicillin 500mg - Take 1 capsule three times daily for 10 days\n2. Guaifenesin 400mg - Take 1 tablet every 4 hours as needed for cough\n\nProcedures:\nCPT 99213 - Office visit, established patient (moderate complexity) - 2024-03-10\n\nNotes:\nPatient advised to rest, increase fluid intake, and return if symptoms worsen after 5 days.",
+    "expected": {
+      "patient_name": "Robert Chen",
+      "date_of_birth": "1978-04-22",
+      "mrn": "MRN-00293847",
+      "visit_date": "2024-03-10",
+      "provider_name": "Dr. Amanda Torres, MD",
+      "provider_specialty": "Internal Medicine",
+      "facility_name": "Riverside Community Health Center",
+      "chief_complaint": "Patient presents with persistent cough and fatigue for 2 weeks.",
+      "diagnoses": [
+        {"code": "J06.9", "description": "Acute Upper Respiratory Infection, unspecified"},
+        {"code": "R53.83", "description": "Other fatigue"}
+      ],
+      "medications": [
+        {"name": "Amoxicillin", "dosage": "500mg", "frequency": "three times daily", "duration": "10 days"},
+        {"name": "Guaifenesin", "dosage": "400mg", "frequency": "every 4 hours as needed"}
+      ],
+      "procedures": [
+        {"code": "CPT 99213", "description": "Office visit, established patient (moderate complexity)", "date": "2024-03-10"}
+      ]
+    }
+  }
+]

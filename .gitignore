@@ -11,3 +11,6 @@ dist/
 .ruff_cache/
 storage/local/
 *.db
+autoresearch/results.tsv
+storage/reports/
+.coverage
