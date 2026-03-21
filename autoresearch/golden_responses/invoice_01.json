@@ -1,0 +1,23 @@
+{
+  "case_id": "invoice_01",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-01-15T10:00:00Z",
+  "raw_response": "{\n  \"invoice_number\": \"INV-2024-001\",\n  \"invoice_date\": \"2024-01-15T00:00:00\",\n  \"due_date\": \"2024-02-15\",\n  \"vendor_name\": \"Acme Corp\",\n  \"vendor_address\": \"123 Main St, New York, NY 10001\",\n  \"customer_name\": \"TechStart Inc\",\n  \"customer_address\": \"456 Oak Ave, San Francisco, CA 94102\",\n  \"line_items\": [{\"description\": \"Software License\", \"quantity\": 1.0, \"unit_price\": 800.0, \"total\": 800.0}, {\"description\": \"Implementation Services\", \"quantity\": 2.0, \"unit_price\": 100.0, \"total\": 200.0}],\n  \"subtotal\": 1000.0,\n  \"tax_amount\": 80.0,\n  \"total_amount\": 1080.0,\n  \"currency\": \"USD\"\n}",
+  "parsed_extraction": {
+    "invoice_number": "INV-2024-001",
+    "invoice_date": "2024-01-15T00:00:00",
+    "due_date": "2024-02-15",
+    "vendor_name": "Acme Corp",
+    "vendor_address": "123 Main St, New York, NY 10001",
+    "customer_name": "TechStart Inc",
+    "customer_address": "456 Oak Ave, San Francisco, CA 94102",
+    "line_items": [
+      {"description": "Software License", "quantity": 1.0, "unit_price": 800.0, "total": 800.0},
+      {"description": "Implementation Services", "quantity": 2.0, "unit_price": 100.0, "total": 200.0}
+    ],
+    "subtotal": 1000.0,
+    "tax_amount": 80.0,
+    "total_amount": 1080.0,
+    "currency": "USD"
+  }
+}

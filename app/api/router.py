@@ -9,6 +9,7 @@ from app.api import (
     export,
     health,
     jobs,
+    metrics,
     records,
     review,
     roi,
@@ -31,3 +32,4 @@ api_router.include_router(stats.router)
 api_router.include_router(api_keys.router)
 api_router.include_router(review.router)
 api_router.include_router(roi.router)
+api_router.include_router(metrics.router)

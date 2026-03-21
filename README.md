@@ -25,13 +25,9 @@ graph LR
 
 ## Screenshots
 
-| Upload & Extraction | Review Queue |
-|---------------------|-------------|
-| ![Upload](docs/screenshots/upload.png) | ![Review Queue](docs/screenshots/review-queue.png) |
-
-| Extraction Results | Analytics Dashboard |
-|-------------------|---------------------|
-| ![Results](docs/screenshots/results.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+| Upload & Extraction | Extracted Records & ROI |
+|---------------------|------------------------|
+| ![Upload](docs/screenshots/upload.png) | ![Dashboard](docs/screenshots/dashboard.png) |
 
 ### SSE Streaming Demo
 
@@ -60,7 +56,7 @@ graph LR
 | Document extraction (p50) | ~8s (two-pass Claude) |
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
-| Test suite | ~2s (446 tests) |
+| Test suite | ~2s (570 tests) |
 | Coverage | ≥80% (CI-enforced) |
 
 ## Business Impact
@@ -173,7 +169,7 @@ docker-compose exec api python -m scripts.seed_api_key
 ## Running Tests
 
 ```bash
-pytest tests/ -v  # 446 tests, ~2s
+pytest tests/ -v  # 570 tests, ~2s
 ```
 
 ## Project Structure
@@ -198,8 +194,10 @@ tests/          -- Unit + integration tests
 
 - **API**: https://docextract-api.onrender.com
 - **Frontend**: https://docextract-frontend.onrender.com
-- **Dev API key**: [set in Render dashboard]
+- **Demo API key**: `demo-key-docextract-2026`
 - **Docs**: https://docextract-api.onrender.com/docs
+
+> **Note**: The demo runs on Render's free tier. First request may take 30-60s to wake the service.
 
 ## Technical Deep Dive
 

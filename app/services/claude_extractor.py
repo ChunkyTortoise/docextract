@@ -6,8 +6,8 @@ import json
 import logging
 import re
 import time
-from dataclasses import dataclass
-from typing import Any, Type
+from dataclasses import dataclass, field
+from typing import Any, Type, TYPE_CHECKING
 
 import anthropic
 from anthropic import AsyncAnthropic
@@ -16,6 +16,9 @@ from pydantic import BaseModel
 from app.config import settings
 from app.schemas.document_types import DOCUMENT_TYPE_MAP
 from app.services.prompt_config import config as prompt_config
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +29,8 @@ class ExtractionResult:
     confidence: float
     corrections_applied: bool = False
     raw_response: str = ""
+    schema_valid: bool = True
+    validation_errors: list[str] = field(default_factory=list)
 
 
 # Re-exported for backwards compatibility (tests may import these)
@@ -58,12 +63,17 @@ async def extract(
     text: str,
     doc_type: str,
     schema_class: Type[BaseModel] | None = None,
+    db: "AsyncSession | None" = None,
 ) -> ExtractionResult:
     """Two-pass Claude extraction.
 
     Pass 1: Extract structured data using JSON output format
     Pass 2: Tool-use correction if confidence < threshold
     """
+    from app.services.llm_tracer import trace_llm_call
+    from app.services.response_validator import validate_extraction
+    from app.services.validation_metrics import validation_stats
+
     if schema_class is None:
         schema_class = DOCUMENT_TYPE_MAP.get(doc_type)
 
@@ -72,20 +82,22 @@ async def extract(
     # Pass 1: Extract (with rate limit retry)
     for attempt in range(3):
         try:
-            response = await client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=4096,
-                system=prompt_config.extract_system_prompt,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt_config.extract_prompt.format(
-                            doc_type=doc_type,
-                            text=text[: prompt_config.params.extract_text_limit],
-                        ),
-                    }
-                ],
-            )
+            async with trace_llm_call(db, "claude-sonnet-4-6", "extract") as trace_ctx:
+                response = await client.messages.create(
+                    model="claude-sonnet-4-6",
+                    max_tokens=4096,
+                    system=prompt_config.extract_system_prompt,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt_config.extract_prompt.format(
+                                doc_type=doc_type,
+                                text=text[: prompt_config.params.extract_text_limit],
+                            ),
+                        }
+                    ],
+                )
+                trace_ctx.record_response(response)
 
             raw_text = response.content[0].text
 
@@ -93,11 +105,21 @@ async def extract(
             extracted = _parse_json_response(raw_text)
             confidence = float(extracted.pop("_confidence", 0.5))
 
+            # Validate against Pydantic schema
+            outcome = validate_extraction(extracted, doc_type)
+            validation_stats.record(outcome.schema_valid)
+            if not outcome.schema_valid:
+                logger.warning(
+                    "Schema validation failed for %s: %s",
+                    doc_type,
+                    outcome.validation_errors,
+                )
+
             # Pass 2: Correction if low confidence
             corrections_applied = False
             if confidence < settings.extraction_confidence_threshold:
                 extracted, corrections_applied = await _apply_corrections_pass(
-                    client, text, doc_type, extracted, confidence
+                    client, text, doc_type, extracted, confidence, db=db
                 )
 
             return ExtractionResult(
@@ -105,6 +127,8 @@ async def extract(
                 confidence=confidence,
                 corrections_applied=corrections_applied,
                 raw_response=raw_text,
+                schema_valid=outcome.schema_valid,
+                validation_errors=outcome.validation_errors,
             )
 
         except anthropic.RateLimitError:
@@ -164,8 +188,11 @@ async def _apply_corrections_pass(
     doc_type: str,
     original: dict[str, Any],
     confidence: float,
+    db: "AsyncSession | None" = None,
 ) -> tuple[dict[str, Any], bool]:
     """Pass 2: Use tool_use to correct low-confidence extractions."""
+    from app.services.llm_tracer import trace_llm_call
+
     text_limit = prompt_config.params.correction_text_limit
     correction_prompt = prompt_config.correction_prompt.format(
         doc_type=doc_type,
@@ -176,12 +203,14 @@ async def _apply_corrections_pass(
     )
 
     try:
-        response = await client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=2048,
-            messages=[{"role": "user", "content": correction_prompt}],
-            tools=[CORRECTION_TOOL],
-        )
+        async with trace_llm_call(db, "claude-sonnet-4-6", "correct") as trace_ctx:
+            response = await client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=2048,
+                messages=[{"role": "user", "content": correction_prompt}],
+                tools=[CORRECTION_TOOL],
+            )
+            trace_ctx.record_response(response)
 
         # Find tool_use block
         for block in response.content:

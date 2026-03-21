@@ -1,0 +1,27 @@
+{
+  "case_id": "medical_record_01",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-01-15T10:05:00Z",
+  "raw_response": "{\n  \"patient_name\": \"Robert Chen\",\n  \"date_of_birth\": \"1978-04-22\",\n  \"mrn\": \"MRN-00293847\",\n  \"visit_date\": \"2024-03-10\",\n  \"provider_name\": \"Dr. Amanda Torres, MD\",\n  \"provider_specialty\": \"Internal Medicine\",\n  \"facility_name\": \"Riverside Community Health Center\",\n  \"chief_complaint\": \"Patient presents with persistent cough and fatigue for 2 weeks.\",\n  \"diagnoses\": [{\"code\": \"J06.9\", \"description\": \"Acute Upper Respiratory Infection\"}, {\"code\": \"R53.83\", \"description\": \"Other fatigue\"}],\n  \"medications\": [{\"name\": \"Amoxicillin\", \"dosage\": \"500mg\", \"frequency\": \"three times daily\"}, {\"name\": \"Guaifenesin\", \"dosage\": \"400mg\", \"frequency\": \"every 4 hours as needed\"}],\n  \"procedures\": [{\"code\": \"CPT 99213\", \"description\": \"Office visit, established patient (moderate complexity)\", \"date\": \"2024-03-10\"}]\n}",
+  "parsed_extraction": {
+    "patient_name": "Robert Chen",
+    "date_of_birth": "1978-04-22",
+    "mrn": "MRN-00293847",
+    "visit_date": "2024-03-10",
+    "provider_name": "Dr. Amanda Torres, MD",
+    "provider_specialty": "Internal Medicine",
+    "facility_name": "Riverside Community Health Center",
+    "chief_complaint": "Patient presents with persistent cough and fatigue for 2 weeks.",
+    "diagnoses": [
+      {"code": "J06.9", "description": "Acute Upper Respiratory Infection"},
+      {"code": "R53.83", "description": "Other fatigue"}
+    ],
+    "medications": [
+      {"name": "Amoxicillin", "dosage": "500mg", "frequency": "three times daily"},
+      {"name": "Guaifenesin", "dosage": "400mg", "frequency": "every 4 hours as needed"}
+    ],
+    "procedures": [
+      {"code": "CPT 99213", "description": "Office visit, established patient (moderate complexity)", "date": "2024-03-10"}
+    ]
+  }
+}

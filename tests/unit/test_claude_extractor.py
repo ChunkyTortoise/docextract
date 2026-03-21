@@ -182,6 +182,76 @@ class TestParseJsonResponse:
         assert result == {}
 
 
+class TestExtractionResultSchemaValid:
+    """Tests for schema_valid field on ExtractionResult."""
+
+    @patch("app.services.claude_extractor.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_schema_valid_field_exists(self, mock_anthropic_cls):
+        """ExtractionResult should have schema_valid field."""
+        client = MagicMock()
+        mock_anthropic_cls.return_value = client
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text='{"invoice_number": "INV-001", "_confidence": 0.9}')]
+        client.messages.create = AsyncMock(return_value=mock_response)
+
+        result = await extract("Invoice text", "invoice")
+        assert hasattr(result, "schema_valid")
+
+    @patch("app.services.claude_extractor.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_schema_valid_true_for_valid_extraction(self, mock_anthropic_cls):
+        client = MagicMock()
+        mock_anthropic_cls.return_value = client
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text='{"invoice_number": "INV-001", "_confidence": 0.9, "total_amount": 100.0}')]
+        client.messages.create = AsyncMock(return_value=mock_response)
+
+        result = await extract("Invoice text", "invoice")
+        assert result.schema_valid is True
+
+    @patch("app.services.claude_extractor.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_validation_errors_field_exists(self, mock_anthropic_cls):
+        client = MagicMock()
+        mock_anthropic_cls.return_value = client
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text='{"_confidence": 0.9}')]
+        client.messages.create = AsyncMock(return_value=mock_response)
+
+        result = await extract("text", "invoice")
+        assert hasattr(result, "validation_errors")
+        assert isinstance(result.validation_errors, list)
+
+    @patch("app.services.claude_extractor.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_extract_with_db_none(self, mock_anthropic_cls):
+        client = MagicMock()
+        mock_anthropic_cls.return_value = client
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text='{"_confidence": 0.9}')]
+        client.messages.create = AsyncMock(return_value=mock_response)
+
+        result = await extract("text", "invoice", db=None)
+        assert isinstance(result, ExtractionResult)
+
+    @patch("app.services.claude_extractor.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_extract_records_trace_in_memory(self, mock_anthropic_cls):
+        from app.services.llm_tracer import get_in_memory_traces, clear_in_memory_traces
+        clear_in_memory_traces()
+        client = MagicMock()
+        mock_anthropic_cls.return_value = client
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text='{"_confidence": 0.9}')]
+        client.messages.create = AsyncMock(return_value=mock_response)
+
+        await extract("text", "invoice", db=None)
+        traces = get_in_memory_traces()
+        assert any(t["operation"] == "extract" for t in traces)
+        clear_in_memory_traces()
+
+
 class TestExtractErrorHandling:
     @patch("app.services.claude_extractor.asyncio.sleep", new_callable=AsyncMock)
     @patch("app.services.claude_extractor.AsyncAnthropic")

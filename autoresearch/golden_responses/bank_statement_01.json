@@ -1,0 +1,26 @@
+{
+  "case_id": "bank_statement_01",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-01-15T10:04:00Z",
+  "raw_response": "{\n  \"account_number\": \"****-****-1847\",\n  \"account_holder\": \"Sarah Johnson\",\n  \"bank_name\": \"First National\",\n  \"statement_period_start\": \"2024-01-01\",\n  \"statement_period_end\": \"2024-01-31\",\n  \"opening_balance\": 3250.0,\n  \"closing_balance\": 6095.5,\n  \"total_credits\": 5250.0,\n  \"total_debits\": 2404.5,\n  \"currency\": \"USD\",\n  \"transactions\": [{\"date\": \"2024-01-03\", \"description\": \"Direct Deposit - Employer\", \"amount\": 4500.0, \"transaction_type\": \"credit\", \"balance\": 7750.0}, {\"date\": \"2024-01-05\", \"description\": \"Online Bill Pay - Rent\", \"amount\": 1800.0, \"transaction_type\": \"debit\", \"balance\": 5950.0}, {\"date\": \"2024-01-08\", \"description\": \"Grocery Store Purchase\", \"amount\": 124.5, \"transaction_type\": \"debit\", \"balance\": 5825.5}, {\"date\": \"2024-01-12\", \"description\": \"ATM Withdrawal\", \"amount\": 200.0, \"transaction_type\": \"debit\", \"balance\": 5625.5}, {\"date\": \"2024-01-15\", \"description\": \"Insurance Payment\", \"amount\": 185.0, \"transaction_type\": \"debit\", \"balance\": 5440.5}, {\"date\": \"2024-01-28\", \"description\": \"Utility Bill - Electric\", \"amount\": 95.0, \"transaction_type\": \"debit\", \"balance\": 6095.5}]\n}",
+  "parsed_extraction": {
+    "account_number": "****-****-1847",
+    "account_holder": "Sarah Johnson",
+    "bank_name": "First National",
+    "statement_period_start": "2024-01-01",
+    "statement_period_end": "2024-01-31",
+    "opening_balance": 3250.0,
+    "closing_balance": 6095.5,
+    "total_credits": 5250.0,
+    "total_debits": 2404.5,
+    "currency": "USD",
+    "transactions": [
+      {"date": "2024-01-03", "description": "Direct Deposit - Employer", "amount": 4500.0, "transaction_type": "credit", "balance": 7750.0},
+      {"date": "2024-01-05", "description": "Online Bill Pay - Rent", "amount": 1800.0, "transaction_type": "debit", "balance": 5950.0},
+      {"date": "2024-01-08", "description": "Grocery Store Purchase", "amount": 124.5, "transaction_type": "debit", "balance": 5825.5},
+      {"date": "2024-01-12", "description": "ATM Withdrawal", "amount": 200.0, "transaction_type": "debit", "balance": 5625.5},
+      {"date": "2024-01-15", "description": "Insurance Payment", "amount": 185.0, "transaction_type": "debit", "balance": 5440.5},
+      {"date": "2024-01-28", "description": "Utility Bill - Electric", "amount": 95.0, "transaction_type": "debit", "balance": 6095.5}
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "case_id": "receipt_sparse",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-01-15T10:08:00Z",
+  "raw_response": "{\n  \"merchant_name\": null,\n  \"transaction_date\": null,\n  \"total\": 8.5,\n  \"payment_method\": \"Cash\",\n  \"currency\": \"USD\"\n}",
+  "parsed_extraction": {
+    "merchant_name": null,
+    "transaction_date": null,
+    "total": 8.5,
+    "payment_method": "Cash",
+    "currency": "USD"
+  }
+}

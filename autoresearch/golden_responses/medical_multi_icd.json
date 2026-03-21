@@ -1,0 +1,30 @@
+{
+  "case_id": "medical_multi_icd",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-01-15T10:12:00Z",
+  "raw_response": "{\n  \"patient_name\": \"Jennifer Walsh\",\n  \"date_of_birth\": \"1972-09-30\",\n  \"mrn\": \"MRN-00847261\",\n  \"visit_date\": \"2024-03-05\",\n  \"provider_name\": \"Dr. Samuel Kim, MD\",\n  \"provider_specialty\": \"Endocrinology\",\n  \"facility_name\": \"Metro Health System\",\n  \"diagnoses\": [{\"code\": \"E11.65\", \"description\": \"Type 2 diabetes with hyperglycemia\"}, {\"code\": \"E11.40\", \"description\": \"Type 2 diabetes mellitus with diabetic neuropathy\"}, {\"code\": \"E78.5\", \"description\": \"Hyperlipidemia, unspecified\"}, {\"code\": \"E66.01\", \"description\": \"Morbid obesity due to excess calories\"}],\n  \"medications\": [{\"name\": \"Metformin\", \"dosage\": \"1000mg\", \"frequency\": \"Twice daily with meals\"}, {\"name\": \"Semaglutide\", \"dosage\": \"0.5mg\", \"frequency\": \"Once weekly injection\"}, {\"name\": \"Atorvastatin\", \"dosage\": \"40mg\", \"frequency\": \"Once daily at bedtime\"}],\n  \"procedures\": [{\"code\": \"CPT 99214\", \"description\": \"Office visit, established patient, moderate-high complexity\", \"date\": \"2024-03-05\"}, {\"code\": \"CPT 83036\", \"description\": \"Hemoglobin A1c test\", \"date\": \"2024-03-05\"}]\n}",
+  "parsed_extraction": {
+    "patient_name": "Jennifer Walsh",
+    "date_of_birth": "1972-09-30",
+    "mrn": "MRN-00847261",
+    "visit_date": "2024-03-05",
+    "provider_name": "Dr. Samuel Kim, MD",
+    "provider_specialty": "Endocrinology",
+    "facility_name": "Metro Health System",
+    "diagnoses": [
+      {"code": "E11.65", "description": "Type 2 diabetes with hyperglycemia"},
+      {"code": "E11.40", "description": "Type 2 diabetes mellitus with diabetic neuropathy"},
+      {"code": "E78.5", "description": "Hyperlipidemia, unspecified"},
+      {"code": "E66.01", "description": "Morbid obesity due to excess calories"}
+    ],
+    "medications": [
+      {"name": "Metformin", "dosage": "1000mg", "frequency": "Twice daily with meals"},
+      {"name": "Semaglutide", "dosage": "0.5mg", "frequency": "Once weekly injection"},
+      {"name": "Atorvastatin", "dosage": "40mg", "frequency": "Once daily at bedtime"}
+    ],
+    "procedures": [
+      {"code": "CPT 99214", "description": "Office visit, established patient, moderate-high complexity", "date": "2024-03-05"},
+      {"code": "CPT 83036", "description": "Hemoglobin A1c test", "date": "2024-03-05"}
+    ]
+  }
+}

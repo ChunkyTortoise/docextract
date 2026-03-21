@@ -146,3 +146,32 @@ class ROITrendsResponse(BaseModel):
     from_: str = Field(alias="from")
     to: str
     points: list[TrendPoint]
+
+
+class ModelStats(BaseModel):
+    model: str
+    call_count: int
+    avg_latency_ms: int
+    p95_latency_ms: int
+    input_tokens: int
+    output_tokens: int
+    error_rate: float
+    avg_confidence: float
+    estimated_cost_usd: float
+
+
+class OperationStats(BaseModel):
+    operation: str
+    call_count: int
+    avg_latency_ms: int
+    error_rate: float
+
+
+class LLMMetricsResponse(BaseModel):
+    hours: int
+    total_calls: int
+    total_input_tokens: int
+    total_output_tokens: int
+    total_cost_usd: float
+    by_model: list[ModelStats]
+    by_operation: list[OperationStats]

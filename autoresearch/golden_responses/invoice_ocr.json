@@ -1,0 +1,14 @@
+{
+  "case_id": "invoice_ocr",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-01-15T10:06:00Z",
+  "raw_response": "{\n  \"invoice_number\": \"INV-2O24-OO7\",\n  \"vendor_name\": \"Acme Inc\",\n  \"customer_name\": \"Beta Corp\",\n  \"total_amount\": 550.0,\n  \"tax_amount\": 50.0,\n  \"currency\": null\n}",
+  "parsed_extraction": {
+    "invoice_number": "INV-2O24-OO7",
+    "vendor_name": "Acme Inc",
+    "customer_name": "Beta Corp",
+    "total_amount": 550.0,
+    "tax_amount": 50.0,
+    "currency": null
+  }
+}

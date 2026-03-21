@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from app.services.classifier import ClassificationResult, classify, DOCUMENT_TYPES
+from app.services.classifier import ClassificationResult, classify, DOCUMENT_TYPES, CLASSIFY_TOOL
 
 
 def _make_mock_response(doc_type: str, confidence: float, reasoning: str) -> MagicMock:
@@ -149,3 +149,106 @@ class TestDocumentTypes:
             "bank_statement", "identity_document", "medical_record", "unknown",
         }
         assert set(DOCUMENT_TYPES) == expected
+
+
+class TestClassifyTool:
+    def test_classify_tool_has_required_fields(self):
+        assert "name" in CLASSIFY_TOOL
+        assert "input_schema" in CLASSIFY_TOOL
+        assert CLASSIFY_TOOL["name"] == "classify_document"
+
+    def test_classify_tool_schema_has_document_types(self):
+        props = CLASSIFY_TOOL["input_schema"]["properties"]
+        assert "document_type" in props
+        assert "confidence" in props
+
+
+class TestClassifyToolUse:
+    """Tests for tool_use based classification."""
+
+    def _make_tool_use_response(self, doc_type: str, confidence: float, reasoning: str) -> MagicMock:
+        """Build a mock response with tool_use block."""
+        tool_block = MagicMock()
+        tool_block.type = "tool_use"
+        tool_block.name = "classify_document"
+        tool_block.input = {
+            "document_type": doc_type,
+            "confidence": confidence,
+            "reasoning": reasoning,
+        }
+        response = MagicMock()
+        response.content = [tool_block]
+        return response
+
+    @patch("app.services.classifier.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_tool_use_response_parsed(self, mock_anthropic_cls):
+        client = MagicMock()
+        mock_anthropic_cls.return_value = client
+        client.messages.create = AsyncMock(return_value=self._make_tool_use_response(
+            "invoice", 0.92, "Contains invoice number"
+        ))
+        result = await classify("Invoice #001")
+        assert result.doc_type == "invoice"
+        assert result.confidence == 0.92
+
+    @patch("app.services.classifier.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_tool_choice_passed_to_api(self, mock_anthropic_cls):
+        client = MagicMock()
+        mock_anthropic_cls.return_value = client
+        client.messages.create = AsyncMock(return_value=self._make_tool_use_response(
+            "receipt", 0.9, "Receipt"
+        ))
+        await classify("some text")
+        call_kwargs = client.messages.create.call_args.kwargs
+        assert "tools" in call_kwargs
+        assert "tool_choice" in call_kwargs
+        assert call_kwargs["tool_choice"]["name"] == "classify_document"
+
+    @patch("app.services.classifier.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_legacy_text_fallback(self, mock_anthropic_cls):
+        """If no tool_use block, falls back to text parsing."""
+        client = MagicMock()
+        mock_anthropic_cls.return_value = client
+        text_block = MagicMock()
+        text_block.type = "text"
+        text_block.text = json.dumps({
+            "document_type": "bank_statement",
+            "confidence": 0.88,
+            "reasoning": "Legacy format",
+        })
+        response = MagicMock()
+        response.content = [text_block]
+        client.messages.create = AsyncMock(return_value=response)
+        result = await classify("some text")
+        assert result.doc_type == "bank_statement"
+
+    @patch("app.services.classifier.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_classify_with_db_none(self, mock_anthropic_cls):
+        """db=None (default) should work without DB."""
+        client = MagicMock()
+        mock_anthropic_cls.return_value = client
+        client.messages.create = AsyncMock(return_value=self._make_tool_use_response(
+            "invoice", 0.95, "Invoice"
+        ))
+        result = await classify("Invoice text", db=None)
+        assert result.doc_type == "invoice"
+
+    @patch("app.services.classifier.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_classify_records_in_memory_trace(self, mock_anthropic_cls):
+        from app.services.llm_tracer import get_in_memory_traces, clear_in_memory_traces
+        clear_in_memory_traces()
+        client = MagicMock()
+        mock_anthropic_cls.return_value = client
+        client.messages.create = AsyncMock(return_value=self._make_tool_use_response(
+            "invoice", 0.9, "Invoice"
+        ))
+        await classify("Invoice text", db=None)
+        traces = get_in_memory_traces()
+        assert len(traces) >= 1
+        assert any(t["operation"] == "classify" for t in traces)
+        clear_in_memory_traces()

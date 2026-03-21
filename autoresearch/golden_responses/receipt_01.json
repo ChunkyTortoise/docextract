@@ -1,0 +1,22 @@
+{
+  "case_id": "receipt_01",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-01-15T10:02:00Z",
+  "raw_response": "{\n  \"receipt_number\": \"RCP-20240318-0042\",\n  \"merchant_name\": \"The Coffee House\",\n  \"merchant_address\": \"234 Broadway, New York, NY 10013\",\n  \"transaction_date\": \"2024-03-18\",\n  \"items\": [{\"description\": \"Caffe Latte\", \"total\": 5.5}, {\"description\": \"Avocado Toast\", \"total\": 12.0}, {\"description\": \"Orange Juice\", \"total\": 4.5}],\n  \"subtotal\": 21.99,\n  \"tax_amount\": 1.95,\n  \"total\": 27.95,\n  \"currency\": \"USD\",\n  \"payment_method\": \"Visa ***4521\"\n}",
+  "parsed_extraction": {
+    "receipt_number": "RCP-20240318-0042",
+    "merchant_name": "The Coffee House",
+    "merchant_address": "234 Broadway, New York, NY 10013",
+    "transaction_date": "2024-03-18",
+    "items": [
+      {"description": "Caffe Latte", "total": 5.5},
+      {"description": "Avocado Toast", "total": 12.0},
+      {"description": "Orange Juice", "total": 4.5}
+    ],
+    "subtotal": 21.99,
+    "tax_amount": 1.95,
+    "total": 27.95,
+    "currency": "USD",
+    "payment_method": "Visa ***4521"
+  }
+}

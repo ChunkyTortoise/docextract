@@ -1,0 +1,12 @@
+{
+  "case_id": "doc_truncated",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-01-15T10:14:00Z",
+  "raw_response": "{\n  \"invoice_number\": \"INV-2024-TRUNC\",\n  \"total_amount\": null,\n  \"vendor_name\": \"Partial Corp\",\n  \"customer_name\": null\n}",
+  "parsed_extraction": {
+    "invoice_number": "INV-2024-TRUNC",
+    "total_amount": null,
+    "vendor_name": "Partial Corp",
+    "customer_name": null
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "case_id": "purchase_order_01",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-01-15T10:03:00Z",
+  "raw_response": "{\n  \"po_number\": \"PO-2024-00456\",\n  \"order_date\": \"2024-02-01\",\n  \"vendor_name\": \"OfficeSupply Direct\",\n  \"vendor_address\": \"789 Commerce Blvd, Chicago, IL 60601\",\n  \"customer_name\": \"Midwest Manufacturing Co.\",\n  \"customer_address\": \"321 Industrial Park Rd, Detroit, MI 48201\",\n  \"line_items\": [{\"description\": \"Ergonomic Office Chair\", \"quantity\": 10.0, \"unit_price\": 250.0, \"total\": 2500.0}, {\"description\": \"Standing Desk\", \"quantity\": 5.0, \"unit_price\": 400.0, \"total\": 2000.0}, {\"description\": \"Monitor Stand\", \"quantity\": 15.0, \"unit_price\": 45.0, \"total\": 650.0}],\n  \"subtotal\": 5175.0,\n  \"tax_amount\": 310.5,\n  \"total_amount\": 5485.5,\n  \"currency\": \"USD\",\n  \"payment_terms\": \"Net 45\",\n  \"shipping_method\": \"FedEx Ground\"\n}",
+  "parsed_extraction": {
+    "po_number": "PO-2024-00456",
+    "order_date": "2024-02-01",
+    "vendor_name": "OfficeSupply Direct",
+    "vendor_address": "789 Commerce Blvd, Chicago, IL 60601",
+    "customer_name": "Midwest Manufacturing Co.",
+    "customer_address": "321 Industrial Park Rd, Detroit, MI 48201",
+    "line_items": [
+      {"description": "Ergonomic Office Chair", "quantity": 10.0, "unit_price": 250.0, "total": 2500.0},
+      {"description": "Standing Desk", "quantity": 5.0, "unit_price": 400.0, "total": 2000.0},
+      {"description": "Monitor Stand", "quantity": 15.0, "unit_price": 45.0, "total": 650.0}
+    ],
+    "subtotal": 5175.0,
+    "tax_amount": 310.5,
+    "total_amount": 5485.5,
+    "currency": "USD",
+    "payment_terms": "Net 45",
+    "shipping_method": "FedEx Ground"
+  }
+}

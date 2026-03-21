@@ -102,13 +102,13 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     # 5. Classify -> CLASSIFYING
     await _update_job_status(db, redis, job, JobStatus.CLASSIFYING)
-    classification = await classify(extracted.text)
+    classification = await classify(extracted.text, db=db)
     doc_type = classification.doc_type
 
     # 6. Extract with Claude -> EXTRACTING_DATA
     await _update_job_status(db, redis, job, JobStatus.EXTRACTING_DATA)
     schema_class = DOCUMENT_TYPE_MAP.get(doc_type)
-    extraction_result = await extract(extracted.text, doc_type, schema_class)
+    extraction_result = await extract(extracted.text, doc_type, schema_class, db=db)
 
     # 7. Validate -> VALIDATING
     await _update_job_status(db, redis, job, JobStatus.VALIDATING)
@@ -117,7 +117,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # 8. Embed -> EMBEDDING
     await _update_job_status(db, redis, job, JobStatus.EMBEDDING)
     embedding_text = extracted.text[:2000]
-    embedding_vector = await embed(embedding_text)
+    embedding_vector = await embed(embedding_text, db=db)
 
     # 9. Store record
     record_id = str(uuid.uuid4())

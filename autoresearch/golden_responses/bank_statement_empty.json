@@ -1,0 +1,19 @@
+{
+  "case_id": "bank_statement_empty",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-01-15T10:10:00Z",
+  "raw_response": "{\n  \"account_number\": \"***-***-9921\",\n  \"account_holder\": \"James Park\",\n  \"bank_name\": \"City Bank\",\n  \"statement_period_start\": \"2024-02-01\",\n  \"statement_period_end\": \"2024-02-29\",\n  \"opening_balance\": 2500.0,\n  \"closing_balance\": 2500.0,\n  \"total_credits\": null,\n  \"total_debits\": null,\n  \"currency\": \"USD\",\n  \"transactions\": []\n}",
+  "parsed_extraction": {
+    "account_number": "***-***-9921",
+    "account_holder": "James Park",
+    "bank_name": "City Bank",
+    "statement_period_start": "2024-02-01",
+    "statement_period_end": "2024-02-29",
+    "opening_balance": 2500.0,
+    "closing_balance": 2500.0,
+    "total_credits": null,
+    "total_debits": null,
+    "currency": "USD",
+    "transactions": []
+  }
+}

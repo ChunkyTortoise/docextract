@@ -1,0 +1,18 @@
+{
+  "case_id": "identity_passport",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-01-15T10:11:00Z",
+  "raw_response": "{\n  \"identity_document_type\": \"passport\",\n  \"document_number\": \"G14728935\",\n  \"full_name\": \"RODRIGUEZ MARIA ELENA\",\n  \"date_of_birth\": \"15-03-1985\",\n  \"expiry_date\": \"2030-06-09\",\n  \"issue_date\": \"2020-06-10\",\n  \"issuing_country\": \"Mexico\",\n  \"issuing_authority\": \"Secretaria de Relaciones Exteriores\",\n  \"nationality\": \"Mexican\",\n  \"gender\": \"F\"\n}",
+  "parsed_extraction": {
+    "identity_document_type": "passport",
+    "document_number": "G14728935",
+    "full_name": "RODRIGUEZ MARIA ELENA",
+    "date_of_birth": "15-03-1985",
+    "expiry_date": "2030-06-09",
+    "issue_date": "2020-06-10",
+    "issuing_country": "Mexico",
+    "issuing_authority": "Secretaria de Relaciones Exteriores",
+    "nationality": "Mexican",
+    "gender": "F"
+  }
+}

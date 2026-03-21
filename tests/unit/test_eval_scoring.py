@@ -213,9 +213,9 @@ class TestScoreExtraction:
 # ---------------------------------------------------------------------------
 
 class TestLoadDataset:
-    def test_loads_6_cases(self):
+    def test_loads_16_cases(self):
         dataset = load_dataset()
-        assert len(dataset) == 6
+        assert len(dataset) == 16
 
     def test_all_cases_have_required_fields(self):
         dataset = load_dataset()
@@ -228,7 +228,7 @@ class TestLoadDataset:
             assert "weight" in case
 
     def test_doc_types_are_valid(self):
-        valid_types = {"invoice", "receipt", "purchase_order", "bank_statement", "medical_record"}
+        valid_types = {"invoice", "receipt", "purchase_order", "bank_statement", "medical_record", "identity_document"}
         dataset = load_dataset()
         for case in dataset:
             assert case["doc_type"] in valid_types

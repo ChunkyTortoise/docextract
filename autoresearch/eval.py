@@ -1,7 +1,7 @@
 """Autoresearch eval harness: load dataset, run extraction, score against ground truth.
 
 Usage:
-    python -m autoresearch.eval [--prompts PATH] [--dry-run]
+    python -m autoresearch.eval [--prompts PATH] [--dry-run] [--golden]
 
 Exit codes:
     0  — eval completed, score printed to stdout
@@ -13,6 +13,7 @@ import argparse
 import asyncio
 import json
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -144,6 +145,84 @@ def load_dataset(path: Path = DATASET_PATH) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# CaseResult dataclass
+# ---------------------------------------------------------------------------
+
+@dataclass
+class CaseResult:
+    case_id: str
+    doc_type: str
+    score: float
+    weight: float
+    completeness: float
+    hallucination_count: int
+    format_valid: bool
+
+
+# ---------------------------------------------------------------------------
+# Enhanced scoring functions
+# ---------------------------------------------------------------------------
+
+def score_completeness(extracted: dict[str, Any], expected: dict[str, Any]) -> float:
+    """Ratio of expected fields that are non-null in extracted output."""
+    if not expected:
+        return 1.0
+    non_null_expected = [k for k, v in expected.items() if v is not None and v != []]
+    if not non_null_expected:
+        return 1.0
+    filled = sum(1 for k in non_null_expected if extracted.get(k) is not None)
+    return filled / len(non_null_expected)
+
+
+def detect_hallucinations(
+    extracted: dict[str, Any],
+    expected: dict[str, Any],
+    input_text: str,
+) -> list[str]:
+    """Return list of fields where extracted value is not in expected or input.
+
+    A hallucination is a field present in extracted output but whose value
+    cannot be found in expected OR in the input_text.
+    """
+    hallucinations = []
+    for key, val in extracted.items():
+        if val is None or val == [] or isinstance(val, list):
+            continue
+        str_val = str(val).strip()
+        if not str_val:
+            continue
+        # Not hallucinated if present in expected
+        exp_val = expected.get(key)
+        if exp_val is not None and str(exp_val).strip() == str_val:
+            continue
+        # Not hallucinated if value appears in input text
+        if str_val.lower() in input_text.lower():
+            continue
+        # Check if any reasonable substring appears in input
+        if len(str_val) > 3 and any(
+            word.lower() in input_text.lower()
+            for word in str_val.split()
+            if len(word) > 3
+        ):
+            continue
+        hallucinations.append(key)
+    return hallucinations
+
+
+def validate_response_format(extracted: dict[str, Any], doc_type: str) -> bool:
+    """Validate extracted dict against the Pydantic schema for doc_type."""
+    from app.schemas.document_types import DOCUMENT_TYPE_MAP
+    schema_class = DOCUMENT_TYPE_MAP.get(doc_type)
+    if schema_class is None:
+        return True  # unknown doc type — skip validation
+    try:
+        schema_class.model_validate(extracted)
+        return True
+    except Exception:
+        return False
+
+
+# ---------------------------------------------------------------------------
 # Dry-run mock extraction
 # ---------------------------------------------------------------------------
 
@@ -175,31 +254,65 @@ def _mock_extraction(case: dict) -> dict[str, Any]:
 async def run_eval(
     dataset: list[dict],
     dry_run: bool = False,
+    golden: bool = False,
     semaphore_limit: int = 3,
-) -> float:
-    """Run all eval cases, return weighted mean accuracy score."""
+) -> tuple[float, list[CaseResult]]:
+    """Run all eval cases, return (weighted mean accuracy score, list of CaseResult)."""
     from app.services.claude_extractor import extract
 
     sem = asyncio.Semaphore(semaphore_limit)
 
-    async def _eval_case(case: dict) -> tuple[float, float]:
-        """Returns (score, weight)."""
+    async def _eval_case(case: dict) -> tuple[float, float, CaseResult]:
+        """Returns (score, weight, CaseResult)."""
         async with sem:
-            if dry_run:
+            if golden:
+                from autoresearch.fixtures import load_golden_response
+                fixture = load_golden_response(case["id"])
+                if fixture is None:
+                    import sys
+                    print(f"WARNING: no golden fixture for {case['id']}, skipping", file=sys.stderr)
+                    cr = CaseResult(
+                        case_id=case["id"],
+                        doc_type=case["doc_type"],
+                        score=0.0,
+                        weight=case.get("weight", 1.0),
+                        completeness=0.0,
+                        hallucination_count=0,
+                        format_valid=True,
+                    )
+                    return 0.0, case.get("weight", 1.0), cr
+                extracted = fixture["parsed_extraction"]
+            elif dry_run:
                 extracted = _mock_extraction(case)
             else:
                 result = await extract(case["input_text"], case["doc_type"])
                 extracted = result.data
 
         score = score_extraction(extracted, case["expected"], case["critical_fields"])
-        return score, case.get("weight", 1.0)
+        completeness = score_completeness(extracted, case["expected"])
+        hallucinations = detect_hallucinations(extracted, case["expected"], case["input_text"])
+        format_valid = validate_response_format(extracted, case["doc_type"])
+
+        cr = CaseResult(
+            case_id=case["id"],
+            doc_type=case["doc_type"],
+            score=score,
+            weight=case.get("weight", 1.0),
+            completeness=completeness,
+            hallucination_count=len(hallucinations),
+            format_valid=format_valid,
+        )
+        return score, case.get("weight", 1.0), cr
 
     tasks = [_eval_case(case) for case in dataset]
     results = await asyncio.gather(*tasks)
 
-    total_score = sum(s * w for s, w in results)
-    total_weight = sum(w for _, w in results)
-    return total_score / total_weight if total_weight > 0 else 0.0
+    total_score = sum(s * w for s, w, _ in results)
+    total_weight = sum(w for _, w, _ in results)
+    overall_score = total_score / total_weight if total_weight > 0 else 0.0
+    case_results = [cr for _, _, cr in results]
+
+    return overall_score, case_results
 
 
 def _append_result(score: float, prompts_path: Path) -> None:
@@ -237,6 +350,11 @@ def main() -> None:
         default=DATASET_PATH,
         help="Path to eval_dataset.json",
     )
+    parser.add_argument(
+        "--golden",
+        action="store_true",
+        help="Replay golden fixtures instead of calling API",
+    )
     args = parser.parse_args()
 
     # Load dataset
@@ -244,7 +362,7 @@ def main() -> None:
     print(f"Loaded {len(dataset)} eval cases", file=sys.stderr)
 
     # Run eval
-    score = asyncio.run(run_eval(dataset, dry_run=args.dry_run))
+    score, case_results = asyncio.run(run_eval(dataset, dry_run=args.dry_run, golden=args.golden))
 
     prompts_path = args.prompts or (Path(__file__).parent / "prompts.yaml")
     _append_result(score, prompts_path)
