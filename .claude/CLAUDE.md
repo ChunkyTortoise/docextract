@@ -8,7 +8,7 @@ FastAPI | SQLAlchemy | pgvector | ARQ (async queue) | Redis | Anthropic | google
 - `app/` — FastAPI routes and services
 - `worker/` — ARQ job processor
 - `frontend/` — Streamlit UI
-- `alembic/` — DB migrations (001-003 applied)
+- `alembic/` — DB migrations (001-009 applied)
 
 ## Deploy
 Render — 3 live services:
@@ -18,7 +18,8 @@ Render — 3 live services:
 Dev API key: `[set in Render dashboard]`
 
 ## Test
-```pytest tests/  # 352 tests```
+```pytest tests/  # 701 tests```
 
 ## Key Env
 ANTHROPIC_API_KEY, DATABASE_URL, REDIS_URL, SECRET_KEY
+OTEL_ENABLED (default false), EXTRACTION_MODELS, CLASSIFICATION_MODELS

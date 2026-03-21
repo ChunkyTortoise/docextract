@@ -25,7 +25,7 @@ DocExtract AI is a FastAPI-based document intelligence service built on three co
 Client
   │
   ▼
-FastAPI (REST API)
+FastAPI (REST API)              /metrics ──► Prometheus
   │  ├── POST /documents/upload  ──► SHA-256 dedup → ARQ queue
   │  ├── GET  /jobs/{id}/events  ──► SSE stream (Redis pub/sub)
   │  ├── GET  /records           ──► paginated extracted records
@@ -36,15 +36,18 @@ ARQ Worker (async Python)
   │
   ├── 1. MIME detection + routing
   ├── 2. Text extraction (PDF/image/email)
-  ├── 3. Document classification
+  ├── 3. Document classification ──► Model Router ──► Haiku (primary)
+  │                                                └── Sonnet (fallback)
   ├── 4. Two-pass Claude extraction
-  │       Pass 1: JSON extraction (claude-sonnet-4-6)
-  │       Pass 2: tool_use correction (if confidence < 0.80)
+  │       Pass 1: JSON extraction ──► Model Router ──► Sonnet (primary)
+  │                                                └── Haiku (fallback)
+  │       Pass 2: tool_use correction (if confidence < threshold)
+  │       [Circuit breaker per model: CLOSED/OPEN/HALF_OPEN]
   ├── 5. Business rule validation
   ├── 6. pgvector HNSW embedding (gemini-embedding-2-preview, 768-dim)
   └── 7. HMAC-signed webhook delivery (4-attempt retry)
 
-PostgreSQL + pgvector    Redis (rate limiting + pub/sub)
+PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 ```
 
 ### Key Technical Decisions
@@ -63,14 +66,16 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub)
 
 - **Storage**: pluggable backend (local filesystem or Cloudflare R2) behind a common interface
 - **OCR**: Tesseract or PaddleOCR depending on document type
-- **AI**: Anthropic Claude (claude-sonnet-4-6) for extraction and correction
+- **AI**: Anthropic Claude (Sonnet → Haiku fallback via circuit breaker model router) for extraction and correction
 - **Embeddings**: Google Gemini gemini-embedding-2-preview (768-dim, HNSW index)
 - **Queue**: ARQ (async Redis queue) with ARQ worker as a separate Render service
-- **Frontend**: Streamlit 6-page dashboard (Upload, Progress, Results, Review, Records, Dashboard)
+- **Frontend**: Streamlit 8-page dashboard (Upload, Progress, Results, Review, Records, Dashboard, Analytics, Settings)
 
 ## The Results
 
-**446 tests passing** — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, load tests via Locust.
+**701 tests passing** — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, load tests via Locust.
+
+**92.6% extraction accuracy** measured against 16 golden eval fixtures across 6 document types (invoice, receipt, purchase order, bank statement, medical record, identity document). Enforced in CI with a 2% regression tolerance.
 
 **12-step processing pipeline** with per-step progress tracking and real-time SSE streaming to connected clients.
 
@@ -80,47 +85,67 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub)
 
 **Zero-downtime deployment** on Render with three independent services (API, Worker, Frontend) each deployable independently.
 
-**103 files** across API, worker, services, frontend, tests, migrations, and scripts — full production codebase, not a prototype.
+**176 Python files** across API, worker, services, frontend, tests, migrations, and scripts — full production codebase, not a prototype.
 
 ### Performance Profile
 
 | Metric | Value |
 |--------|-------|
-| Test suite runtime | 2 seconds (446 tests) |
+| Test suite runtime | 2 seconds (701 tests) |
+| Extraction accuracy | 92.6% (golden eval, 16 fixtures, 6 doc types) |
 | Embedding model | gemini-embedding-2-preview, 768-dim, HNSW index |
-| Extraction confidence threshold | 0.80 (configurable) |
+| Extraction confidence threshold | 0.80 global; per-type overrides (0.75–0.90) |
 | Max file size | 50 MB |
 | Max pages (PDF) | 100 |
 | Worker concurrency | 10 parallel jobs |
 | Job timeout | 300 seconds |
 | Webhook retry schedule | 0s → 30s → 5min → 30min |
 | Rate limiting | sliding 60-second window, per API key |
+| Circuit breaker recovery | 60s window, 5-failure threshold |
 
 ## Technical Deep Dive
 
-### Two-Pass Extraction (the core innovation)
+### Two-Pass Extraction with Circuit Breaker Fallback
 
 ```python
-def extract(text: str, doc_type: str) -> ExtractionResult:
-    # Pass 1: structured JSON extraction
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        messages=[{"role": "user", "content": EXTRACT_PROMPT.format(...)}],
+async def extract(text: str, doc_type: str) -> ExtractionResult:
+    router = ModelRouter(
+        failure_threshold=settings.circuit_breaker_failure_threshold,
+        recovery_timeout=settings.circuit_breaker_recovery_seconds,
     )
+
+    # Pass 1: structured JSON extraction via fallback chain
+    async def _extract_call(model: str) -> Message:
+        async with trace_llm_call(db, model, "extract") as ctx:
+            response = await client.messages.create(
+                model=model,  # Sonnet → Haiku on circuit-open
+                messages=[{"role": "user", "content": EXTRACT_PROMPT.format(...)}],
+            )
+            ctx.record_response(response)
+        return response
+
+    response, model_used = await router.call_with_fallback(
+        operation="extract",
+        chain=settings.extraction_models,  # ["claude-sonnet-4-6", "claude-haiku-4-5-20251001"]
+        call_fn=_extract_call,
+    )
+
     extracted = _parse_json_response(response.content[0].text)
     confidence = float(extracted.pop("_confidence", 0.5))
 
     # Pass 2: tool_use correction for low-confidence results
-    if confidence < settings.extraction_confidence_threshold:
-        extracted, corrections_applied = _apply_corrections_pass(
-            client, text, doc_type, extracted, confidence
+    threshold = settings.confidence_thresholds.get(doc_type, 0.80)
+    if confidence < threshold:
+        extracted, corrections_applied = await _apply_corrections_pass(
+            client, text, doc_type, extracted, confidence, router=router
         )
 
     return ExtractionResult(data=extracted, confidence=confidence,
-                            corrections_applied=corrections_applied)
+                            corrections_applied=corrections_applied,
+                            model_used=model_used)
 ```
 
-The correction pass uses Claude's native `tool_use` API to return structured corrections — not free-form text that needs re-parsing. This makes the correction merge deterministic and auditable.
+The circuit breaker tracks failures per model. When Claude Sonnet hits its failure threshold (rate limit spike, 5xx errors), it opens the circuit and the router automatically routes to Claude Haiku without any manual intervention. The HALF_OPEN state probes recovery before restoring full traffic. The correction pass uses Claude's native `tool_use` API for structured corrections — deterministic and auditable.
 
 ### 12-Step Worker Pipeline
 
@@ -130,11 +155,36 @@ The ARQ worker runs the full pipeline in a single async function with granular s
 
 Documents are embedded using gemini-embedding-2-preview (768 dimensions) at the end of every successful extraction. The embeddings are stored in PostgreSQL via pgvector with an HNSW index for approximate nearest-neighbor queries. This enables semantic search across extracted records — finding invoices similar to a reference document, or surfacing contracts that mention specific concepts without exact keyword matching.
 
-## What I'd Do Differently
+## Shipped Improvements (P1/P2 Roadmap)
 
-- **Streaming extraction**: For large PDFs, extract and stream partial results page-by-page rather than waiting for the full document. Reduces perceived latency significantly.
-- **Confidence calibration**: The 0.80 threshold is a reasonable default but should be configurable per document type — a driver's license extraction should have a higher bar than a generic form.
-- **Hybrid search**: Add BM25 keyword search alongside pgvector semantic search and combine scores via RRF (reciprocal rank fusion) for better recall on exact field values.
+The three items originally listed as "what I'd do differently" were subsequently implemented:
+
+- **Page-by-page streaming**: Long PDFs now emit partial extraction results per page via SSE — no blocking until full-document completion.
+- **Per-type confidence thresholds**: `CONFIDENCE_THRESHOLDS` accepts a JSON dict mapping document type to threshold. Identity documents default to 0.90; receipts to 0.75.
+- **Hybrid search (BM25 + RRF)**: The `/records/search` endpoint accepts `?mode=hybrid` to combine pgvector cosine similarity and BM25 keyword scores via reciprocal rank fusion. Pure `bm25` mode is also available.
+
+Additional features shipped in the same pass:
+
+- **Structured table extraction**: Tables are extracted as JSON (headers + rows) rather than flattened to markdown text.
+- **Vision-native extraction path**: `OCR_ENGINE=vision` routes image documents through Claude's vision API, bypassing Tesseract — handles handwriting significantly better.
+- **Active learning from HITL corrections**: When `ACTIVE_LEARNING_ENABLED=true`, approved human corrections feed back into subsequent extraction prompts, improving accuracy over time.
+- **MCP tool server**: `mcp_server.py` exposes `extract_document` and `search_records` as MCP tools for Claude Desktop or any agent host.
+
+## Production Reliability Sprint
+
+The three features that turned docextract from a demo into a system you'd trust in production:
+
+**Circuit breaker model fallback** (`app/services/circuit_breaker.py`, `app/services/model_router.py`). Each model in the fallback chain has its own `AsyncCircuitBreaker` — a CLOSED/OPEN/HALF_OPEN state machine behind an `asyncio.Lock`. When a model trips (5 consecutive failures: rate limits, 5xx), its circuit opens and calls route to the next model in the chain. After a 60-second recovery window it enters HALF_OPEN and probes with a single call. Extraction chains Sonnet→Haiku; classification chains Haiku→Sonnet (inverted by intent: classification is simpler, so Haiku-first is the preferred path not the degraded one).
+
+**Golden eval CI gate** (`scripts/run_eval_ci.py`, `autoresearch/baseline.json`). 16 golden fixtures covering all 6 document types run in CI after every push. The gate loads a committed baseline score (92.6%) and fails the build if the current run drops more than 2%. The `--update-baseline` flag accepts an intentional regression. This makes extraction quality a first-class CI signal — the same way coverage thresholds gate code quality.
+
+**OpenTelemetry + Prometheus** (`app/observability.py`). Feature-flagged behind `OTEL_ENABLED=false` so existing CI is unaffected. When enabled, `setup_telemetry(app)` creates a `PrometheusMetricReader`, mounts `/metrics`, and wires up three instruments: `llm_call_duration_ms` (Histogram), `llm_calls_total` (Counter), and `llm_tokens_total` (Counter). The bridge pattern augments the existing `llm_tracer.py` DB tracing rather than replacing it — the DB traces power the `/stats` endpoint and ROI features; OTel powers ops dashboards.
+
+## What I'd Still Do Differently
+
+- **Field-level confidence**: Current confidence scores are document-level. Field-level scores (e.g., `total: 0.97, address: 0.61`) would let reviewers focus attention on specific uncertain fields rather than re-reviewing the entire record.
+- **Multilingual extraction prompts**: Non-English documents extract with degraded accuracy because prompts are English-only. A language-detect + prompt-translate layer would extend the system to European and LATAM markets without model changes.
+- **Full SROIE F1 benchmark**: The benchmark script exists, dry-run scoring validation passes, but publishing real field-level F1 numbers against the full SROIE dataset requires API credits and dataset download. The golden eval accuracy (92.6%) covers all doc types but SROIE would add an externally auditable reference point.
 
 ## Key Takeaways
 
@@ -149,14 +199,15 @@ Documents are embedded using gemini-embedding-2-preview (768 dimensions) at the 
 
 Just shipped DocExtract AI: a production document intelligence API that turns PDFs, scanned images, and emails into structured, searchable data.
 
-Three things I'm proud of in this build:
+Four things I'm proud of in this build:
 
-- **Two-pass Claude extraction**: Pass 1 extracts structured JSON and returns a confidence score. If confidence < 80%, Pass 2 fires a tool_use correction call — Claude returns specific field fixes as structured data, not free text. Catches the silent failures that kill data quality in production.
-- **Real-time SSE streaming**: Every pipeline stage (text extraction → classification → AI extraction → embedding) publishes to Redis pub/sub. The frontend gets live progress updates without polling.
-- **446 tests in 2 seconds**: Full unit + integration coverage, async-native test suite, runs fast enough that it's never a reason to skip.
+- **92.6% extraction accuracy** measured against 16 golden eval fixtures, gated in CI with a 2% regression tolerance. Extraction quality is a first-class CI signal.
+- **Circuit breaker model fallback**: Per-model CLOSED/OPEN/HALF_OPEN state machines route around provider outages automatically. Sonnet → Haiku on extraction, Haiku → Sonnet on classification. No downtime during rate limit spikes.
+- **Two-pass Claude extraction**: Pass 1 extracts structured JSON with a confidence score. If confidence < 80%, Pass 2 fires a tool_use correction call — Claude returns field-level fixes as structured data, not free text.
+- **701 tests in 2 seconds**: Full unit + integration coverage including eval regression gate, circuit breaker state machine tests, and OTel bridge tests.
 
-Stack: FastAPI + ARQ + pgvector HNSW + Claude Sonnet + Streamlit
+Stack: FastAPI + ARQ + pgvector HNSW + Claude Sonnet/Haiku + OpenTelemetry + Prometheus + Streamlit
 Live: https://docextract-api.onrender.com | https://docextract-frontend.onrender.com
 GitHub: ChunkyTortoise/docextract
 
-The two-pass correction pattern is the piece I'd carry into any future document intelligence work — it's the difference between an MVP and a system you can trust in production.
+The circuit breaker + eval gate combination is the piece I'd carry into any future AI pipeline — reliability and measurable quality are what separate production systems from demos.
