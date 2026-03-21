@@ -23,6 +23,22 @@ graph LR
   F -->|semantic search| B
 ```
 
+## Screenshots
+
+| Upload & Extraction | Review Queue |
+|---------------------|-------------|
+| ![Upload](docs/screenshots/upload.png) | ![Review Queue](docs/screenshots/review-queue.png) |
+
+| Extraction Results | Analytics Dashboard |
+|-------------------|---------------------|
+| ![Results](docs/screenshots/results.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+
+### SSE Streaming Demo
+
+![SSE streaming extraction flow](docs/screenshots/sse-streaming-demo.gif)
+
+*Real-time progress: PREPROCESSING → EXTRACTING → CLASSIFYING → VALIDATING → EMBEDDING → COMPLETED*
+
 ## Features
 
 - **5 document types**: PDF, images (PNG/JPEG/TIFF/BMP/GIF/WebP), email (.eml/.msg), and plain text
@@ -44,7 +60,7 @@ graph LR
 | Document extraction (p50) | ~8s (two-pass Claude) |
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
-| Test suite | ~2s (352 tests) |
+| Test suite | ~2s (446 tests) |
 | Coverage | ≥80% (CI-enforced) |
 
 ## Business Impact
@@ -157,7 +173,7 @@ docker-compose exec api python -m scripts.seed_api_key
 ## Running Tests
 
 ```bash
-pytest tests/ -v  # 352 tests, ~2s
+pytest tests/ -v  # 446 tests, ~2s
 ```
 
 ## Project Structure
@@ -172,7 +188,7 @@ app/
   storage/      -- Pluggable storage backends (local, R2)
   utils/        -- Hashing, MIME detection, token counting
 worker/         -- ARQ async job processor
-frontend/       -- Streamlit 6-page dashboard
+frontend/       -- Streamlit 8-page dashboard
 alembic/        -- Database migrations (001-003)
 scripts/        -- Seed scripts (API keys, sample docs, cleanup)
 tests/          -- Unit + integration tests

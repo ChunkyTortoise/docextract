@@ -70,7 +70,7 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub)
 
 ## The Results
 
-**352 tests passing** — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, load tests via Locust.
+**446 tests passing** — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, load tests via Locust.
 
 **12-step processing pipeline** with per-step progress tracking and real-time SSE streaming to connected clients.
 
@@ -86,7 +86,7 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub)
 
 | Metric | Value |
 |--------|-------|
-| Test suite runtime | 2 seconds (352 tests) |
+| Test suite runtime | 2 seconds (446 tests) |
 | Embedding model | gemini-embedding-2-preview, 768-dim, HNSW index |
 | Extraction confidence threshold | 0.80 (configurable) |
 | Max file size | 50 MB |
@@ -153,7 +153,7 @@ Three things I'm proud of in this build:
 
 - **Two-pass Claude extraction**: Pass 1 extracts structured JSON and returns a confidence score. If confidence < 80%, Pass 2 fires a tool_use correction call — Claude returns specific field fixes as structured data, not free text. Catches the silent failures that kill data quality in production.
 - **Real-time SSE streaming**: Every pipeline stage (text extraction → classification → AI extraction → embedding) publishes to Redis pub/sub. The frontend gets live progress updates without polling.
-- **352 tests in 2 seconds**: Full unit + integration coverage, async-native test suite, runs fast enough that it's never a reason to skip.
+- **446 tests in 2 seconds**: Full unit + integration coverage, async-native test suite, runs fast enough that it's never a reason to skip.
 
 Stack: FastAPI + ARQ + pgvector HNSW + Claude Sonnet + Streamlit
 Live: https://docextract-api.onrender.com | https://docextract-frontend.onrender.com
