@@ -38,6 +38,23 @@ def upload_document(
         return response.json()
 
 
+def batch_upload(
+    files: list[tuple[str, bytes, str]],  # [(filename, bytes, mime_type), ...]
+    priority: str = "normal",
+) -> dict[str, Any]:
+    """Upload multiple documents for batch processing."""
+    with get_client() as client:
+        file_tuples = [("files", (name, data, mime)) for name, data, mime in files]
+        response = client.post(
+            "/documents/batch",
+            files=file_tuples,
+            data={"priority": priority},
+            timeout=120.0,
+        )
+        response.raise_for_status()
+        return response.json()
+
+
 def get_job(job_id: str) -> dict[str, Any]:
     """Get job status."""
     with get_client() as client:
@@ -143,5 +160,143 @@ def get_stats() -> dict[str, Any]:
     """Get aggregate statistics."""
     with get_client() as client:
         response = client.get("/stats")
+        response.raise_for_status()
+        return response.json()
+
+
+def cancel_job(job_id: str) -> dict[str, Any]:
+    """Cancel a queued or processing job."""
+    with get_client() as client:
+        response = client.patch(f"/jobs/{job_id}", json={"action": "cancel"})
+        response.raise_for_status()
+        return response.json()
+
+
+def delete_document(document_id: str) -> None:
+    """Delete a document and its associated data."""
+    with get_client() as client:
+        response = client.delete(f"/documents/{document_id}")
+        response.raise_for_status()
+
+
+def get_roi_summary(date_from: str | None = None, date_to: str | None = None) -> dict[str, Any]:
+    """Get ROI summary metrics."""
+    params: dict[str, Any] = {}
+    if date_from:
+        params["date_from"] = date_from
+    if date_to:
+        params["date_to"] = date_to
+    with get_client() as client:
+        response = client.get("/roi/summary", params=params)
+        response.raise_for_status()
+        return response.json()
+
+
+def get_roi_trends(
+    interval: str = "week",
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> dict[str, Any]:
+    """Get ROI trend data over time."""
+    params: dict[str, Any] = {"interval": interval}
+    if date_from:
+        params["date_from"] = date_from
+    if date_to:
+        params["date_to"] = date_to
+    with get_client() as client:
+        response = client.get("/roi/trends", params=params)
+        response.raise_for_status()
+        return response.json()
+
+
+def generate_report(
+    date_from: str | None = None,
+    date_to: str | None = None,
+    format: str = "both",
+) -> dict[str, Any]:
+    """Generate an ROI report."""
+    payload: dict[str, Any] = {"format": format}
+    if date_from:
+        payload["date_from"] = date_from
+    if date_to:
+        payload["date_to"] = date_to
+    with get_client() as client:
+        response = client.post("/roi/reports", json=payload)
+        response.raise_for_status()
+        return response.json()
+
+
+def list_reports(limit: int = 20) -> dict[str, Any]:
+    """List generated ROI reports."""
+    with get_client() as client:
+        response = client.get("/roi/reports", params={"limit": limit})
+        response.raise_for_status()
+        return response.json()
+
+
+def get_report(report_id: str) -> dict[str, Any]:
+    """Get a specific ROI report."""
+    with get_client() as client:
+        response = client.get(f"/roi/reports/{report_id}")
+        response.raise_for_status()
+        return response.json()
+
+
+def get_review_items(
+    status: str | None = None,
+    assignee: str | None = None,
+    doc_type: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> dict[str, Any]:
+    """Get paginated review queue items."""
+    params: dict[str, Any] = {"page": page, "page_size": page_size}
+    if status:
+        params["status"] = status
+    if assignee:
+        params["assignee"] = assignee
+    if doc_type:
+        params["doc_type"] = doc_type
+    with get_client() as client:
+        response = client.get("/review/queue", params=params)
+        response.raise_for_status()
+        return response.json()
+
+
+def claim_review_item(item_id: str) -> dict[str, Any]:
+    """Claim a review queue item."""
+    with get_client() as client:
+        response = client.post(f"/review/queue/{item_id}/claim")
+        response.raise_for_status()
+        return response.json()
+
+
+def approve_review_item(item_id: str) -> dict[str, Any]:
+    """Approve a review queue item."""
+    with get_client() as client:
+        response = client.post(f"/review/queue/{item_id}/approve")
+        response.raise_for_status()
+        return response.json()
+
+
+def correct_review_item(
+    item_id: str,
+    corrections: dict,
+    reviewer_notes: str | None = None,
+) -> dict[str, Any]:
+    """Submit corrections for a review queue item."""
+    payload: dict[str, Any] = {"corrections": corrections}
+    if reviewer_notes:
+        payload["reviewer_notes"] = reviewer_notes
+    with get_client() as client:
+        response = client.post(f"/review/queue/{item_id}/correct", json=payload)
+        response.raise_for_status()
+        return response.json()
+
+
+def get_review_metrics(stale_after_hours: int = 24) -> dict[str, Any]:
+    """Get review queue metrics."""
+    with get_client() as client:
+        response = client.get("/review/metrics", params={"stale_after_hours": stale_after_hours})
         response.raise_for_status()
         return response.json()

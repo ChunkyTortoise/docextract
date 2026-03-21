@@ -1,4 +1,5 @@
 """Screen 4: Records browser with filtering."""
+import os
 import streamlit as st
 import pandas as pd
 import frontend.api_client as api
@@ -9,6 +10,7 @@ DOCUMENT_TYPES = ["All", "Invoice", "Purchase Order", "Receipt", "Bank Statement
 
 def _render_records_table(items: list[dict]) -> None:
     """Render a records table with row selection."""
+    demo_mode = os.environ.get("DEMO_MODE", "").lower() in ("1", "true", "yes")
     df = pd.DataFrame(items)
     display_cols = ["id", "document_type", "confidence_score", "needs_review", "review_status", "created_at"]
     display_df = df[[c for c in display_cols if c in df.columns]]
@@ -27,13 +29,36 @@ def _render_records_table(items: list[dict]) -> None:
         st.session_state["current_record_id"] = record_id
         st.info(f"Selected record: `{record_id[:8]}...`")
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             if st.button("View Results"):
+                st.session_state["current_job_id"] = items[row_idx].get("job_id")
+                st.session_state["nav_target"] = "Results"
                 st.rerun()
         with col2:
             if st.button("Review"):
+                st.session_state["nav_target"] = "Review"
                 st.rerun()
+        with col3:
+            if not demo_mode:
+                if st.button("Delete", type="secondary"):
+                    st.session_state["confirm_delete"] = record_id
+
+        if not demo_mode and st.session_state.get("confirm_delete") == record_id:
+            st.warning("Are you sure? This cannot be undone.")
+            col_yes, col_no = st.columns(2)
+            with col_yes:
+                if st.button("Confirm Delete"):
+                    try:
+                        api.delete_document(items[row_idx].get("document_id"))
+                        st.session_state["confirm_delete"] = None
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Delete failed: {e}")
+            with col_no:
+                if st.button("Cancel"):
+                    st.session_state["confirm_delete"] = None
+                    st.rerun()
 
 
 def render() -> None:
@@ -44,7 +69,7 @@ def render() -> None:
     if search_query:
         try:
             results = api.search_records(search_query, limit=10)
-            items = results.get("items", results.get("results", []))
+            items = [r["record"] for r in results] if isinstance(results, list) else results.get("items", [])
             if items:
                 st.caption(f"Found {len(items)} results for \"{search_query}\"")
                 _render_records_table(items)
@@ -91,13 +116,11 @@ def render() -> None:
         st.divider()
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("Export CSV"):
-                csv_data = api.export_records("csv")
-                st.download_button("Download CSV", csv_data, "records.csv", "text/csv")
+            csv_data = api.export_records("csv")
+            st.download_button("Export CSV", csv_data, "records.csv", "text/csv")
         with col2:
-            if st.button("Export JSON"):
-                json_data = api.export_records("json")
-                st.download_button("Download JSON", json_data, "records.json", "application/json")
+            json_data = api.export_records("json")
+            st.download_button("Export JSON", json_data, "records.json", "application/json")
 
     except Exception as e:
         st.error(f"Could not load records: {e}")

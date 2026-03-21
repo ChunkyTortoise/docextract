@@ -29,6 +29,15 @@ def render() -> None:
 
         status = job.get("status", "")
 
+        if status not in TERMINAL_STATUSES:
+            if st.button("Cancel Job"):
+                try:
+                    api.cancel_job(job_id)
+                    st.warning("Job cancelled.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Cancel failed: {e}")
+
         if status == "completed":
             st.success("Document processing complete!")
             if st.button("View Results"):

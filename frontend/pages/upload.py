@@ -38,7 +38,7 @@ def render() -> None:
         file = st.file_uploader(
             "Choose a file",
             type=["pdf", "jpg", "jpeg", "png", "tiff", "tif", "eml", "msg"],
-            help="Supported formats: PDF, JPG, PNG, TIFF, EML, MSG",
+            help="Supported formats: PDF, JPG, PNG, TIFF, EML, MSG (max 50 MB)",
         )
 
         col1, col2 = st.columns(2)

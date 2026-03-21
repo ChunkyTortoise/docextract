@@ -39,19 +39,19 @@ def render() -> None:
             st.divider()
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("Download JSON"):
-                    import json
-                    st.download_button(
-                        "Save JSON",
-                        json.dumps(extracted_data, indent=2),
-                        file_name=f"extraction_{record_id[:8]}.json",
-                        mime="application/json",
-                    )
+                import json
+                st.download_button(
+                    "Download JSON",
+                    json.dumps(extracted_data, indent=2),
+                    file_name=f"extraction_{record_id[:8]}.json",
+                    mime="application/json",
+                )
             with col2:
                 if full_record.get("needs_review"):
                     st.warning("This document needs human review")
                     st.session_state["current_record_id"] = record_id
                     if st.button("Go to Review"):
+                        st.session_state["nav_target"] = "Review"
                         st.rerun()
         else:
             st.info("No records found. The job may still be processing.")

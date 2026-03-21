@@ -1,6 +1,7 @@
 """Screen 6: Analytics dashboard."""
 from __future__ import annotations
 
+import time
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
@@ -71,7 +72,7 @@ def render() -> None:
         stats = api.get_stats()
 
         # Top metrics
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         with col1:
             st.metric("Total Documents", stats.get("total_documents", 0))
         with col2:
@@ -81,6 +82,11 @@ def render() -> None:
         with col4:
             avg_ms = stats.get("avg_processing_time_ms", 0)
             st.metric("Avg Processing Time", f"{avg_ms / 1000:.1f}s")
+        with col5:
+            st.metric("Needs Review", stats.get("needs_review", 0))
+        with col6:
+            avg_conf = stats.get("avg_confidence_score", 0)
+            st.metric("Avg Confidence", f"{avg_conf:.1%}")
 
         st.divider()
 
@@ -164,8 +170,7 @@ def render() -> None:
 
         # Auto-refresh
         if auto_refresh:
-            import time
-            time.sleep(30)
+            time.sleep(2)
             st.rerun()
 
     except Exception as e:

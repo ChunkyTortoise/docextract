@@ -70,15 +70,21 @@ def main() -> None:
         st.caption("AI Document Processing")
         st.divider()
 
-        page = st.radio(
-            "Navigate",
-            ["Upload", "Progress", "Results", "Records", "Review", "Dashboard"],
-            index=0,
-        )
+        pages = ["Upload", "Batch Upload", "Progress", "Results", "Records", "Review", "ROI", "Dashboard"]
+        default_idx = 0
+        if "nav_target" in st.session_state:
+            target = st.session_state.pop("nav_target")
+            if target in pages:
+                default_idx = pages.index(target)
+
+        page = st.radio("Navigate", pages, index=default_idx)
 
     # Route to page
     if page == "Upload":
         from frontend.pages.upload import render
+        render()
+    elif page == "Batch Upload":
+        from frontend.pages.batch_upload import render
         render()
     elif page == "Progress":
         from frontend.pages.progress import render
@@ -91,6 +97,9 @@ def main() -> None:
         render()
     elif page == "Review":
         from frontend.pages.review import render
+        render()
+    elif page == "ROI":
+        from frontend.pages.roi import render
         render()
     elif page == "Dashboard":
         from frontend.pages.dashboard import render
