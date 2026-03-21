@@ -1,39 +1,26 @@
 # DocExtract AI
 
-[![Tests](https://img.shields.io/badge/tests-352%20passing-brightgreen)]()
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)]()
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688)]()
+**Extract structured data from unstructured documents in seconds — not hours.**
 
-> Intelligent document extraction API with two-pass Claude analysis, pgvector semantic search, and real-time SSE streaming.
+[![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25-brightgreen)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
+[![Live API](https://img.shields.io/website?url=https%3A%2F%2Fdocextract-api.onrender.com%2Fapi%2Fv1%2Fhealth&label=Live%20API)](https://docextract-api.onrender.com/docs)
+[![Swagger](https://img.shields.io/badge/docs-Swagger-blue)](https://docextract-api.onrender.com/docs)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com)
 
 ## Architecture
 
-```
-Client
-  |
-  v
-FastAPI REST API (/api/v1)
-  |  +-- POST /documents/upload  --> SHA-256 dedup --> ARQ queue
-  |  +-- GET  /jobs/{id}/events  --> SSE stream (Redis pub/sub)
-  |  +-- GET  /records           --> paginated extracted records
-  |  +-- GET  /records/search    --> pgvector semantic search
-  |
-  v
-ARQ Worker (async Python)
-  |
-  +-- 1. MIME detection + routing
-  +-- 2. Text extraction (PDF/image/email)
-  +-- 3. Document classification
-  +-- 4. Two-pass Claude extraction
-  |       Pass 1: JSON extraction (claude-sonnet-4-6)
-  |       Pass 2: tool_use correction (if confidence < 0.80)
-  +-- 5. Business rule validation
-  +-- 6. pgvector HNSW embedding (gemini-embedding-2-preview, 768-dim)
-  +-- 7. HMAC-signed webhook delivery (4-attempt retry)
-
-PostgreSQL + pgvector           Redis (pub/sub + rate limiting)
-          \                       /
-           +-- Streamlit Frontend --+
+```mermaid
+graph LR
+  A[Browser / API Client] -->|POST /documents| B[FastAPI]
+  B -->|enqueue| C[ARQ Worker]
+  C -->|Pass 1: classify| D[Claude Sonnet]
+  D -->|Pass 2: extract| E[Claude Sonnet]
+  E -->|embed 768-dim| F[pgvector HNSW]
+  B -->|SSE stream stages| A
+  F -->|semantic search| B
 ```
 
 ## Features
@@ -49,6 +36,33 @@ PostgreSQL + pgvector           Redis (pub/sub + rate limiting)
 - **Sliding-window rate limiting**: Per-API-key Redis rate limiter with `X-RateLimit-*` headers
 - **AES-GCM encrypted secrets**: Webhook signing secrets encrypted at rest
 - **Pluggable storage**: Local filesystem or Cloudflare R2
+
+## Performance
+
+| Metric | Value |
+|--------|-------|
+| Document extraction (p50) | ~8s (two-pass Claude) |
+| SSE first token (p50) | <500ms |
+| Semantic search (p95) | <100ms |
+| Test suite | ~2s (352 tests) |
+| Coverage | ≥80% (CI-enforced) |
+
+## Try It Now
+
+```bash
+# Health check (no auth)
+curl https://docextract-api.onrender.com/api/v1/health
+
+# List records (demo key)
+curl -H "X-API-Key: demo-key-docextract-2026" \
+  https://docextract-api.onrender.com/api/v1/records
+```
+
+## Deploy Your Own
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ChunkyTortoise/docextract)
+
+One-click deploy via Render Blueprint. Sets `DEMO_MODE=true` automatically. You only need to add your `ANTHROPIC_API_KEY`.
 
 ## API Reference
 
@@ -137,7 +151,7 @@ docker-compose exec api python -m scripts.seed_api_key
 ## Running Tests
 
 ```bash
-pytest tests/ -v  # 340 tests, ~2s
+pytest tests/ -v  # 352 tests, ~2s
 ```
 
 ## Project Structure
@@ -165,9 +179,20 @@ tests/          -- Unit + integration tests
 - **Dev API key**: [set in Render dashboard]
 - **Docs**: https://docextract-api.onrender.com/docs
 
-## Case Study
+## Technical Deep Dive
 
-See [CASE_STUDY.md](CASE_STUDY.md) for architecture deep-dive.
+For a detailed breakdown of the architecture decisions, RAG pipeline design, extraction accuracy benchmarks, and async job queue patterns, see the [Case Study](CASE_STUDY.md). This document covers the full engineering journey from prototype to production.
+
+## Certifications Applied
+
+Skills from completed certifications applied in this project:
+
+| Domain Pillar | Certifications | Applied In |
+|--------------|----------------|------------|
+| GenAI & LLM Engineering | Google Generative AI, Anthropic Prompt Engineering, DeepLearning.AI LLM courses | Two-pass Claude extraction pipeline, schema-guided prompting |
+| RAG & Knowledge Systems | DeepLearning.AI RAG courses, LangChain & Vector DBs | pgvector HNSW semantic search, 768-dim embeddings |
+| Cloud & MLOps | Google Cloud, IBM DevOps, GitHub Actions CI/CD | ARQ background workers, Render Blueprint deploy, CI coverage gates |
+| Deep Learning & AI Foundations | DeepLearning.AI specializations, IBM AI Engineering | Document classification pass, embedding model selection |
 
 ## License
 
