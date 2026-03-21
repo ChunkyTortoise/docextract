@@ -19,6 +19,7 @@ from app.services.prompt_config import config as prompt_config
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+    from app.services.model_router import ModelRouter
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class ExtractionResult:
     raw_response: str = ""
     schema_valid: bool = True
     validation_errors: list[str] = field(default_factory=list)
+    model_used: str = ""
 
 
 # Re-exported for backwards compatibility (tests may import these)
@@ -77,7 +79,13 @@ async def extract(
     if schema_class is None:
         schema_class = DOCUMENT_TYPE_MAP.get(doc_type)
 
+    from app.services.model_router import ModelRouter
+
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    router = ModelRouter(
+        failure_threshold=settings.circuit_breaker_failure_threshold,
+        recovery_timeout=settings.circuit_breaker_recovery_seconds,
+    )
 
     # Inject few-shot correction examples if active learning enabled
     few_shot_prefix = ""
@@ -90,81 +98,67 @@ async def extract(
                 f"Previous corrections for {doc_type} documents:\n{examples_json}\n\n"
             )
 
-    # Pass 1: Extract (with rate limit retry)
-    for attempt in range(3):
-        try:
-            async with trace_llm_call(db, "claude-sonnet-4-6", "extract") as trace_ctx:
-                response = await client.messages.create(
-                    model="claude-sonnet-4-6",
-                    max_tokens=4096,
-                    system=prompt_config.extract_system_prompt,
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": few_shot_prefix + prompt_config.extract_prompt.format(
-                                doc_type=doc_type,
-                                text=text[: prompt_config.params.extract_text_limit],
-                            ),
-                        }
-                    ],
-                )
-                trace_ctx.record_response(response)
-
-            raw_text = response.content[0].text
-
-            # Parse JSON from response
-            extracted = _parse_json_response(raw_text)
-            confidence = float(extracted.pop("_confidence", 0.5))
-
-            # Validate against Pydantic schema
-            outcome = validate_extraction(extracted, doc_type)
-            validation_stats.record(outcome.schema_valid)
-            if not outcome.schema_valid:
-                logger.warning(
-                    "Schema validation failed for %s: %s",
-                    doc_type,
-                    outcome.validation_errors,
-                )
-
-            # Pass 2: Correction if low confidence
-            corrections_applied = False
-            threshold = settings.confidence_thresholds.get(
-                doc_type, settings.extraction_confidence_threshold
+    # Pass 1: Extract using model router with automatic fallback
+    async def _extract_call(model: str) -> anthropic.types.Message:
+        async with trace_llm_call(db, model, "extract") as trace_ctx:
+            response = await client.messages.create(
+                model=model,
+                max_tokens=4096,
+                system=prompt_config.extract_system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": few_shot_prefix + prompt_config.extract_prompt.format(
+                            doc_type=doc_type,
+                            text=text[: prompt_config.params.extract_text_limit],
+                        ),
+                    }
+                ],
             )
-            if confidence < threshold:
-                extracted, corrections_applied = await _apply_corrections_pass(
-                    client, text, doc_type, extracted, confidence, db=db
-                )
+            trace_ctx.record_response(response)
+        return response
 
-            return ExtractionResult(
-                data=extracted,
-                confidence=confidence,
-                corrections_applied=corrections_applied,
-                raw_response=raw_text,
-                schema_valid=outcome.schema_valid,
-                validation_errors=outcome.validation_errors,
-            )
+    response, model_used = await router.call_with_fallback(
+        operation="extract",
+        chain=settings.extraction_models,
+        call_fn=_extract_call,
+    )
 
-        except anthropic.RateLimitError:
-            if attempt == 2:
-                raise
-            wait_time = 60 * (2 ** attempt)
-            logger.warning(
-                "Rate limit hit, retrying in %ds (attempt %d/3)",
-                wait_time, attempt + 1,
-            )
-            await asyncio.sleep(wait_time)
+    raw_text = response.content[0].text
 
-        except anthropic.APIStatusError as e:
-            if e.status_code >= 400 and e.status_code < 500:
-                raise
-            raise
+    # Parse JSON from response
+    extracted = _parse_json_response(raw_text)
+    confidence = float(extracted.pop("_confidence", 0.5))
 
-    # Unreachable, but satisfies type checker
-    raise anthropic.RateLimitError(  # pragma: no cover
-        message="Rate limit exceeded after 3 attempts",
-        response=None,  # type: ignore[arg-type]
-        body=None,
+    # Validate against Pydantic schema
+    outcome = validate_extraction(extracted, doc_type)
+    validation_stats.record(outcome.schema_valid)
+    if not outcome.schema_valid:
+        logger.warning(
+            "Schema validation failed for %s: %s",
+            doc_type,
+            outcome.validation_errors,
+        )
+
+    # Pass 2: Correction if low confidence
+    corrections_applied = False
+    threshold = settings.confidence_thresholds.get(
+        doc_type, settings.extraction_confidence_threshold
+    )
+    if confidence < threshold:
+        extracted, corrections_applied = await _apply_corrections_pass(
+            client, text, doc_type, extracted, confidence, db=db,
+            router=router,
+        )
+
+    return ExtractionResult(
+        data=extracted,
+        confidence=confidence,
+        corrections_applied=corrections_applied,
+        raw_response=raw_text,
+        schema_valid=outcome.schema_valid,
+        validation_errors=outcome.validation_errors,
+        model_used=model_used,
     )
 
 
@@ -203,9 +197,17 @@ async def _apply_corrections_pass(
     original: dict[str, Any],
     confidence: float,
     db: "AsyncSession | None" = None,
+    router: "ModelRouter | None" = None,
 ) -> tuple[dict[str, Any], bool]:
     """Pass 2: Use tool_use to correct low-confidence extractions."""
     from app.services.llm_tracer import trace_llm_call
+    from app.services.model_router import ModelRouter
+
+    if router is None:
+        router = ModelRouter(
+            failure_threshold=settings.circuit_breaker_failure_threshold,
+            recovery_timeout=settings.circuit_breaker_recovery_seconds,
+        )
 
     text_limit = prompt_config.params.correction_text_limit
     correction_prompt = prompt_config.correction_prompt.format(
@@ -217,14 +219,22 @@ async def _apply_corrections_pass(
     )
 
     try:
-        async with trace_llm_call(db, "claude-sonnet-4-6", "correct") as trace_ctx:
-            response = await client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=2048,
-                messages=[{"role": "user", "content": correction_prompt}],
-                tools=[CORRECTION_TOOL],
-            )
-            trace_ctx.record_response(response)
+        async def _correct_call(model: str) -> anthropic.types.Message:
+            async with trace_llm_call(db, model, "correct") as trace_ctx:
+                response = await client.messages.create(
+                    model=model,
+                    max_tokens=2048,
+                    messages=[{"role": "user", "content": correction_prompt}],
+                    tools=[CORRECTION_TOOL],
+                )
+                trace_ctx.record_response(response)
+            return response
+
+        response, _ = await router.call_with_fallback(
+            operation="correct",
+            chain=settings.extraction_models,
+            call_fn=_correct_call,
+        )
 
         # Find tool_use block
         for block in response.content:
@@ -236,7 +246,7 @@ async def _apply_corrections_pass(
 
         return original, False
 
-    except anthropic.APIError as e:
+    except Exception as e:
         logger.warning("Correction pass failed: %s", e)
         return original, False
 

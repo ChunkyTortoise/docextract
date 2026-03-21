@@ -10,6 +10,8 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.observability import emit_llm_metrics  # noqa: E402 — circular-safe lazy import
+
 # In-memory store for test/eval mode
 _in_memory_traces: list[dict] = []
 
@@ -99,6 +101,7 @@ async def trace_llm_call(
         ctx.record_error(e)
         raise
     finally:
+        emit_llm_metrics(ctx)
         trace_data = ctx.to_dict()
         if db is not None:
             await _persist_trace(db, trace_data)

@@ -82,24 +82,38 @@ async def classify(text: str, db: "AsyncSession | None" = None) -> Classificatio
 
     Returns ClassificationResult with doc_type='unknown' on low confidence or error.
     Falls back to legacy text parsing if tool_use block not found.
+    Uses model router for automatic fallback on provider failures.
     """
     from app.services.llm_tracer import trace_llm_call
+    from app.services.model_router import AllModelsUnavailableError, ModelRouter
 
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    router = ModelRouter(
+        failure_threshold=settings.circuit_breaker_failure_threshold,
+        recovery_timeout=settings.circuit_breaker_recovery_seconds,
+    )
     sample = text[: prompt_config.params.classify_text_limit]
 
     try:
-        async with trace_llm_call(db, "claude-haiku-4-5-20251001", "classify") as trace_ctx:
-            response = await client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=256,
-                messages=[
-                    {"role": "user", "content": prompt_config.classify_prompt.format(text=sample)}
-                ],
-                tools=[CLASSIFY_TOOL],
-                tool_choice={"type": "tool", "name": "classify_document"},
-            )
-            trace_ctx.record_response(response)
+        async def _classify_call(model: str) -> anthropic.types.Message:
+            async with trace_llm_call(db, model, "classify") as trace_ctx:
+                response = await client.messages.create(
+                    model=model,
+                    max_tokens=256,
+                    messages=[
+                        {"role": "user", "content": prompt_config.classify_prompt.format(text=sample)}
+                    ],
+                    tools=[CLASSIFY_TOOL],
+                    tool_choice={"type": "tool", "name": "classify_document"},
+                )
+                trace_ctx.record_response(response)
+            return response
+
+        response, _ = await router.call_with_fallback(
+            operation="classify",
+            chain=settings.classification_models,
+            call_fn=_classify_call,
+        )
 
         # Find tool_use block
         result = None
@@ -128,7 +142,7 @@ async def classify(text: str, db: "AsyncSession | None" = None) -> Classificatio
             reasoning=reasoning,
         )
 
-    except (anthropic.APIError, KeyError, IndexError) as e:
+    except (AllModelsUnavailableError, anthropic.APIError, KeyError, IndexError) as e:
         logger.warning("Classification failed: %s", e)
         return ClassificationResult(doc_type="unknown", confidence=0.0, reasoning=str(e))
 

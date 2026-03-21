@@ -99,6 +99,9 @@ class TestExtractPass2Corrections:
         mock_settings.extraction_confidence_threshold = 0.8
         mock_settings.confidence_thresholds = {}
         mock_settings.active_learning_enabled = False
+        mock_settings.extraction_models = ["claude-sonnet-4-6"]
+        mock_settings.circuit_breaker_failure_threshold = 5
+        mock_settings.circuit_breaker_recovery_seconds = 60.0
 
         client = MagicMock()
         mock_cls.return_value = client
@@ -128,6 +131,9 @@ class TestExtractPass2Corrections:
         mock_settings.extraction_confidence_threshold = 0.8
         mock_settings.confidence_thresholds = {}
         mock_settings.active_learning_enabled = False
+        mock_settings.extraction_models = ["claude-sonnet-4-6"]
+        mock_settings.circuit_breaker_failure_threshold = 5
+        mock_settings.circuit_breaker_recovery_seconds = 60.0
 
         client = MagicMock()
         mock_cls.return_value = client
@@ -257,11 +263,10 @@ class TestExtractionResultSchemaValid:
 
 
 class TestExtractErrorHandling:
-    @patch("app.services.claude_extractor.asyncio.sleep", new_callable=AsyncMock)
     @patch("app.services.claude_extractor.AsyncAnthropic")
     @pytest.mark.asyncio
-    async def test_rate_limit_retries_with_backoff(self, mock_cls, mock_sleep):
-        """Rate limit retry uses exponential backoff (60s, 120s)."""
+    async def test_rate_limit_falls_back_to_secondary_model(self, mock_cls):
+        """Rate limit on primary model triggers fallback to secondary."""
         client = MagicMock()
         mock_cls.return_value = client
 
@@ -273,43 +278,19 @@ class TestExtractErrorHandling:
         success_response = _make_response(
             [_make_text_block(json.dumps({"_confidence": 0.9}))]
         )
+        # Primary fails, secondary succeeds
         client.messages.create = AsyncMock(side_effect=[rate_limit_error, success_response])
 
         result = await extract("test", "invoice")
         assert result.confidence == 0.9
-        mock_sleep.assert_called_once_with(60)
+        assert client.messages.create.call_count == 2
 
-    @patch("app.services.claude_extractor.asyncio.sleep", new_callable=AsyncMock)
     @patch("app.services.claude_extractor.AsyncAnthropic")
     @pytest.mark.asyncio
-    async def test_rate_limit_second_retry_doubles_wait(self, mock_cls, mock_sleep):
-        """Second retry waits 120s (exponential backoff)."""
-        client = MagicMock()
-        mock_cls.return_value = client
+    async def test_rate_limit_raises_when_all_models_fail(self, mock_cls):
+        """AllModelsUnavailableError raised when every model in chain fails."""
+        from app.services.model_router import AllModelsUnavailableError
 
-        rate_limit_error = anthropic.RateLimitError(
-            message="rate limited",
-            response=MagicMock(status_code=429, headers={}),
-            body=None,
-        )
-        success_response = _make_response(
-            [_make_text_block(json.dumps({"_confidence": 0.85}))]
-        )
-        client.messages.create = AsyncMock(
-            side_effect=[rate_limit_error, rate_limit_error, success_response]
-        )
-
-        result = await extract("test", "invoice")
-        assert result.confidence == 0.85
-        assert mock_sleep.call_count == 2
-        mock_sleep.assert_any_call(60)
-        mock_sleep.assert_any_call(120)
-
-    @patch("app.services.claude_extractor.asyncio.sleep", new_callable=AsyncMock)
-    @patch("app.services.claude_extractor.AsyncAnthropic")
-    @pytest.mark.asyncio
-    async def test_rate_limit_raises_after_3_failures(self, mock_cls, mock_sleep):
-        """Raises RateLimitError after 3 consecutive failures (no infinite recursion)."""
         client = MagicMock()
         mock_cls.return_value = client
 
@@ -320,16 +301,13 @@ class TestExtractErrorHandling:
         )
         client.messages.create = AsyncMock(side_effect=rate_limit_error)
 
-        with pytest.raises(anthropic.RateLimitError):
+        with pytest.raises(AllModelsUnavailableError):
             await extract("test", "invoice")
-
-        # Should have attempted 3 times, slept twice (after attempt 0 and 1)
-        assert client.messages.create.call_count == 3
-        assert mock_sleep.call_count == 2
 
     @patch("app.services.claude_extractor.AsyncAnthropic")
     @pytest.mark.asyncio
     async def test_4xx_error_re_raises(self, mock_cls):
+        """Client errors (4xx) are not transient — they propagate immediately."""
         client = MagicMock()
         mock_cls.return_value = client
 

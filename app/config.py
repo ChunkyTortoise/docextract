@@ -65,6 +65,16 @@ class Settings(BaseSettings):
     # Active learning
     active_learning_enabled: bool = False
 
+    # Observability
+    otel_enabled: bool = False
+    otel_service_name: str = "docextract"
+
+    # Model routing — fallback chains and circuit breaker config
+    extraction_models: list[str] = ["claude-sonnet-4-6", "claude-haiku-4-5-20251001"]
+    classification_models: list[str] = ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"]
+    circuit_breaker_failure_threshold: int = 5
+    circuit_breaker_recovery_seconds: float = 60.0
+
     @field_validator("database_url", mode="before")
     @classmethod
     def fix_database_url(cls, v: str) -> str:

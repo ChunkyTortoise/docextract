@@ -1,0 +1,31 @@
+{
+  "overall_score": 0.926398,
+  "case_count": 16,
+  "timestamp": "2026-03-21T22:48:29+00:00",
+  "per_doc_type": {
+    "invoice": {
+      "score": 0.9501,
+      "count": 7
+    },
+    "receipt": {
+      "score": 0.8214,
+      "count": 2
+    },
+    "purchase_order": {
+      "score": 0.9643,
+      "count": 2
+    },
+    "bank_statement": {
+      "score": 0.9161,
+      "count": 2
+    },
+    "medical_record": {
+      "score": 0.9885,
+      "count": 2
+    },
+    "identity_document": {
+      "score": 0.8139,
+      "count": 1
+    }
+  }
+}

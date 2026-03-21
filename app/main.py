@@ -121,6 +121,9 @@ def create_app() -> FastAPI:
     if STATIC_DIR.is_dir():
         app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+    from app.observability import setup_telemetry
+    setup_telemetry(app)
+
     return app
 
 

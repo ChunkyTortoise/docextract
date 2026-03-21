@@ -16,11 +16,14 @@
 graph LR
   A[Browser / API Client] -->|POST /documents| B[FastAPI]
   B -->|enqueue| C[ARQ Worker]
-  C -->|Pass 1: classify| D[Claude Sonnet]
-  D -->|Pass 2: extract| E[Claude Sonnet]
-  E -->|embed 768-dim| F[pgvector HNSW]
+  C -->|classify| D{Model Router}
+  D -->|primary| E[Claude Sonnet]
+  D -->|fallback| F[Claude Haiku]
+  E -->|Pass 2: extract + correct| G[pgvector HNSW]
   B -->|SSE stream stages| A
-  F -->|semantic search| B
+  G -->|semantic search| B
+  B -->|/metrics| H[Prometheus]
+  D --- I[Circuit Breaker]
 ```
 
 ## Screenshots
@@ -39,6 +42,16 @@ graph LR
 
 - **5 document types**: PDF, images (PNG/JPEG/TIFF/BMP/GIF/WebP), email (.eml/.msg), and plain text
 - **Two-pass Claude extraction**: Pass 1 extracts structured JSON with a confidence score. If confidence < 0.80, Pass 2 fires a `tool_use` correction call for automatic error correction
+- **Circuit breaker model fallback**: Per-model circuit breakers (CLOSED/OPEN/HALF_OPEN) with automatic Sonnet → Haiku failover. Configurable via `EXTRACTION_MODELS` / `CLASSIFICATION_MODELS`
+- **Golden eval CI gate**: 16 fixture-based eval cases run in CI with 2% regression tolerance — extraction quality is a first-class CI signal
+- **OpenTelemetry + Prometheus**: LLM call latency, token usage, and call counts exposed at `/metrics`. Enable with `OTEL_ENABLED=true`
+- **Per-document-type confidence thresholds**: Identity documents require 0.90 confidence; receipts tolerate 0.75. Configurable per type via `CONFIDENCE_THRESHOLDS`
+- **Hybrid search (BM25 + vector RRF)**: Semantic search combined with BM25 keyword matching via reciprocal rank fusion. Use `?mode=hybrid` on the search endpoint for best recall
+- **Structured table extraction**: Tables in PDFs are extracted as structured JSON (headers + rows), not flattened to markdown text
+- **Page-by-page streaming for long PDFs**: Multi-page PDFs emit partial extraction results per page via SSE — no need to wait for the full document
+- **Vision-native extraction path**: Set `OCR_ENGINE=vision` to route image documents directly through Claude's vision API, bypassing Tesseract entirely
+- **Active learning from HITL corrections**: Approved corrections feed back into extraction prompts via `ACTIVE_LEARNING_ENABLED=true`
+- **MCP tool server**: Connect Claude Desktop or any MCP-compatible agent to extract documents and search records via `mcp_server.py`
 - **SSE streaming progress**: Real-time job status updates via Server-Sent Events (Redis pub/sub)
 - **HNSW vector search**: pgvector semantic search over extracted records (gemini-embedding-2-preview, 768-dim)
 - **Human review workflow**: Claim, approve, or correct low-confidence extractions with full audit trail
@@ -56,13 +69,15 @@ graph LR
 | Document extraction (p50) | ~8s (two-pass Claude) |
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
-| Test suite | ~2s (570 tests) |
+| Extraction accuracy (golden eval) | **92.6%** across 6 document types |
+| Test suite | ~2s (701 tests) |
 | Coverage | ≥80% (CI-enforced) |
 
 ## Business Impact
 
 - Reduces manual document review from hours to seconds
-- 92% test coverage ensures reliable extraction across document types
+- 92.6% extraction accuracy measured against 16 golden eval fixtures
+- Circuit breaker model fallback ensures continuity during provider outages
 - Async pipeline handles concurrent uploads without blocking
 
 ## Try It Now
@@ -99,7 +114,7 @@ All endpoints are prefixed with `/api/v1`. Authenticated endpoints require `X-AP
 | `PATCH` | `/jobs/{job_id}` | Yes | Cancel a running job |
 | `GET` | `/jobs/{job_id}/events` | Yes | SSE stream of job progress events |
 | `GET` | `/records` | Yes | List extracted records (paginated) |
-| `GET` | `/records/search` | Yes | Semantic search over records |
+| `GET` | `/records/search` | Yes | Semantic search over records (`?mode=vector\|bm25\|hybrid`, default: `vector`) |
 | `GET` | `/records/export` | Yes | Stream records as CSV or JSON |
 | `GET` | `/records/{record_id}` | Yes | Get a single extracted record |
 | `PATCH` | `/records/{record_id}/review` | Yes | Submit review for a record |
@@ -161,15 +176,18 @@ docker-compose exec api python -m scripts.seed_api_key
 | `LOG_LEVEL` | No | Logging level (default: `INFO`) |
 | `MAX_FILE_SIZE_MB` | No | Max upload size in MB (default: `50`) |
 | `MAX_PAGES` | No | Max PDF pages to process (default: `100`) |
-| `OCR_ENGINE` | No | `tesseract` or `paddle` (default: `tesseract`) |
-| `EXTRACTION_CONFIDENCE_THRESHOLD` | No | Two-pass threshold (default: `0.8`) |
+| `OCR_ENGINE` | No | `tesseract`, `paddle`, or `vision` (default: `tesseract`). Use `vision` to route images through Claude's vision API |
+| `EXTRACTION_CONFIDENCE_THRESHOLD` | No | Global two-pass fallback threshold (default: `0.8`) |
+| `CONFIDENCE_THRESHOLDS` | No | JSON dict of per-type thresholds, e.g. `{"invoice":0.80,"identity_document":0.90}` |
+| `VISION_EXTRACTION_ENABLED` | No | Route image MIMEs through vision extractor instead of OCR (default: `false`) |
+| `ACTIVE_LEARNING_ENABLED` | No | Feed approved HITL corrections back into extraction prompts (default: `false`) |
 | `DEMO_MODE` | No | Enable demo mode with read-only access (default: `false`) |
 | `DEMO_API_KEY` | No | API key for demo access (default: `demo-key-docextract-2026`) |
 
 ## Running Tests
 
 ```bash
-pytest tests/ -v  # 570 tests, ~2s
+pytest tests/ -v  # 652 tests, ~2s
 ```
 
 ## Project Structure
@@ -185,7 +203,7 @@ app/
   utils/        -- Hashing, MIME detection, token counting
 worker/         -- ARQ async job processor
 frontend/       -- Streamlit 8-page dashboard
-alembic/        -- Database migrations (001-003)
+alembic/        -- Database migrations (001-009)
 scripts/        -- Seed scripts (API keys, sample docs, cleanup)
 tests/          -- Unit + integration tests
 ```
@@ -201,23 +219,34 @@ tests/          -- Unit + integration tests
 
 ## Benchmarks
 
-DocExtract is evaluated against the [SROIE](https://github.com/zzzDavid/ICDAR-2019-SROIE) receipt benchmark (4 fields: company, date, address, total).
+### Golden Eval (16 fixtures, no API credits required)
 
-Run a dry-run validation of the scoring logic:
+Measured against 16 hand-crafted golden fixtures covering all 6 document types. Scores are field-level F1 (token overlap) between extracted JSON and golden ground truth. Run in CI on every push.
+
+| Document Type | Accuracy |
+|---------------|---------|
+| Invoice | 95.0% |
+| Purchase Order | 96.4% |
+| Bank Statement | 91.6% |
+| Medical Record | 98.9% |
+| Receipt | 82.1% |
+| Identity Document | 81.4% |
+| **Overall** | **92.6%** |
+
+```bash
+# Reproduce locally (no API calls):
+python scripts/run_eval_ci.py --ci
+```
+
+### SROIE Receipt Benchmark
+
+DocExtract is evaluated against the [SROIE](https://github.com/zzzDavid/ICDAR-2019-SROIE) receipt benchmark (4 fields: company, date, address, total).
 
 ```bash
 python scripts/benchmark_sroie.py --dry-run
 ```
 
-| Field | F1 Score |
-|-------|---------|
-| company | — |
-| date | — |
-| address | — |
-| total | — |
-| **Macro F1** | **—** |
-
-*Full evaluation requires SROIE dataset download and Anthropic API credits. See `scripts/benchmark_sroie.py --help`.*
+*Full SROIE evaluation requires the dataset download and Anthropic API credits. See `scripts/benchmark_sroie.py --help`.*
 
 ## MCP Integration
 
@@ -260,12 +289,45 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 Once connected, you can ask Claude: *"Extract the invoice at [URL] and tell me the total amount due."*
 
+## Production Observability
+
+DocExtract is built for production monitoring from day one.
+
+### OpenTelemetry + Prometheus
+
+Enable with `OTEL_ENABLED=true`. Exposes a `/metrics` endpoint in Prometheus format:
+
+| Metric | Type | Labels |
+|--------|------|--------|
+| `llm_call_duration_ms` | Histogram | `model`, `operation`, `status` |
+| `llm_calls_total` | Counter | `model`, `operation`, `status` |
+| `llm_tokens_total` | Counter | `model`, `direction` |
+
+```bash
+OTEL_ENABLED=true uvicorn app.main:app --reload
+curl http://localhost:8000/metrics
+```
+
+### Circuit Breaker Model Fallback
+
+Each model in the fallback chain has its own circuit breaker (CLOSED → OPEN → HALF_OPEN state machine). When the primary model (Claude Sonnet) trips its circuit, traffic automatically routes to Claude Haiku without any downtime.
+
+Configure via environment:
+
+```bash
+EXTRACTION_MODELS=claude-sonnet-4-6,claude-haiku-4-5-20251001
+CLASSIFICATION_MODELS=claude-haiku-4-5-20251001,claude-sonnet-4-6
+CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
+CIRCUIT_BREAKER_RECOVERY_SECONDS=60
+```
+
+### LLM Call Tracing
+
+Every LLM call is traced with model, operation, latency, token counts, and confidence score — stored in PostgreSQL and queryable via the `/stats` endpoint. View per-model cost trends, p95 latency, and error rates.
+
 ## Known Limitations
 
-- **No structured table extraction**: Tables in PDFs are converted to markdown text before extraction. Structured table data (headers + rows as JSON) is not preserved in extracted records.
-- **Single global confidence threshold**: The two-pass correction threshold (`EXTRACTION_CONFIDENCE_THRESHOLD`) applies uniformly to all document types. Identity documents (which require higher accuracy) use the same threshold as receipts (which tolerate more variance).
-- **No streaming for long PDFs**: Multi-page PDFs (>5 pages) are processed as a single unit. Extraction does not emit partial results per page — the client waits for the full document to complete before receiving extracted data.
-- **Tesseract degradation on handwriting**: OCR accuracy drops significantly on handwritten documents or forms with mixed print/handwriting. Typed documents perform well; handwritten content may produce garbled text or empty fields.
+- **Tesseract degradation on handwriting**: OCR accuracy drops significantly on handwritten documents or forms with mixed print/handwriting. Set `OCR_ENGINE=vision` to route image documents through Claude's vision API instead, which handles handwriting substantially better.
 - **English-only extraction prompts**: Extraction and classification prompts are optimized for English-language documents. Non-English documents may extract with lower accuracy.
 
 ## Technical Deep Dive
