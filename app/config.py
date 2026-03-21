@@ -35,7 +35,8 @@ class Settings(BaseSettings):
     # Processing limits
     max_file_size_mb: int = 50
     max_pages: int = 100
-    ocr_engine: str = "tesseract"  # "tesseract" or "paddle"
+    ocr_engine: str = "tesseract"  # "tesseract", "paddle", or "vision"
+    vision_extraction_enabled: bool = False  # when True, route image MIMEs to vision_extractor
 
     # Worker
     worker_queue: str = "docextract"
@@ -44,6 +45,15 @@ class Settings(BaseSettings):
 
     # Extraction
     extraction_confidence_threshold: float = 0.8
+    confidence_thresholds: dict[str, float] = {
+        "invoice": 0.80,
+        "purchase_order": 0.80,
+        "receipt": 0.75,
+        "bank_statement": 0.80,
+        "identity_document": 0.90,
+        "medical_record": 0.85,
+        "unknown": 0.80,
+    }
 
     # Environment
     environment: str = "development"
@@ -51,6 +61,9 @@ class Settings(BaseSettings):
     # Demo mode
     demo_mode: bool = False
     demo_api_key: str = "demo-key-docextract-2026"
+
+    # Active learning
+    active_learning_enabled: bool = False
 
     @field_validator("database_url", mode="before")
     @classmethod
@@ -65,6 +78,13 @@ class Settings(BaseSettings):
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str | list[str]) -> list[str]:
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
+
+    @field_validator("confidence_thresholds", mode="before")
+    @classmethod
+    def parse_confidence_thresholds(cls, v: str | dict) -> dict:
         if isinstance(v, str):
             return json.loads(v)
         return v

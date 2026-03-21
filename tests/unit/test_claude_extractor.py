@@ -97,6 +97,8 @@ class TestExtractPass2Corrections:
     async def test_corrections_applied_on_low_confidence(self, mock_cls, mock_settings):
         mock_settings.anthropic_api_key = "test-key"
         mock_settings.extraction_confidence_threshold = 0.8
+        mock_settings.confidence_thresholds = {}
+        mock_settings.active_learning_enabled = False
 
         client = MagicMock()
         mock_cls.return_value = client
@@ -124,6 +126,8 @@ class TestExtractPass2Corrections:
     async def test_no_corrections_when_high_confidence(self, mock_cls, mock_settings):
         mock_settings.anthropic_api_key = "test-key"
         mock_settings.extraction_confidence_threshold = 0.8
+        mock_settings.confidence_thresholds = {}
+        mock_settings.active_learning_enabled = False
 
         client = MagicMock()
         mock_cls.return_value = client

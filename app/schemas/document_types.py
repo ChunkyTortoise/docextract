@@ -58,6 +58,7 @@ class InvoiceSchema(BaseModel):
     currency: CurrencyCode | None = None
     payment_terms: str | None = None
     notes: str | None = None
+    tables: list[dict] | None = None
 
     @field_validator("invoice_date", "due_date", mode="before")
     @classmethod
@@ -85,6 +86,7 @@ class PurchaseOrderSchema(BaseModel):
     payment_terms: str | None = None
     shipping_method: str | None = None
     notes: str | None = None
+    tables: list[dict] | None = None
 
 
 class ReceiptSchema(BaseModel):
@@ -122,6 +124,7 @@ class BankStatementSchema(BaseModel):
     total_debits: float | None = None
     transactions: list[BankTransaction] = Field(default_factory=list)
     currency: CurrencyCode | None = None
+    tables: list[dict] | None = None
 
 
 class IdentityDocumentSchema(BaseModel):

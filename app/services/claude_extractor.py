@@ -79,6 +79,17 @@ async def extract(
 
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
+    # Inject few-shot correction examples if active learning enabled
+    few_shot_prefix = ""
+    if settings.active_learning_enabled and db is not None:
+        from app.services.correction_store import get_few_shot_examples
+        examples = await get_few_shot_examples(db, doc_type, limit=2)
+        if examples:
+            examples_json = json.dumps(examples, indent=2)
+            few_shot_prefix = (
+                f"Previous corrections for {doc_type} documents:\n{examples_json}\n\n"
+            )
+
     # Pass 1: Extract (with rate limit retry)
     for attempt in range(3):
         try:
@@ -90,7 +101,7 @@ async def extract(
                     messages=[
                         {
                             "role": "user",
-                            "content": prompt_config.extract_prompt.format(
+                            "content": few_shot_prefix + prompt_config.extract_prompt.format(
                                 doc_type=doc_type,
                                 text=text[: prompt_config.params.extract_text_limit],
                             ),
@@ -117,7 +128,10 @@ async def extract(
 
             # Pass 2: Correction if low confidence
             corrections_applied = False
-            if confidence < settings.extraction_confidence_threshold:
+            threshold = settings.confidence_thresholds.get(
+                doc_type, settings.extraction_confidence_threshold
+            )
+            if confidence < threshold:
                 extracted, corrections_applied = await _apply_corrections_pass(
                     client, text, doc_type, extracted, confidence, db=db
                 )

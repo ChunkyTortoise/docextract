@@ -9,6 +9,14 @@ params:
   classify_text_limit: 2000
   extraction_confidence_threshold: 0.8
   classification_confidence_threshold: 0.6
+  confidence_thresholds:
+    invoice: 0.80
+    purchase_order: 0.80
+    receipt: 0.75
+    bank_statement: 0.80
+    identity_document: 0.90
+    medical_record: 0.85
+    unknown: 0.80
 
 # Pass 1 extraction — system prompt
 extract_system_prompt: |

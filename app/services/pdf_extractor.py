@@ -20,6 +20,7 @@ class ExtractedContent:
     text: str
     metadata: dict = field(default_factory=dict)
     page_count: int = 1
+    tables: list[dict] = field(default_factory=list)
 
 
 def extract_pdf(data: bytes) -> ExtractedContent:
@@ -81,14 +82,18 @@ def extract_pdf(data: bytes) -> ExtractedContent:
 
     # Extract tables via pdfplumber
     table_texts: list[str] = []
+    structured_tables: list[dict] = []
     try:
         with pdfplumber.open(io.BytesIO(data)) as pdf:
             for page_num, page in enumerate(pdf.pages[:total_pages]):
-                tables = page.extract_tables()
-                if tables:
+                raw_tables = page.extract_tables()
+                if raw_tables:
                     has_tables = True
-                    for table in tables:
+                    for table in raw_tables:
                         table_texts.append(_table_to_markdown(table))
+                        structured = _table_to_structured(table, page=page_num + 1)
+                        if structured:
+                            structured_tables.append(structured)
     except Exception:
         logger.warning("pdfplumber table extraction failed", exc_info=True)
 
@@ -115,7 +120,29 @@ def extract_pdf(data: bytes) -> ExtractedContent:
             "truncated": doc.page_count > max_pages if not doc.is_closed else False,
         },
         page_count=total_pages,
+        tables=structured_tables,
     )
+
+
+def _table_to_structured(
+    table: list[list[str | None]], page: int = 1
+) -> dict | None:
+    """Convert a pdfplumber table to structured dict with headers and rows.
+
+    Returns None for empty or single-row tables.
+    """
+    if not table or len(table) < 2:
+        return None
+
+    headers = [str(cell) if cell is not None else "" for cell in table[0]]
+    rows = [
+        [str(cell) if cell is not None else "" for cell in row]
+        for row in table[1:]
+    ]
+    if not any(headers) and not any(any(r) for r in rows):
+        return None
+
+    return {"headers": headers, "rows": rows, "page": page}
 
 
 def _table_to_markdown(table: list[list[str | None]]) -> str:

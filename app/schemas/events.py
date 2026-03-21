@@ -11,6 +11,7 @@ class JobStatus(str, Enum):
     EXTRACTING_TEXT = "extracting_text"
     CLASSIFYING = "classifying"
     EXTRACTING_DATA = "extracting_data"
+    EXTRACTING_PAGE = "extracting_page"
     VALIDATING = "validating"
     EMBEDDING = "embedding"
     COMPLETED = "completed"
@@ -25,6 +26,7 @@ JOB_STATUS_PROGRESS: dict[str, int] = {
     JobStatus.EXTRACTING_TEXT: 15,
     JobStatus.CLASSIFYING: 35,
     JobStatus.EXTRACTING_DATA: 40,
+    JobStatus.EXTRACTING_PAGE: 40,
     JobStatus.VALIDATING: 75,
     JobStatus.EMBEDDING: 90,
     JobStatus.COMPLETED: 100,

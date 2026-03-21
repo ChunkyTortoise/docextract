@@ -46,8 +46,27 @@ def ingest(file_bytes: bytes, mime_type: str, filename: str) -> ExtractedContent
     if mime_type == "application/pdf":
         result = extract_pdf(file_bytes)
     elif mime_type in IMAGE_MIME_TYPES:
-        image = preprocess_bytes(file_bytes)
-        result = extract_image(image, engine=settings.ocr_engine)
+        if (settings.ocr_engine == "vision" or settings.vision_extraction_enabled):
+            from app.services.vision_extractor import (
+                IMAGE_MIME_TYPES as VISION_MIME_TYPES,
+                extract_vision,
+            )
+            if mime_type in VISION_MIME_TYPES:
+                import asyncio
+
+                vision_result = asyncio.run(extract_vision(file_bytes, mime_type))
+                result = ExtractedContent(
+                    text=vision_result.text,
+                    metadata=vision_result.metadata,
+                    page_count=vision_result.page_count,
+                    tables=vision_result.tables,
+                )
+            else:
+                image = preprocess_bytes(file_bytes)
+                result = extract_image(image, engine=settings.ocr_engine)
+        else:
+            image = preprocess_bytes(file_bytes)
+            result = extract_image(image, engine=settings.ocr_engine)
     elif mime_type == "message/rfc822":
         result = extract_eml(file_bytes)
     elif mime_type == "application/vnd.ms-outlook":

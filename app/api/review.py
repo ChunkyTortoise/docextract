@@ -226,12 +226,27 @@ async def correct_review_item(
         "corrected_data": item.corrected_data,
     }
 
+    original_extracted = dict(item.extracted_data or {})
+
     item.corrected_data = corrections
     item.reviewer_notes = notes
     item.validation_status = "corrected"
     item.needs_review = False
     item.reviewed_by = actor
     item.reviewed_at = datetime.now(timezone.utc)
+
+    # Store correction for active learning
+    from app.config import settings
+    if settings.active_learning_enabled:
+        from app.services.correction_store import store_correction
+        await store_correction(
+            db=db,
+            record_id=str(item.id),
+            doc_type=item.document_type,
+            original_data=original_extracted,
+            corrected_data=dict(corrections),
+            reviewer_id=actor,
+        )
 
     try:
         await _append_audit(

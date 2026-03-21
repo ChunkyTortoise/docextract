@@ -199,6 +199,75 @@ tests/          -- Unit + integration tests
 
 > **Note**: The demo runs on Render's free tier. First request may take 30-60s to wake the service.
 
+## Benchmarks
+
+DocExtract is evaluated against the [SROIE](https://github.com/zzzDavid/ICDAR-2019-SROIE) receipt benchmark (4 fields: company, date, address, total).
+
+Run a dry-run validation of the scoring logic:
+
+```bash
+python scripts/benchmark_sroie.py --dry-run
+```
+
+| Field | F1 Score |
+|-------|---------|
+| company | — |
+| date | — |
+| address | — |
+| total | — |
+| **Macro F1** | **—** |
+
+*Full evaluation requires SROIE dataset download and Anthropic API credits. See `scripts/benchmark_sroie.py --help`.*
+
+## MCP Integration
+
+DocExtract ships with an [MCP](https://modelcontextprotocol.io) (Model Context Protocol) tool server. Connect it to Claude Desktop, Cursor, or any MCP-compatible agent to extract documents and search records directly from your AI assistant.
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `extract_document` | Download a document from a URL, extract structured data, return the full record |
+| `search_records` | Semantic search over all extracted records |
+
+### Setup
+
+```bash
+pip install mcp
+export DOCEXTRACT_API_URL=https://docextract-api.onrender.com/api/v1
+export DOCEXTRACT_API_KEY=your-api-key
+python mcp_server.py
+```
+
+### Claude Desktop Configuration
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "docextract": {
+      "command": "python",
+      "args": ["/path/to/docextract/mcp_server.py"],
+      "env": {
+        "DOCEXTRACT_API_URL": "https://docextract-api.onrender.com/api/v1",
+        "DOCEXTRACT_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+Once connected, you can ask Claude: *"Extract the invoice at [URL] and tell me the total amount due."*
+
+## Known Limitations
+
+- **No structured table extraction**: Tables in PDFs are converted to markdown text before extraction. Structured table data (headers + rows as JSON) is not preserved in extracted records.
+- **Single global confidence threshold**: The two-pass correction threshold (`EXTRACTION_CONFIDENCE_THRESHOLD`) applies uniformly to all document types. Identity documents (which require higher accuracy) use the same threshold as receipts (which tolerate more variance).
+- **No streaming for long PDFs**: Multi-page PDFs (>5 pages) are processed as a single unit. Extraction does not emit partial results per page — the client waits for the full document to complete before receiving extracted data.
+- **Tesseract degradation on handwriting**: OCR accuracy drops significantly on handwritten documents or forms with mixed print/handwriting. Typed documents perform well; handwritten content may produce garbled text or empty fields.
+- **English-only extraction prompts**: Extraction and classification prompts are optimized for English-language documents. Non-English documents may extract with lower accuracy.
+
 ## Technical Deep Dive
 
 For a detailed breakdown of the architecture decisions, RAG pipeline design, extraction accuracy benchmarks, and async job queue patterns, see the [Case Study](CASE_STUDY.md). This document covers the full engineering journey from prototype to production.

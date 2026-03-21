@@ -99,7 +99,7 @@ def test_job_status_enum_values() -> None:
     from app.schemas.events import JobStatus
     expected = {
         "queued", "preprocessing", "extracting_text", "classifying",
-        "extracting_data", "validating", "embedding", "completed",
+        "extracting_data", "extracting_page", "validating", "embedding", "completed",
         "needs_review", "failed", "cancelled",
     }
     actual = {s.value for s in JobStatus}
