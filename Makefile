@@ -1,4 +1,30 @@
-.PHONY: test lint quickstart-client
+.PHONY: test lint quickstart-client aws-build aws-push aws-deploy
+
+# ── AWS deployment helpers ───────────────────────────────────────────────────
+# Prerequisites: AWS CLI configured, Terraform installed, ECR repos created
+# Usage:
+#   make aws-build                    # build images locally
+#   AWS_REGION=us-east-1 make aws-push ECR_API=<uri> ECR_WORKER=<uri>
+#   cd deploy/aws && terraform apply  # provision EC2 + S3 + ECR
+
+AWS_REGION   ?= us-east-1
+ECR_API      ?= $(shell cd deploy/aws && terraform output -raw ecr_api_uri 2>/dev/null)
+ECR_WORKER   ?= $(shell cd deploy/aws && terraform output -raw ecr_worker_uri 2>/dev/null)
+
+aws-build:
+	docker build -t docextract-api:latest -f Dockerfile .
+	docker build -t docextract-worker:latest -f Dockerfile.worker .
+
+aws-push: aws-build
+	aws ecr get-login-password --region $(AWS_REGION) \
+	  | docker login --username AWS --password-stdin $(shell echo $(ECR_API) | cut -d/ -f1)
+	docker tag docextract-api:latest $(ECR_API):latest
+	docker tag docextract-worker:latest $(ECR_WORKER):latest
+	docker push $(ECR_API):latest
+	docker push $(ECR_WORKER):latest
+
+aws-deploy:
+	cd deploy/aws && terraform init && terraform apply -auto-approve
 
 test:
 	pytest -v

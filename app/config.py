@@ -69,6 +69,11 @@ class Settings(BaseSettings):
     otel_enabled: bool = False
     otel_service_name: str = "docextract"
 
+    # LangSmith tracing
+    langsmith_enabled: bool = False
+    langsmith_api_key: str = ""
+    langsmith_project: str = "docextract"
+
     # Model routing — fallback chains and circuit breaker config
     extraction_models: list[str] = ["claude-sonnet-4-6", "claude-haiku-4-5-20251001"]
     classification_models: list[str] = ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"]

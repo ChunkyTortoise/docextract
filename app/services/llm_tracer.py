@@ -11,6 +11,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.observability import emit_llm_metrics  # noqa: E402 — circular-safe lazy import
+from app.langsmith_tracing import emit_rag_trace  # noqa: E402
 
 # In-memory store for test/eval mode
 _in_memory_traces: list[dict] = []
@@ -102,6 +103,7 @@ async def trace_llm_call(
         raise
     finally:
         emit_llm_metrics(ctx)
+        emit_rag_trace(ctx)
         trace_data = ctx.to_dict()
         if db is not None:
             await _persist_trace(db, trace_data)

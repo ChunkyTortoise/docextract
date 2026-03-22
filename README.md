@@ -93,9 +93,28 @@ curl -H "X-API-Key: demo-key-docextract-2026" \
 
 ## Deploy Your Own
 
+### Render (one-click)
+
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ChunkyTortoise/docextract)
 
 One-click deploy via Render Blueprint. Sets `DEMO_MODE=true` automatically. You only need to add your `ANTHROPIC_API_KEY`.
+
+### AWS (EC2 + ECR + S3)
+
+Full IaC under `deploy/aws/` — Terraform provisions an EC2 instance (t2.micro, free tier eligible), two ECR repositories, and an S3 bucket for document storage.
+
+```bash
+# 1. Build and push images to ECR
+cd deploy/aws && terraform init && terraform apply   # creates ECR repos + EC2 + S3
+cd ../..
+make aws-push AWS_REGION=us-east-1                  # tags + pushes both images
+
+# 2. EC2 user_data script pulls images on boot and starts API + ARQ worker
+# API is available at the public IP on port 8000 within ~2 minutes of launch
+terraform -chdir=deploy/aws output api_url
+```
+
+The instance uses an IAM role with scoped ECR pull + S3 read/write permissions (no static credentials). Secrets (`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) are passed at launch via Terraform variables and written to a root-only `.env` file on the instance.
 
 ## API Reference
 

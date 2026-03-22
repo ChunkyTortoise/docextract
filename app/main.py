@@ -124,6 +124,9 @@ def create_app() -> FastAPI:
     from app.observability import setup_telemetry
     setup_telemetry(app)
 
+    from app.langsmith_tracing import setup_langsmith
+    setup_langsmith()
+
     return app
 
 
