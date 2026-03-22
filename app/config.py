@@ -68,6 +68,10 @@ class Settings(BaseSettings):
     # Observability
     otel_enabled: bool = False
     otel_service_name: str = "docextract"
+    # OTLP span export — set to your Jaeger/Tempo/Honeycomb gRPC endpoint
+    # e.g. http://jaeger:4317 (local dev) or https://api.honeycomb.io:443 (cloud)
+    otel_exporter_otlp_endpoint: str = ""
+    otel_exporter_otlp_insecure: bool = True  # False for TLS endpoints (cloud)
 
     # LangSmith tracing
     langsmith_enabled: bool = False

@@ -1,0 +1,19 @@
+# Production patch: higher replicas + tighter resource limits
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docextract-api
+  namespace: docextract
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: api
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"

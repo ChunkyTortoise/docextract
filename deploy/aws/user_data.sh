@@ -1,5 +1,6 @@
 #!/bin/bash
 # EC2 bootstrap script — installs Docker, pulls images from ECR, starts the stack
+# RDS Postgres and ElastiCache Redis are provisioned separately by Terraform.
 set -euo pipefail
 
 # ── System setup ──────────────────────────────
@@ -18,6 +19,8 @@ docker pull ${api_image_uri}
 docker pull ${worker_image_uri}
 
 # ── Write environment file (never committed — lives only on the instance) ──
+# DATABASE_URL: managed RDS Postgres (pgvector extension enabled by migration 002)
+# REDIS_URL: managed ElastiCache Redis (no auth — private subnet, app SG only)
 cat > /opt/docextract.env <<EOF
 ANTHROPIC_API_KEY=${anthropic_api_key}
 GEMINI_API_KEY=${gemini_api_key}
@@ -25,22 +28,27 @@ STORAGE_BACKEND=s3
 STORAGE_S3_BUCKET=${s3_bucket}
 AWS_REGION=${aws_region}
 DEMO_MODE=false
-OTEL_ENABLED=false
-DATABASE_URL=sqlite:////data/docextract.db
-REDIS_URL=redis://localhost:6379/0
+OTEL_ENABLED=true
+DATABASE_URL=postgresql+asyncpg://docextract:${db_password}@${rds_endpoint}:5432/docextract
+REDIS_URL=redis://${redis_endpoint}:6379/0
 EOF
 
 chmod 600 /opt/docextract.env
 
-# ── Lightweight Redis (sidecar, no persistence required for demo) ──
-docker run -d --name redis --restart unless-stopped -p 6379:6379 redis:7-alpine
+# ── Run Alembic migrations (wait for RDS to be reachable) ──
+# RDS is typically available by the time user_data runs, but retry for safety.
+for i in $(seq 1 12); do
+  docker run --rm \
+    --env-file /opt/docextract.env \
+    ${api_image_uri} \
+    alembic upgrade head && break || (echo "Migration attempt $i failed, retrying in 10s..." && sleep 10)
+done
 
 # ── API service ──────────────────────────────
 docker run -d \
   --name docextract-api \
   --restart unless-stopped \
   --env-file /opt/docextract.env \
-  -v /data:/data \
   -p 8000:8000 \
   ${api_image_uri}
 
@@ -49,8 +57,7 @@ docker run -d \
   --name docextract-worker \
   --restart unless-stopped \
   --env-file /opt/docextract.env \
-  -v /data:/data \
   ${worker_image_uri} \
   python -m arq worker.main.WorkerSettings
 
-echo "DocExtract bootstrap complete"
+echo "DocExtract bootstrap complete — API on :8000, using RDS Postgres + ElastiCache Redis"

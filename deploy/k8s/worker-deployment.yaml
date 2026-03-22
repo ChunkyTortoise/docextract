@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docextract-worker
+  namespace: docextract
+  labels:
+    app.kubernetes.io/name: docextract
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: docextract
+      app.kubernetes.io/component: worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: docextract
+        app.kubernetes.io/component: worker
+    spec:
+      containers:
+        - name: worker
+          # Replace with your registry, e.g. ghcr.io/chunkytortoise/docextract-worker:latest
+          image: docextract-worker:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: docextract-config
+            - secretRef:
+                name: docextract-secrets
+          # No HTTP port — worker is an ARQ consumer.
+          # Liveness: probe Redis connectivity via redis-cli ping.
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -u $REDIS_URL ping | grep -q PONG
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            # Higher memory: Tesseract OCR + PDF parsing are memory-intensive
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: storage
+              mountPath: /app/storage
+      volumes:
+        - name: storage
+          emptyDir: {}

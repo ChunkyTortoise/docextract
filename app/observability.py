@@ -1,12 +1,18 @@
-"""OpenTelemetry observability setup with Prometheus metrics export.
+"""OpenTelemetry observability setup with Prometheus metrics and OTLP span export.
 
 Feature-flagged behind OTEL_ENABLED=true. When disabled all emit functions
 are no-ops so existing code and tests are unaffected.
 
 Custom metrics:
-    llm.call.duration_ms  — Histogram (model, operation, status)
-    llm.calls.total       — Counter  (model, operation, status)
-    llm.tokens.total      — Counter  (model, direction)
+    llm_call_duration_ms       — Histogram (model, operation, status)
+    llm_calls_total            — Counter   (model, operation, status)
+    llm_tokens_total           — Counter   (model, direction)
+    circuit_breaker_state      — Gauge     (model) — 0=CLOSED, 1=HALF_OPEN, 2=OPEN
+
+Distributed tracing (OTLP):
+    Enable by setting OTEL_EXPORTER_OTLP_ENDPOINT (e.g. http://jaeger:4317).
+    Sends gRPC spans to any OTLP-compatible backend (Jaeger, Tempo, Honeycomb).
+    Local dev: docker compose -f docker-compose.yml -f docker-compose.observability.yml up
 """
 from __future__ import annotations
 
@@ -23,16 +29,20 @@ logger = logging.getLogger(__name__)
 
 # Module-level state — populated by setup_telemetry()
 _meter: Any = None
+_tracer: Any = None
 _instruments: dict[str, Any] = {}
+
+# Circuit breaker state numeric mapping (for Prometheus gauge)
+_CB_STATE_VALUES = {"closed": 0, "half_open": 1, "open": 2}
 
 
 def setup_telemetry(app: "FastAPI") -> None:
-    """Register OTel providers and mount /metrics on the FastAPI app.
+    """Register OTel providers, mount /metrics, and configure OTLP span export.
 
     Safe to call when disabled — becomes a no-op. Import errors from missing
     packages are caught and logged so the app still starts without OTel.
     """
-    global _meter, _instruments
+    global _meter, _tracer, _instruments
 
     if not settings.otel_enabled:
         return
@@ -50,14 +60,41 @@ def setup_telemetry(app: "FastAPI") -> None:
 
     resource = Resource.create({"service.name": settings.otel_service_name})
 
+    # ── Tracer provider + optional OTLP span export ──────────────────────────
     tracer_provider = TracerProvider(resource=resource)
-    trace.set_tracer_provider(tracer_provider)
 
+    if settings.otel_exporter_otlp_endpoint:
+        try:
+            from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+                OTLPSpanExporter,
+            )
+            from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+            otlp_exporter = OTLPSpanExporter(
+                endpoint=settings.otel_exporter_otlp_endpoint,
+                insecure=settings.otel_exporter_otlp_insecure,
+            )
+            tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+            logger.info(
+                "OTLP span export enabled — endpoint '%s'",
+                settings.otel_exporter_otlp_endpoint,
+            )
+        except ImportError as e:
+            logger.warning(
+                "opentelemetry-exporter-otlp-proto-grpc not installed, "
+                "span export disabled: %s",
+                e,
+            )
+
+    trace.set_tracer_provider(tracer_provider)
+    _tracer = trace.get_tracer("docextract")
+
+    # ── Meter provider + Prometheus export ───────────────────────────────────
     prometheus_reader = PrometheusMetricReader()
     meter_provider = MeterProvider(resource=resource, metric_readers=[prometheus_reader])
     metrics.set_meter_provider(meter_provider)
 
-    _meter = metrics.get_meter("docextract", version="1.0.0")
+    _meter = metrics.get_meter("docextract")
     _instruments = {
         "duration": _meter.create_histogram(
             "llm_call_duration_ms",
@@ -71,6 +108,10 @@ def setup_telemetry(app: "FastAPI") -> None:
         "tokens": _meter.create_counter(
             "llm_tokens_total",
             description="Total LLM tokens processed",
+        ),
+        "circuit_breaker": _meter.create_gauge(
+            "circuit_breaker_state",
+            description="Circuit breaker state per model: 0=CLOSED, 1=HALF_OPEN, 2=OPEN",
         ),
     }
 
@@ -108,8 +149,34 @@ def emit_llm_metrics(ctx: "TraceContext") -> None:
         )
 
 
+def emit_circuit_breaker_state(model: str, state: str) -> None:
+    """Emit circuit breaker state as a Prometheus gauge.
+
+    Called by ModelRouter after each state transition.
+    state should be one of: 'closed', 'half_open', 'open'.
+    No-op when OTel is disabled.
+    """
+    if not settings.otel_enabled or "circuit_breaker" not in _instruments:
+        return
+    numeric = _CB_STATE_VALUES.get(state, 0)
+    _instruments["circuit_breaker"].set(numeric, attributes={"model": model})
+
+
+def get_tracer() -> Any:
+    """Return the OTel tracer, or None when OTel is disabled.
+
+    Use in services to create spans:
+        tracer = get_tracer()
+        if tracer:
+            with tracer.start_as_current_span("extract"):
+                ...
+    """
+    return _tracer
+
+
 def _reset_for_testing() -> None:
     """Reset module-level state between tests. Not for production use."""
-    global _meter, _instruments
+    global _meter, _tracer, _instruments
     _meter = None
+    _tracer = None
     _instruments = {}

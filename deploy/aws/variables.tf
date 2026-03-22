@@ -32,3 +32,21 @@ variable "app_name" {
   type        = string
   default     = "docextract"
 }
+
+variable "db_instance_class" {
+  description = "RDS instance class (db.t3.micro = free-tier eligible)"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "db_password" {
+  description = "Master password for the RDS PostgreSQL instance"
+  type        = string
+  sensitive   = true
+}
+
+variable "redis_node_type" {
+  description = "ElastiCache node type (cache.t3.micro = free-tier eligible)"
+  type        = string
+  default     = "cache.t3.micro"
+}

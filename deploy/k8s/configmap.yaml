@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: docextract-config
+  namespace: docextract
+  labels:
+    app.kubernetes.io/name: docextract
+data:
+  # Storage
+  STORAGE_BACKEND: "local"
+  STORAGE_LOCAL_PATH: "/app/storage/local"
+
+  # Processing
+  LOG_LEVEL: "INFO"
+  MAX_FILE_SIZE_MB: "50"
+  MAX_PAGES: "100"
+  OCR_ENGINE: "tesseract"
+  VISION_EXTRACTION_ENABLED: "false"
+
+  # Worker
+  WORKER_QUEUE: "docextract"
+  WORKER_MAX_JOBS: "10"
+  JOB_TIMEOUT_SECONDS: "300"
+
+  # Extraction
+  EXTRACTION_CONFIDENCE_THRESHOLD: "0.8"
+  EXTRACTION_MODELS: "claude-sonnet-4-6,claude-haiku-4-5-20251001"
+  CLASSIFICATION_MODELS: "claude-haiku-4-5-20251001,claude-sonnet-4-6"
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: "5"
+  CIRCUIT_BREAKER_RECOVERY_SECONDS: "60"
+
+  # Observability
+  OTEL_ENABLED: "true"
+  OTEL_SERVICE_NAME: "docextract"
+
+  # Environment
+  ENVIRONMENT: "production"
+  DEMO_MODE: "false"
+
+  # Frontend
+  API_URL: "http://docextract-api:8000"

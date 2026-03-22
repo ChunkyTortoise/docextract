@@ -22,3 +22,13 @@ output "s3_bucket" {
   description = "S3 bucket name for document storage"
   value       = aws_s3_bucket.storage.bucket
 }
+
+output "rds_endpoint" {
+  description = "RDS PostgreSQL endpoint (hostname only, port 5432)"
+  value       = aws_db_instance.postgres.address
+}
+
+output "redis_endpoint" {
+  description = "ElastiCache Redis endpoint (hostname only, port 6379)"
+  value       = aws_elasticache_cluster.redis.cache_nodes[0].address
+}

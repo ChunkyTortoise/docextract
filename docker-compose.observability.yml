@@ -1,0 +1,60 @@
+# Observability overlay — adds Jaeger, Prometheus, and Grafana to the base stack.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.observability.yml up
+#
+# Services added:
+#   jaeger     — Distributed tracing UI at http://localhost:16686
+#   prometheus — Metrics scraper at http://localhost:9090
+#   grafana    — Dashboards at http://localhost:3000 (admin/admin)
+#
+# The API service is patched to enable OTel and export spans to Jaeger.
+# LLM call latency, throughput, tokens, and circuit breaker state are visible
+# in Grafana immediately after the first document is processed.
+
+services:
+  # Override API to enable OTel and point OTLP at Jaeger
+  api:
+    environment:
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC receiver
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:16686"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+    depends_on:
+      - api
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./deploy/grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
+      - ./deploy/grafana/dashboard-provider.yaml:/etc/grafana/provisioning/dashboards/provider.yaml:ro
+      - ./deploy/grafana/docextract-dashboard.json:/etc/grafana/provisioning/dashboards/docextract-dashboard.json:ro
+    depends_on:
+      - prometheus

@@ -1,4 +1,4 @@
-.PHONY: test lint quickstart-client aws-build aws-push aws-deploy
+.PHONY: test lint quickstart-client aws-build aws-push aws-deploy k8s-apply k8s-delete k8s-logs
 
 # ── AWS deployment helpers ───────────────────────────────────────────────────
 # Prerequisites: AWS CLI configured, Terraform installed, ECR repos created
@@ -31,6 +31,27 @@ test:
 
 lint:
 	ruff check app worker tests
+
+# ── Kubernetes helpers ───────────────────────────────────────────────────────
+# Prerequisites: kubectl + kustomize installed, kubeconfig pointing at target cluster
+# Usage:
+#   make k8s-apply                    # deploy base manifests
+#   K8S_ENV=production make k8s-apply # deploy production overlay
+
+K8S_ENV ?= base
+
+k8s-apply:
+ifeq ($(K8S_ENV),production)
+	kubectl apply -k deploy/k8s/overlays/production/
+else
+	kubectl apply -k deploy/k8s/
+endif
+
+k8s-delete:
+	kubectl delete -k deploy/k8s/ --ignore-not-found=true
+
+k8s-logs:
+	kubectl logs -n docextract -l app.kubernetes.io/name=docextract --all-containers=true --prefix=true -f
 
 quickstart-client:
 	@echo "Quickstart checklist for new DocExtract client"

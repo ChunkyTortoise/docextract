@@ -70,7 +70,7 @@ graph LR
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
 | Extraction accuracy (golden eval) | **92.6%** across 6 document types |
-| Test suite | ~2s (701 tests) |
+| Test suite | ~5s (774 tests) |
 | Coverage | ≥80% (CI-enforced) |
 
 ## Business Impact
@@ -99,22 +99,52 @@ curl -H "X-API-Key: demo-key-docextract-2026" \
 
 One-click deploy via Render Blueprint. Sets `DEMO_MODE=true` automatically. You only need to add your `ANTHROPIC_API_KEY`.
 
-### AWS (EC2 + ECR + S3)
+### Kubernetes (Kustomize)
 
-Full IaC under `deploy/aws/` — Terraform provisions an EC2 instance (t2.micro, free tier eligible), two ECR repositories, and an S3 bucket for document storage.
+Full manifest set under `deploy/k8s/` — Deployments, Services, Ingress, HPA, ConfigMap, and Secrets template for all three services (API, Worker, Frontend).
 
 ```bash
-# 1. Build and push images to ECR
-cd deploy/aws && terraform init && terraform apply   # creates ECR repos + EC2 + S3
-cd ../..
-make aws-push AWS_REGION=us-east-1                  # tags + pushes both images
+# Deploy base manifests (fill in secrets.yaml first)
+kubectl apply -k deploy/k8s/
 
-# 2. EC2 user_data script pulls images on boot and starts API + ARQ worker
-# API is available at the public IP on port 8000 within ~2 minutes of launch
+# Deploy production overlay (3 replicas, higher resource limits)
+kubectl apply -k deploy/k8s/overlays/production/
+```
+
+Architecture:
+- **API**: 2 replicas (base), HPA scales to 8 on CPU >70%
+- **Worker**: 2 replicas (base), HPA scales to 6 — higher memory limit for Tesseract OCR
+- **Ingress**: nginx class, routes `/api` and `/docs` to API, `/` to Streamlit frontend
+- **SSE**: `nginx.ingress.kubernetes.io/proxy-buffering: "off"` ensures job progress streams are delivered in real time
+
+```bash
+# Validate manifests (no cluster required)
+kubectl kustomize deploy/k8s/ | kubectl apply --dry-run=client -f -
+```
+
+### AWS (EC2 + ECR + S3)
+
+Full IaC under `deploy/aws/` — Terraform provisions an EC2 instance (t2.micro), two ECR repositories, S3 document storage, **RDS PostgreSQL 16** (db.t3.micro, pgvector via migration 002), and **ElastiCache Redis 7** (cache.t3.micro). All free-tier eligible.
+
+```bash
+# 1. Provision infrastructure
+cd deploy/aws
+terraform init
+terraform apply \
+  -var="key_pair_name=your-key-pair" \
+  -var="anthropic_api_key=$ANTHROPIC_API_KEY" \
+  -var="gemini_api_key=$GEMINI_API_KEY" \
+  -var="db_password=your-secure-db-password"
+
+# 2. Build and push images to ECR
+cd ../..
+make aws-push AWS_REGION=us-east-1
+
+# 3. EC2 user_data runs migrations (alembic upgrade head) then starts API + ARQ worker
 terraform -chdir=deploy/aws output api_url
 ```
 
-The instance uses an IAM role with scoped ECR pull + S3 read/write permissions (no static credentials). Secrets (`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) are passed at launch via Terraform variables and written to a root-only `.env` file on the instance.
+The instance uses an IAM role with scoped ECR pull + S3 read/write permissions (no static credentials). RDS and ElastiCache are in private subnets — only the EC2 security group can reach them.
 
 ## API Reference
 
@@ -206,7 +236,7 @@ docker-compose exec api python -m scripts.seed_api_key
 ## Running Tests
 
 ```bash
-pytest tests/ -v  # 652 tests, ~2s
+pytest tests/ -v  # 774 tests, ~5s
 ```
 
 ## Project Structure
@@ -312,6 +342,20 @@ Once connected, you can ask Claude: *"Extract the invoice at [URL] and tell me t
 
 DocExtract is built for production monitoring from day one.
 
+### Full Observability Stack (Jaeger + Prometheus + Grafana)
+
+Spin up the complete monitoring stack with a single command:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.observability.yml up
+```
+
+| Service | URL | What you see |
+|---------|-----|--------------|
+| Jaeger | http://localhost:16686 | Distributed traces per document extraction |
+| Prometheus | http://localhost:9090 | Raw metrics with PromQL |
+| Grafana | http://localhost:3000 (admin/admin) | Pre-built dashboard: latency, throughput, tokens, circuit breaker state |
+
 ### OpenTelemetry + Prometheus
 
 Enable with `OTEL_ENABLED=true`. Exposes a `/metrics` endpoint in Prometheus format:
@@ -321,11 +365,24 @@ Enable with `OTEL_ENABLED=true`. Exposes a `/metrics` endpoint in Prometheus for
 | `llm_call_duration_ms` | Histogram | `model`, `operation`, `status` |
 | `llm_calls_total` | Counter | `model`, `operation`, `status` |
 | `llm_tokens_total` | Counter | `model`, `direction` |
+| `circuit_breaker_state` | Gauge | `model` — 0=CLOSED, 1=HALF_OPEN, 2=OPEN |
 
 ```bash
 OTEL_ENABLED=true uvicorn app.main:app --reload
 curl http://localhost:8000/metrics
 ```
+
+### Distributed Tracing (OTLP/Jaeger)
+
+Enable span export by setting `OTEL_EXPORTER_OTLP_ENDPOINT`:
+
+```bash
+OTEL_ENABLED=true \
+OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317 \
+uvicorn app.main:app --reload
+```
+
+Works with any OTLP-compatible backend: Jaeger, Grafana Tempo, Honeycomb, Datadog.
 
 ### Circuit Breaker Model Fallback
 

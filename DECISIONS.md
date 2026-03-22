@@ -117,3 +117,37 @@ Feature-flagging behind `OTEL_ENABLED=false` means zero performance impact in de
 
 ### Tradeoff
 Two parallel tracing paths add conceptual overhead. If OTel becomes the primary observability layer, the custom DB tracer could eventually be deprecated. Accepted because the DB tracer powers product features (not just ops observability), so it cannot be removed without a larger refactor.
+
+---
+
+## ADR-008: Kustomize Over Helm for Kubernetes Deployment
+
+**Status**: Accepted
+**Date**: 2026-03
+
+### Decision
+Use Kustomize (built into `kubectl`) for Kubernetes manifest management rather than Helm charts.
+
+### Why
+DocExtract is a single-application deployment with two environments (base and production overlay). Kustomize handles this with a base directory and a `overlays/production/` patch — no templating language, no chart packaging, no `values.yaml` indirection. Operators can read the base YAML and understand the full deployment without learning Helm's Go templating syntax. Kustomize is included in `kubectl` (v1.14+), so there is zero additional tooling to install.
+
+### Tradeoff
+Helm is the de-facto standard for distributing third-party applications and has a larger ecosystem (Artifact Hub, chart repositories). For DocExtract's use case — deploying one specific application to environments we control — chart distribution is irrelevant. If DocExtract were to be packaged as a product that users install into their own clusters, Helm would be the right choice at that point.
+
+---
+
+## ADR-009: Managed Databases (RDS + ElastiCache) for AWS Deployment
+
+**Status**: Accepted
+**Date**: 2026-03
+
+### Decision
+The AWS Terraform deployment uses Amazon RDS (PostgreSQL 16) and Amazon ElastiCache (Redis 7) instead of self-hosted containers on the EC2 instance.
+
+### Why
+Self-hosted SQLite on EC2 cannot run the asyncpg driver that DocExtract requires, and self-hosted Postgres in a container loses all data when the instance is replaced. RDS provides automated backups, point-in-time recovery, storage auto-scaling, and multi-AZ failover without operational overhead. ElastiCache provides a Redis endpoint that survives EC2 instance replacement — critical for ARQ job queues that must not lose in-flight jobs on a deploy.
+
+Both services are free-tier eligible (`db.t3.micro` / `cache.t3.micro`) and are deployed in private subnets with security group rules that restrict access to the EC2 application instances only.
+
+### Tradeoff
+RDS and ElastiCache add ~2-3 minutes to `terraform apply` time and introduce per-hour billing once free tier is exhausted. For a demo/portfolio deployment, the free tier covers typical usage. The alternative (containers on a single EC2 instance) would be simpler but represents a data durability risk that is unacceptable for a system handling document extraction jobs.
