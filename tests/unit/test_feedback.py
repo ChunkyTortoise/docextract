@@ -5,6 +5,8 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from pydantic import ValidationError
 
+_MOCK_API_KEY = MagicMock()  # stand-in for an authenticated APIKey instance
+
 from app.api.feedback import (
     FeedbackRequest,
     FeedbackResponse,
@@ -154,7 +156,7 @@ class TestSubmitFeedbackEndpoint:
             doc_type="invoice",
         )
 
-        result = await submit_feedback(request, db)
+        result = await submit_feedback(request, db, api_key=_MOCK_API_KEY)
 
         db.execute.assert_awaited_once()
         call_kwargs = db.execute.call_args
@@ -169,7 +171,7 @@ class TestSubmitFeedbackEndpoint:
         db = AsyncMock()
         request = FeedbackRequest(record_id="rec-xyz", rating="negative")
 
-        await submit_feedback(request, db)
+        await submit_feedback(request, db, api_key=_MOCK_API_KEY)
 
         db.commit.assert_awaited_once()
 
@@ -178,7 +180,7 @@ class TestSubmitFeedbackEndpoint:
         db = AsyncMock()
         request = FeedbackRequest(record_id="rec-123", rating="positive")
 
-        result = await submit_feedback(request, db)
+        result = await submit_feedback(request, db, api_key=_MOCK_API_KEY)
 
         assert isinstance(result, FeedbackResponse)
         assert result.status == "recorded"
@@ -190,7 +192,7 @@ class TestSubmitFeedbackEndpoint:
         db = AsyncMock()
         request = FeedbackRequest(record_id="rec-000", rating="negative")
 
-        await submit_feedback(request, db)
+        await submit_feedback(request, db, api_key=_MOCK_API_KEY)
 
         params = db.execute.call_args[0][1]
         assert params["comment"] is None
@@ -217,7 +219,7 @@ class TestGetFeedbackSummaryEndpoint:
         mock_result.fetchall.return_value = []
         db.execute.return_value = mock_result
 
-        result = await get_feedback_summary(db)
+        result = await get_feedback_summary(db, api_key=_MOCK_API_KEY)
 
         assert result.total == 0
         assert result.positive == 0
@@ -234,7 +236,7 @@ class TestGetFeedbackSummaryEndpoint:
         ]
         db.execute.return_value = mock_result
 
-        result = await get_feedback_summary(db)
+        result = await get_feedback_summary(db, api_key=_MOCK_API_KEY)
 
         assert result.total == 3
         assert result.positive == 3
@@ -252,7 +254,7 @@ class TestGetFeedbackSummaryEndpoint:
         ]
         db.execute.return_value = mock_result
 
-        result = await get_feedback_summary(db)
+        result = await get_feedback_summary(db, api_key=_MOCK_API_KEY)
 
         assert result.total == 10
         assert result.positive == 6
@@ -270,7 +272,7 @@ class TestGetFeedbackSummaryEndpoint:
         ]
         db.execute.return_value = mock_result
 
-        result = await get_feedback_summary(db)
+        result = await get_feedback_summary(db, api_key=_MOCK_API_KEY)
 
         assert result.by_doc_type["invoice"]["positive"] == 4
         assert result.by_doc_type["invoice"]["negative"] == 1
@@ -285,7 +287,7 @@ class TestGetFeedbackSummaryEndpoint:
         ]
         db.execute.return_value = mock_result
 
-        result = await get_feedback_summary(db)
+        result = await get_feedback_summary(db, api_key=_MOCK_API_KEY)
 
         assert result.total == 5
         assert result.by_doc_type == {}
@@ -300,7 +302,7 @@ class TestGetFeedbackSummaryEndpoint:
         ]
         db.execute.return_value = mock_result
 
-        result = await get_feedback_summary(db)
+        result = await get_feedback_summary(db, api_key=_MOCK_API_KEY)
 
         # 1/3 = 0.3333...
         assert result.positive_rate == round(1 / 3, 4)
@@ -312,25 +314,22 @@ class TestGetFeedbackSummaryEndpoint:
 
 
 class TestRouterRegistration:
-    def test_feedback_router_has_correct_prefix(self):
-        assert router.prefix == "/api/v1"
+    def test_feedback_router_has_no_prefix(self):
+        # prefix is empty — parent api_router provides /api/v1
+        assert router.prefix == ""
 
     def test_feedback_router_has_feedback_tag(self):
         assert "feedback" in router.tags
 
     def test_submit_feedback_route_exists(self):
         routes = {r.path for r in router.routes}
-        assert "/api/v1/feedback" in routes
+        assert "/feedback" in routes
 
     def test_get_summary_route_exists(self):
         routes = {r.path for r in router.routes}
-        assert "/api/v1/feedback/summary" in routes
+        assert "/feedback/summary" in routes
 
     def test_feedback_module_importable(self):
         from app.api import feedback  # noqa: F401
-        from app.api.router import api_router
 
-        included = {r.path for r in api_router.routes}
-        # The outer router strips the /api/v1 prefix so routes appear as /feedback etc.
-        # Just verify the feedback module exports a router attribute
         assert hasattr(feedback, "router")

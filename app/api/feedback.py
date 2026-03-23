@@ -13,9 +13,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.middleware import get_api_key
 from app.dependencies import get_db
+from app.models.api_key import APIKey
 
-router = APIRouter(prefix="/api/v1", tags=["feedback"])
+router = APIRouter(tags=["feedback"])
 
 
 class FeedbackRequest(BaseModel):
@@ -43,6 +45,7 @@ class FeedbackSummary(BaseModel):
 async def submit_feedback(
     request: FeedbackRequest,
     db: AsyncSession = Depends(get_db),
+    api_key: APIKey = Depends(get_api_key),
 ) -> FeedbackResponse:
     """Record user feedback on an extraction result."""
     await db.execute(
@@ -64,6 +67,7 @@ async def submit_feedback(
 @router.get("/feedback/summary", response_model=FeedbackSummary)
 async def get_feedback_summary(
     db: AsyncSession = Depends(get_db),
+    api_key: APIKey = Depends(get_api_key),
 ) -> FeedbackSummary:
     """Return aggregate feedback stats."""
     rows = await db.execute(

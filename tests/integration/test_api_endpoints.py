@@ -119,3 +119,35 @@ async def test_records_filter_by_confidence(client: AsyncClient):
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_feedback_post_auth_required(client: AsyncClient):
+    """Feedback POST rejects missing API key."""
+    response = await client.post(
+        "/api/v1/feedback",
+        json={"record_id": "rec-123", "rating": "positive"},
+        headers={"X-API-Key": ""},
+    )
+    assert response.status_code in (401, 403)
+
+
+@pytest.mark.asyncio
+async def test_feedback_summary_auth_required(client: AsyncClient):
+    """Feedback summary GET rejects missing API key."""
+    response = await client.get(
+        "/api/v1/feedback/summary",
+        headers={"X-API-Key": ""},
+    )
+    assert response.status_code in (401, 403)
+
+
+@pytest.mark.asyncio
+async def test_agent_eval_auth_required(client: AsyncClient):
+    """Agent eval POST rejects missing API key."""
+    response = await client.post(
+        "/api/v1/agent-eval",
+        json={"question": "test"},
+        headers={"X-API-Key": ""},
+    )
+    assert response.status_code in (401, 403)

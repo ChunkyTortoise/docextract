@@ -5,8 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.middleware import get_api_key
 from app.config import settings
 from app.dependencies import get_db
+from app.models.api_key import APIKey
 from app.services.agent_evaluator import AgentEvaluator, AgentEvalResult
 from app.services.agentic_rag import AgenticRAG, AgenticRAGResult
 
@@ -32,6 +34,7 @@ class AgentEvalResponse(BaseModel):
 async def evaluate_agent(
     request: AgentEvalRequest,
     db: AsyncSession = Depends(get_db),
+    api_key: APIKey = Depends(get_api_key),
 ) -> AgentEvalResponse:
     """Run the agentic RAG pipeline, then evaluate decision quality."""
     if not settings.agent_eval_enabled:
