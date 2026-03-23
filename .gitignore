@@ -15,5 +15,8 @@ autoresearch/results.tsv
 storage/reports/
 .coverage
 
+# Research and market analysis (not part of the codebase)
+research/
+
 # Streamlit local secrets
 frontend/.streamlit/secrets.toml
