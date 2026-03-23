@@ -65,6 +65,12 @@ class Settings(BaseSettings):
     # Active learning
     active_learning_enabled: bool = False
 
+    # RAGAS evaluation pipeline
+    ragas_enabled: bool = False
+
+    # LLM-as-judge evaluator
+    llm_judge_enabled: bool = False
+
     # Observability
     otel_enabled: bool = False
     otel_service_name: str = "docextract"
