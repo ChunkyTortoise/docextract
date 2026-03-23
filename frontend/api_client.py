@@ -300,3 +300,32 @@ def get_review_metrics(stale_after_hours: int = 24) -> dict[str, Any]:
         response = client.get("/review/metrics", params={"stale_after_hours": stale_after_hours})
         response.raise_for_status()
         return response.json()
+
+
+def submit_feedback(
+    record_id: str,
+    rating: str,
+    comment: str | None = None,
+    doc_type: str | None = None,
+) -> dict[str, Any]:
+    """Submit thumbs-up/down feedback on an extraction record."""
+    with get_client() as client:
+        response = client.post(
+            "/feedback",
+            json={
+                "record_id": record_id,
+                "rating": rating,
+                "comment": comment,
+                "doc_type": doc_type,
+            },
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+def get_feedback_summary() -> dict[str, Any]:
+    """Return aggregate feedback stats."""
+    with get_client() as client:
+        response = client.get("/feedback/summary")
+        response.raise_for_status()
+        return response.json()

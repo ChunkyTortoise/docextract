@@ -10,6 +10,7 @@ from app.api import (
     documents,
     export,
     extract_structured,
+    feedback,
     health,
     jobs,
     metrics,
@@ -39,3 +40,4 @@ api_router.include_router(metrics.router)
 api_router.include_router(agent_search.router)
 api_router.include_router(agent_eval.router)
 api_router.include_router(extract_structured.router)
+api_router.include_router(feedback.router)

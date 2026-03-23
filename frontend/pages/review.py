@@ -76,6 +76,32 @@ def _review_record_form(record_id: str, demo_mode: bool) -> None:
                         st.session_state["current_record_id"] = None
                     except Exception as e:
                         st.error(f"Review failed: {e}")
+
+        st.divider()
+        st.caption("Extraction quality feedback")
+        col_up, col_down, _ = st.columns([1, 1, 4])
+        with col_up:
+            if st.button("👍 Good extraction", key=f"fb_pos_{record_id}"):
+                try:
+                    api.submit_feedback(
+                        record_id,
+                        "positive",
+                        doc_type=record.get("document_type"),
+                    )
+                    st.success("Feedback recorded")
+                except Exception:
+                    st.warning("Feedback unavailable")
+        with col_down:
+            if st.button("👎 Poor extraction", key=f"fb_neg_{record_id}"):
+                try:
+                    api.submit_feedback(
+                        record_id,
+                        "negative",
+                        doc_type=record.get("document_type"),
+                    )
+                    st.error("Feedback recorded — flagged for review")
+                except Exception:
+                    st.warning("Feedback unavailable")
     except Exception as e:
         st.error(f"Could not load record: {e}")
 
@@ -183,6 +209,33 @@ def render() -> None:
                             if item_status == "claimed":
                                 if st.button("Correct & Submit"):
                                     st.session_state["correcting_item"] = item_id
+
+                        # Feedback buttons
+                        st.divider()
+                        st.caption("Extraction quality feedback")
+                        fb_col_up, fb_col_down, _ = st.columns([1, 1, 4])
+                        with fb_col_up:
+                            if st.button("👍 Good extraction", key=f"fb_pos_{item_id}"):
+                                try:
+                                    api.submit_feedback(
+                                        item_id,
+                                        "positive",
+                                        doc_type=item.get("document_type"),
+                                    )
+                                    st.success("Feedback recorded")
+                                except Exception:
+                                    st.warning("Feedback unavailable")
+                        with fb_col_down:
+                            if st.button("👎 Poor extraction", key=f"fb_neg_{item_id}"):
+                                try:
+                                    api.submit_feedback(
+                                        item_id,
+                                        "negative",
+                                        doc_type=item.get("document_type"),
+                                    )
+                                    st.error("Feedback recorded — flagged for review")
+                                except Exception:
+                                    st.warning("Feedback unavailable")
 
                         # Corrections form
                         if st.session_state.get("correcting_item") == item_id:
