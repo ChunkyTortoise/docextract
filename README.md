@@ -455,6 +455,19 @@ Cost monitoring: `/api/v1/metrics` (Prometheus) + Cost Dashboard in Streamlit fr
 - **Tesseract degradation on handwriting**: OCR accuracy drops significantly on handwritten documents or forms with mixed print/handwriting. Set `OCR_ENGINE=vision` to route image documents through Claude's vision API instead, which handles handwriting substantially better.
 - **English-only extraction prompts**: Extraction and classification prompts are optimized for English-language documents. Non-English documents may extract with lower accuracy.
 
+## Architecture Decisions
+
+12 Architecture Decision Records (ADRs) document the key design choices: [docs/adr/](docs/adr/)
+
+| ADR | Decision |
+|-----|----------|
+| [ADR-0001](docs/adr/0001-arq-over-celery.md) | ARQ over Celery for async job queue |
+| [ADR-0002](docs/adr/0002-pgvector-over-dedicated-vector-db.md) | pgvector over Pinecone/Weaviate |
+| [ADR-0003](docs/adr/0003-two-pass-extraction.md) | Two-pass Claude extraction with confidence gating |
+| [ADR-0006](docs/adr/0006-circuit-breaker-model-fallback.md) | Circuit breaker model fallback chain |
+| [ADR-0011](docs/adr/0011-api-key-auth-over-oauth-jwt.md) | API key auth over OAuth/JWT |
+| [ADR-0012](docs/adr/0012-pluggable-storage-local-r2.md) | Pluggable storage backend (Local/R2) |
+
 ## Technical Deep Dive
 
 For a detailed breakdown of the architecture decisions, RAG pipeline design, extraction accuracy benchmarks, and async job queue patterns, see the [Case Study](CASE_STUDY.md). This document covers the full engineering journey from prototype to production.
