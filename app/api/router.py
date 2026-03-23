@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api import (
+    agent_eval,
     agent_search,
     api_keys,
     documents,
@@ -36,4 +37,5 @@ api_router.include_router(review.router)
 api_router.include_router(roi.router)
 api_router.include_router(metrics.router)
 api_router.include_router(agent_search.router)
+api_router.include_router(agent_eval.router)
 api_router.include_router(extract_structured.router)

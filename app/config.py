@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     # LLM-as-judge evaluator
     llm_judge_enabled: bool = False
 
+    # Agent evaluation framework
+    agent_eval_enabled: bool = False
+
     # Observability
     otel_enabled: bool = False
     otel_service_name: str = "docextract"
