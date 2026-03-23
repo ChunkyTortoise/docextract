@@ -113,6 +113,12 @@ def setup_telemetry(app: "FastAPI") -> None:
             "circuit_breaker_state",
             description="Circuit breaker state per model: 0=CLOSED, 1=HALF_OPEN, 2=OPEN",
         ),
+        # Cost tracking gauge — add when OTEL_ENABLED=true:
+        # "llm_cost_usd": _meter.create_gauge(
+        #     "llm_cost_usd",
+        #     description="Cumulative LLM spend in USD per model/operation (Gauge, updated by CostTracker)",
+        #     unit="USD",
+        # ),
     }
 
     metrics_app = make_asgi_app()

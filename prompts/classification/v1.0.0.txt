@@ -1,0 +1,13 @@
+Analyze this document and classify it into one of these types:
+- invoice: A bill from a vendor requesting payment
+- purchase_order: A buyer's order requesting goods/services
+- receipt: Proof of purchase/payment
+- bank_statement: Bank account transaction history
+- identity_document: Passport, driver's license, national ID
+- medical_record: Patient health record, visit notes, prescriptions
+- unknown: Cannot determine type
+
+Document text (first 2000 chars):
+{text}
+
+Respond with JSON matching the schema.

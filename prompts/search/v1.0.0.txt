@@ -1,0 +1,7 @@
+Given the query: "{query}"
+
+Re-rank the following {count} passages by relevance (most relevant first).
+Return ONLY a JSON array of zero-based indices, e.g. [2, 0, 1].
+
+Passages:
+{snippets}
