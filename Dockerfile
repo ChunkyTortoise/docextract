@@ -26,12 +26,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user
+RUN useradd -r -s /bin/false appuser
+
 # Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+COPY --from=builder /root/.local /home/appuser/.local
+ENV PATH=/home/appuser/.local/bin:$PATH
 ENV PYTHONPATH=/app
 
 COPY . .
+RUN chown -R appuser:appuser /app
+
+USER appuser
 
 EXPOSE 8000
 

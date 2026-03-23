@@ -10,3 +10,13 @@ __pycache__/
 .claude/
 *.egg-info/
 dist/
+research/
+notebooks/
+autoresearch/
+.github/
+k8s/
+terraform/
+Makefile
+docker-compose*.yml
+*.md
+offer-kit.yaml
