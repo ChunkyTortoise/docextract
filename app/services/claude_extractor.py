@@ -6,6 +6,8 @@ import json
 import logging
 import re
 import time
+
+import structlog
 from dataclasses import dataclass, field
 from typing import Any, Type, TYPE_CHECKING
 
@@ -21,7 +23,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
     from app.services.model_router import ModelRouter
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 @dataclass

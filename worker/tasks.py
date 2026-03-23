@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 import uuid
+
+import structlog
 from datetime import datetime, timezone
 from typing import Any
 
@@ -15,7 +17,7 @@ from app.config import settings
 from app.models.database import AsyncSessionLocal
 from app.schemas.events import JOB_STATUS_PROGRESS, JobStatus
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # Error classification
 TRANSIENT_ERRORS = (httpx.TimeoutException, ConnectionError, OSError)

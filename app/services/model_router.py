@@ -18,13 +18,15 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Awaitable, Callable
+
+import structlog
 from typing import Any, TypeVar
 
 import anthropic
 
 from app.services.circuit_breaker import AsyncCircuitBreaker, CircuitOpenError
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 T = TypeVar("T")
 

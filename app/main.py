@@ -7,6 +7,8 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import structlog
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,15 +18,12 @@ from fastapi.staticfiles import StaticFiles
 from app.api import demo as demo_module
 from app.api.router import api_router
 from app.config import settings
+from app.logging_config import configure_structlog
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
-logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper()),
-    format='{"time":"%(asctime)s","level":"%(levelname)s","name":"%(name)s","message":"%(message)s"}',
-)
-
-logger = logging.getLogger(__name__)
+configure_structlog()
+logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
