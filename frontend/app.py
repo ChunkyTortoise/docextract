@@ -70,7 +70,7 @@ def main() -> None:
         st.caption("AI Document Processing")
         st.divider()
 
-        pages = ["Upload", "Batch Upload", "Progress", "Results", "Records", "Review", "ROI", "Dashboard", "Cost Dashboard", "Demo", "Architecture", "Evaluation", "Prompt Lab"]
+        pages = ["Upload", "Batch Upload", "Progress", "Results", "Records", "Review", "ROI", "Dashboard", "Cost Dashboard", "Demo", "Architecture", "Evaluation", "Prompt Lab", "Agent Trace"]
         default_idx = 0
         if "nav_target" in st.session_state:
             target = st.session_state.pop("nav_target")
@@ -118,6 +118,9 @@ def main() -> None:
         render()
     elif page == "Prompt Lab":
         from frontend.pages.prompt_lab import render
+        render()
+    elif page == "Agent Trace":
+        from frontend.pages.agent_trace import render
         render()
 
 

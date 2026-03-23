@@ -329,3 +329,31 @@ def get_feedback_summary() -> dict[str, Any]:
         response = client.get("/feedback/summary")
         response.raise_for_status()
         return response.json()
+
+
+def get_eval_history(limit: int = 200) -> list[dict[str, Any]]:
+    """Get evaluation run history."""
+    with get_client() as client:
+        response = client.get("/eval/history", params={"limit": limit})
+        response.raise_for_status()
+        return response.json()
+
+
+def agent_search(
+    question: str,
+    doc_ids: list[str] | None = None,
+    max_iterations: int = 3,
+) -> dict[str, Any]:
+    """Run agentic RAG search and return AgenticRAGResult."""
+    with get_client() as client:
+        response = client.post(
+            "/agent-search",
+            json={
+                "question": question,
+                "doc_ids": doc_ids,
+                "max_iterations": max_iterations,
+            },
+            timeout=60.0,
+        )
+        response.raise_for_status()
+        return response.json()
