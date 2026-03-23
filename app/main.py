@@ -65,6 +65,7 @@ def create_app() -> FastAPI:
             {"name": "api-keys", "description": "Self-service API key creation, listing, and revocation"},
             {"name": "review", "description": "Human-in-the-loop review queue: claim, approve, correct"},
             {"name": "roi", "description": "ROI attribution, trends, and executive report generation"},
+            {"name": "agent-search", "description": "Agentic RAG with ReAct reasoning loop over document corpus"},
         ],
     )
 
