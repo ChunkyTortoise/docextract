@@ -3,7 +3,7 @@
 **Extract structured data from unstructured documents in seconds — not hours.**
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-90.66%25-brightgreen)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/ChunkyTortoise/docextract/graph/badge.svg)](https://codecov.io/gh/ChunkyTortoise/docextract)
 [![Live API](https://img.shields.io/website?url=https%3A%2F%2Fdocextract-api.onrender.com%2Fapi%2Fv1%2Fhealth&label=Live%20API)](https://docextract-api.onrender.com/docs)
 [![Swagger](https://img.shields.io/badge/docs-Swagger-blue)](https://docextract-api.onrender.com/docs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)

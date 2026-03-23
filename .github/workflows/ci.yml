@@ -14,6 +14,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
       - name: Install linting deps
         run: pip install ruff mypy
       - name: Dependency check
@@ -50,6 +51,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
       - name: Install system deps
         run: sudo apt-get install -y tesseract-ocr libmagic1
       - name: Install Python deps
@@ -62,7 +64,12 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           ANTHROPIC_API_KEY: test-key
           API_KEY_SECRET: test-secret-32-chars-minimum-here
-        run: pytest tests/ --cov=. --cov-report=term-missing --cov-fail-under=80 -v --tb=short
+        run: pytest tests/ --cov=. --cov-report=xml --cov-fail-under=80 -v --tb=short
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
 
   eval:
     runs-on: ubuntu-latest
@@ -72,6 +79,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
       - name: Install Python deps
         run: pip install -r requirements.txt
       - name: Run eval regression gate (golden — no API calls)
@@ -99,7 +107,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.12"
+          cache: "pip"
       - run: pip install -r requirements.txt
       - name: Run RAGAS evaluation
         env:
