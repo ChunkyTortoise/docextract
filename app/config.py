@@ -74,6 +74,9 @@ class Settings(BaseSettings):
     # Agent evaluation framework
     agent_eval_enabled: bool = False
 
+    # Guardrails — PII detection and hallucination boundary checking
+    guardrails_enabled: bool = False
+
     # Observability
     otel_enabled: bool = False
     otel_service_name: str = "docextract"
