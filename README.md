@@ -3,7 +3,7 @@
 **Extract structured data from unstructured documents in seconds — not hours.**
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-90.44%25-brightgreen)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-90.66%25-brightgreen)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Live API](https://img.shields.io/website?url=https%3A%2F%2Fdocextract-api.onrender.com%2Fapi%2Fv1%2Fhealth&label=Live%20API)](https://docextract-api.onrender.com/docs)
 [![Swagger](https://img.shields.io/badge/docs-Swagger-blue)](https://docextract-api.onrender.com/docs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -88,8 +88,8 @@ graph LR
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
 | Extraction accuracy (golden eval) | **92.6%** across 6 document types |
-| Test suite | ~5s (925 tests) |
-| Coverage | 90.44% (CI-enforced) |
+| Test suite | ~5s (1,060 tests) |
+| Coverage | 90.66% (CI-enforced) |
 
 ## Business Impact
 
@@ -257,7 +257,7 @@ docker-compose exec api python -m scripts.seed_api_key
 ## Running Tests
 
 ```bash
-pytest tests/ -v  # 925 tests, ~5s
+pytest tests/ -v  # 1,060 tests, ~5s
 ```
 
 ## Project Structure
@@ -272,7 +272,7 @@ app/
   storage/      -- Pluggable storage backends (local, R2)
   utils/        -- Hashing, MIME detection, token counting
 worker/         -- ARQ async job processor
-frontend/       -- Streamlit 13-page dashboard
+frontend/       -- Streamlit 14-page dashboard
 alembic/        -- Database migrations (001-010)
 scripts/        -- Seed scripts (API keys, sample docs, cleanup)
 tests/          -- Unit + integration tests
