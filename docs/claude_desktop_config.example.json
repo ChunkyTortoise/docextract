@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "docextract": {
+      "command": "python",
+      "args": ["mcp_server.py"],
+      "env": {
+        "DOCEXTRACT_API_URL": "https://docextract-api.onrender.com/api/v1",
+        "DOCEXTRACT_API_KEY": "YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}

@@ -70,6 +70,7 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 - **Embeddings**: Google Gemini gemini-embedding-2-preview (768-dim, HNSW index)
 - **Queue**: ARQ (async Redis queue) with ARQ worker as a separate Render service
 - **Frontend**: Streamlit 13-page dashboard (Upload, Progress, Results, Review, Records, Dashboard, Analytics, Settings, Cost Dashboard, Demo, Architecture, Evaluation, Prompt Lab)
+- **MCP tool server** (`mcp_server.py`): exposes `extract_document` and `search_records` as typed MCP tools for Claude Desktop and agent framework integration — see [docs/mcp-integration.md](docs/mcp-integration.md)
 
 ## The Results
 

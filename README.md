@@ -359,6 +359,8 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 Once connected, you can ask Claude: *"Extract the invoice at [URL] and tell me the total amount due."*
 
+Full setup guide and tool reference: [docs/mcp-integration.md](docs/mcp-integration.md). Built with the same patterns as [mcp-server-toolkit](https://github.com/ChunkyTortoise/mcp-server-toolkit) (`pip install mcp-server-toolkit`) — a PyPI package providing production MCP server boilerplate with caching, rate limiting, and OpenTelemetry instrumentation.
+
 ## Production Observability
 
 DocExtract is built for production monitoring from day one.
