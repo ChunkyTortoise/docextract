@@ -8,6 +8,7 @@ from app.api import (
     api_keys,
     documents,
     export,
+    extract_structured,
     health,
     jobs,
     metrics,
@@ -35,3 +36,4 @@ api_router.include_router(review.router)
 api_router.include_router(roi.router)
 api_router.include_router(metrics.router)
 api_router.include_router(agent_search.router)
+api_router.include_router(extract_structured.router)
