@@ -1,0 +1,28 @@
+{
+  "document_type": "invoice",
+  "document_id": "demo-invoice-001",
+  "filename": "sample_invoice.pdf",
+  "confidence": 0.94,
+  "extracted_data": {
+    "invoice_number": "INV-2024-00847",
+    "vendor_name": "Acme Technology Solutions",
+    "vendor_address": "123 Innovation Drive, San Francisco, CA 94102",
+    "client_name": "TechCorp Enterprises",
+    "invoice_date": "2024-11-15",
+    "due_date": "2024-12-15",
+    "subtotal": "$4,850.00",
+    "tax": "$436.50",
+    "total": "$5,286.50",
+    "line_items": [
+      {"description": "API Integration Services", "quantity": 1, "unit_price": "$3,500.00", "total": "$3,500.00"},
+      {"description": "Technical Documentation", "quantity": 5, "unit_price": "$270.00", "total": "$1,350.00"}
+    ],
+    "payment_terms": "Net 30",
+    "payment_methods": ["ACH Transfer", "Check"]
+  },
+  "field_confidence": {
+    "invoice_number": 0.99, "vendor_name": 0.97, "total": 0.99,
+    "invoice_date": 0.98, "line_items": 0.91
+  },
+  "processing_time_ms": 1840
+}

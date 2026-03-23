@@ -70,7 +70,7 @@ def main() -> None:
         st.caption("AI Document Processing")
         st.divider()
 
-        pages = ["Upload", "Batch Upload", "Progress", "Results", "Records", "Review", "ROI", "Dashboard", "Cost Dashboard"]
+        pages = ["Upload", "Batch Upload", "Progress", "Results", "Records", "Review", "ROI", "Dashboard", "Cost Dashboard", "Demo", "Architecture"]
         default_idx = 0
         if "nav_target" in st.session_state:
             target = st.session_state.pop("nav_target")
@@ -107,6 +107,12 @@ def main() -> None:
     elif page == "Cost Dashboard":
         from frontend.pages.cost_dashboard import render
         render()
+    elif page == "Demo":
+        from frontend.pages.demo_sandbox import show
+        show()
+    elif page == "Architecture":
+        from frontend.pages.architecture import show
+        show()
 
 
 if __name__ == "__main__":

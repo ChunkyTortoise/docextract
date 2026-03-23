@@ -10,6 +10,18 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com)
 
+## Try the Demo
+
+Explore the full pipeline without uploading real documents:
+
+```bash
+DEMO_MODE=true streamlit run frontend/app.py
+```
+
+Or visit the hosted dashboard (demo data pre-loaded).
+
+**Demo includes:** document extraction with confidence scores, hybrid semantic search, RAGAS evaluation metrics, cost dashboard, and architecture diagram.
+
 ## Architecture
 
 ```mermaid
@@ -402,6 +414,18 @@ CIRCUIT_BREAKER_RECOVERY_SECONDS=60
 Every LLM call is traced with model, operation, latency, token counts, and confidence score — stored in PostgreSQL and queryable via the `/stats` endpoint. View per-model cost trends, p95 latency, and error rates.
 
 ## Cost & Performance
+
+Token cost comparison across models (per 1,000 tokens, as of 2026):
+
+| Model | Input | Output | Best For |
+|-------|-------|--------|----------|
+| Claude Sonnet 4.6 | $0.003 | $0.015 | Complex extraction, high accuracy |
+| Claude Haiku 4.5 | $0.00025 | $0.00125 | Classification, simple queries |
+| Claude Opus 4.6 | $0.015 | $0.075 | Evaluation, edge cases |
+
+DocExtract routes 60% of classification traffic to Haiku after A/B testing showed <2% quality difference vs Sonnet — reducing classification costs by ~67%.
+
+Track live cost-per-query in the [Cost Dashboard](frontend/pages/cost_dashboard.py).
 
 | Model | Operation | Avg Cost/Request | Avg Latency |
 |-------|-----------|-----------------|-------------|

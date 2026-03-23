@@ -1,0 +1,25 @@
+{
+  "document_type": "contract",
+  "document_id": "demo-contract-001",
+  "filename": "sample_nda.pdf",
+  "confidence": 0.91,
+  "extracted_data": {
+    "contract_type": "Non-Disclosure Agreement",
+    "parties": ["Acme Technology Solutions, Inc.", "Beta Startup LLC"],
+    "effective_date": "2024-10-01",
+    "expiry_date": "2026-10-01",
+    "governing_law": "State of California",
+    "key_obligations": [
+      "Maintain confidentiality of disclosed information for 2 years",
+      "No disclosure to third parties without written consent",
+      "Return or destroy confidential materials upon request"
+    ],
+    "confidentiality_period": "2 years",
+    "termination_notice": "30 days written notice"
+  },
+  "field_confidence": {
+    "parties": 0.96, "effective_date": 0.98, "contract_type": 0.93,
+    "key_obligations": 0.87, "governing_law": 0.99
+  },
+  "processing_time_ms": 2210
+}

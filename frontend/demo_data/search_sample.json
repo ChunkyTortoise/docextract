@@ -1,0 +1,22 @@
+{
+  "query": "What is the total amount due on the invoice?",
+  "mode": "hybrid",
+  "results": [
+    {
+      "doc_id": "demo-invoice-001",
+      "chunk_id": "demo-invoice-001-chunk-3",
+      "content": "Total Amount Due: $5,286.50. This includes subtotal of $4,850.00 plus applicable taxes of $436.50. Payment is due within 30 days of invoice date.",
+      "score": 0.94,
+      "source": "hybrid"
+    },
+    {
+      "doc_id": "demo-invoice-001",
+      "chunk_id": "demo-invoice-001-chunk-1",
+      "content": "Invoice INV-2024-00847 issued by Acme Technology Solutions to TechCorp Enterprises dated November 15, 2024.",
+      "score": 0.78,
+      "source": "bm25"
+    }
+  ],
+  "retrieval_mode": "hybrid_rrf",
+  "latency_ms": 87
+}

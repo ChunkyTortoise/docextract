@@ -1,0 +1,28 @@
+{
+  "document_type": "receipt",
+  "document_id": "demo-receipt-001",
+  "filename": "sample_receipt.pdf",
+  "confidence": 0.97,
+  "extracted_data": {
+    "merchant_name": "Blue Bottle Coffee",
+    "merchant_address": "66 Mint Street, San Francisco, CA 94103",
+    "transaction_date": "2024-11-20",
+    "transaction_time": "09:14 AM",
+    "items": [
+      {"name": "Single Origin Pour Over", "price": "$6.50"},
+      {"name": "Avocado Toast", "price": "$12.00"},
+      {"name": "Cold Brew", "price": "$5.75"}
+    ],
+    "subtotal": "$24.25",
+    "tax": "$2.18",
+    "tip": "$4.85",
+    "total": "$31.28",
+    "payment_method": "Visa ending in 4892",
+    "receipt_number": "RCP-88472"
+  },
+  "field_confidence": {
+    "merchant_name": 0.99, "total": 0.99, "items": 0.96,
+    "transaction_date": 0.98, "payment_method": 0.94
+  },
+  "processing_time_ms": 1120
+}
