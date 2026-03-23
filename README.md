@@ -401,6 +401,20 @@ CIRCUIT_BREAKER_RECOVERY_SECONDS=60
 
 Every LLM call is traced with model, operation, latency, token counts, and confidence score — stored in PostgreSQL and queryable via the `/stats` endpoint. View per-model cost trends, p95 latency, and error rates.
 
+## Cost & Performance
+
+| Model | Operation | Avg Cost/Request | Avg Latency |
+|-------|-----------|-----------------|-------------|
+| claude-sonnet-4-6 | Extraction (2-pass) | $0.004–$0.012 | 1.8s |
+| claude-haiku-4-5 | Classification | $0.0003–$0.001 | 0.4s |
+| claude-sonnet-4-6 | LLM Judge | $0.002–$0.006 | 1.2s |
+
+**Model routing strategy:** Classification and re-ranking use Haiku (4x cheaper, <5% quality gap).
+Full extraction uses Sonnet. LLM judge uses Sonnet for accuracy.
+A/B testing with z-test significance determines optimal model allocation per operation.
+
+Cost monitoring: `/api/v1/metrics` (Prometheus) + Cost Dashboard in Streamlit frontend.
+
 ## Known Limitations
 
 - **Tesseract degradation on handwriting**: OCR accuracy drops significantly on handwritten documents or forms with mixed print/handwriting. Set `OCR_ENGINE=vision` to route image documents through Claude's vision API instead, which handles handwriting substantially better.
