@@ -69,11 +69,11 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 - **AI**: Anthropic Claude (Sonnet → Haiku fallback via circuit breaker model router) for extraction and correction
 - **Embeddings**: Google Gemini gemini-embedding-2-preview (768-dim, HNSW index)
 - **Queue**: ARQ (async Redis queue) with ARQ worker as a separate Render service
-- **Frontend**: Streamlit 8-page dashboard (Upload, Progress, Results, Review, Records, Dashboard, Analytics, Settings)
+- **Frontend**: Streamlit 13-page dashboard (Upload, Progress, Results, Review, Records, Dashboard, Analytics, Settings, Cost Dashboard, Demo, Architecture, Evaluation, Prompt Lab)
 
 ## The Results
 
-**701 tests passing** — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, load tests via Locust.
+**925 tests passing** — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, load tests via Locust.
 
 **92.6% extraction accuracy** measured against 16 golden eval fixtures across 6 document types (invoice, receipt, purchase order, bank statement, medical record, identity document). Enforced in CI with a 2% regression tolerance.
 
@@ -91,7 +91,7 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 
 | Metric | Value |
 |--------|-------|
-| Test suite runtime | 2 seconds (701 tests) |
+| Test suite runtime | 2 seconds (925 tests) |
 | Extraction accuracy | 92.6% (golden eval, 16 fixtures, 6 doc types) |
 | Embedding model | gemini-embedding-2-preview, 768-dim, HNSW index |
 | Extraction confidence threshold | 0.80 global; per-type overrides (0.75–0.90) |
@@ -180,11 +180,35 @@ The three features that turned docextract from a demo into a system you'd trust 
 
 **OpenTelemetry + Prometheus** (`app/observability.py`). Feature-flagged behind `OTEL_ENABLED=false` so existing CI is unaffected. When enabled, `setup_telemetry(app)` creates a `PrometheusMetricReader`, mounts `/metrics`, and wires up three instruments: `llm_call_duration_ms` (Histogram), `llm_calls_total` (Counter), and `llm_tokens_total` (Counter). The bridge pattern augments the existing `llm_tracer.py` DB tracing rather than replacing it — the DB traces power the `/stats` endpoint and ROI features; OTel powers ops dashboards.
 
+## AI Engineering Sprint (March 2026)
+
+Six additional capabilities shipped in a single parallel-agent sprint:
+
+**Agentic RAG with ReAct Tool-Use Loop**
+A ReAct (Reasoning + Acting) agent autonomously selects from 5 retrieval tools per query — vector similarity, BM25 keyword search, hybrid RRF, metadata lookup, and result reranking. The agent's reasoning trace (Think → Act → Observe → Confidence) is fully logged. Confidence-gated at 0.8 with max 3 iterations to bound cost.
+
+**RAGAS Evaluation Pipeline**
+Three production evaluation metrics: context recall (0.35), faithfulness (0.40), answer relevancy (0.25). Faithfulness carries the highest weight because hallucination is the worst failure mode. An LLM-as-judge evaluator scores outputs against structured rubrics with few-shot examples and evidence extraction. Feature-flagged to avoid CI cost.
+
+**Structured Output Extraction**
+Per-document-type Pydantic schemas (Invoice, Contract, Receipt, Medical Record) with field-level confidence scores. Batch processing uses `asyncio.gather` with `Semaphore(5)` for concurrency control. One retry on parse failure before raising.
+
+**Cost Tracker and Model A/B Testing**
+`CostTracker` computes USD cost per request using Decimal arithmetic against a model pricing table — avoiding float rounding errors. `ModelABTest` uses SHA-256 hashing for deterministic variant assignment and a two-sample z-test for statistical significance. Both integrate into the existing `llm_traces` table, requiring no new storage.
+
+**Prompt Versioning and Regression Testing**
+Prompts stored as versioned files (`prompts/{category}/vX.Y.Z.txt`) with env-configurable active version. `PromptRegressionTester` runs the golden eval suite against two prompt versions and flags regressions above 2%. Changes that improve accuracy but increase cost are surfaced as tradeoffs, not automatically accepted.
+
+**Interactive Demo Sandbox**
+`DEMO_MODE=true` enables a pre-cached demo with no API keys, no database, and no document uploads. Three tabs: structured extraction with field-level confidence visualization, hybrid semantic search, and RAGAS evaluation scores. Loads in under 3 seconds.
+
 ## What I'd Still Do Differently
 
 - **Field-level confidence**: Current confidence scores are document-level. Field-level scores (e.g., `total: 0.97, address: 0.61`) would let reviewers focus attention on specific uncertain fields rather than re-reviewing the entire record.
 - **Multilingual extraction prompts**: Non-English documents extract with degraded accuracy because prompts are English-only. A language-detect + prompt-translate layer would extend the system to European and LATAM markets without model changes.
 - **Full SROIE F1 benchmark**: The benchmark script exists, dry-run scoring validation passes, but publishing real field-level F1 numbers against the full SROIE dataset requires API credits and dataset download. The golden eval accuracy (92.6%) covers all doc types but SROIE would add an externally auditable reference point.
+- **Streaming agentic RAG**: the ReAct loop currently runs to completion before returning; SSE streaming of intermediate reasoning steps would improve perceived latency
+- **Cross-document queries**: agentic retrieval is currently scoped to single documents; extending to multi-document queries with source attribution is a natural next step
 
 ## Key Takeaways
 
@@ -204,7 +228,9 @@ Four things I'm proud of in this build:
 - **92.6% extraction accuracy** measured against 16 golden eval fixtures, gated in CI with a 2% regression tolerance. Extraction quality is a first-class CI signal.
 - **Circuit breaker model fallback**: Per-model CLOSED/OPEN/HALF_OPEN state machines route around provider outages automatically. Sonnet → Haiku on extraction, Haiku → Sonnet on classification. No downtime during rate limit spikes.
 - **Two-pass Claude extraction**: Pass 1 extracts structured JSON with a confidence score. If confidence < 80%, Pass 2 fires a tool_use correction call — Claude returns field-level fixes as structured data, not free text.
-- **701 tests in 2 seconds**: Full unit + integration coverage including eval regression gate, circuit breaker state machine tests, and OTel bridge tests.
+- **Agentic RAG (ReAct)**: autonomous retrieval agent selects from 5 tools per query — vector, BM25, hybrid, metadata, rerank. Confidence-gated at 0.8 with max 3 iterations.
+- **RAGAS evaluation pipeline**: context recall, faithfulness, and answer relevancy scored by LLM-as-judge with structured rubric. CI gate blocks regressions.
+- **925 tests in 2 seconds**: Full unit + integration coverage including eval regression gate, circuit breaker state machine tests, and OTel bridge tests.
 
 Stack: FastAPI + ARQ + pgvector HNSW + Claude Sonnet/Haiku + OpenTelemetry + Prometheus + Streamlit
 Live: https://docextract-api.onrender.com | https://docextract-frontend.onrender.com

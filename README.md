@@ -3,7 +3,7 @@
 **Extract structured data from unstructured documents in seconds — not hours.**
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25-brightgreen)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-90.44%25-brightgreen)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Live API](https://img.shields.io/website?url=https%3A%2F%2Fdocextract-api.onrender.com%2Fapi%2Fv1%2Fhealth&label=Live%20API)](https://docextract-api.onrender.com/docs)
 [![Swagger](https://img.shields.io/badge/docs-Swagger-blue)](https://docextract-api.onrender.com/docs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -64,6 +64,12 @@ graph LR
 - **Vision-native extraction path**: Set `OCR_ENGINE=vision` to route image documents directly through Claude's vision API, bypassing Tesseract entirely
 - **Active learning from HITL corrections**: Approved corrections feed back into extraction prompts via `ACTIVE_LEARNING_ENABLED=true`
 - **MCP tool server**: Connect Claude Desktop or any MCP-compatible agent to extract documents and search records via `mcp_server.py`
+- **Agentic RAG (ReAct)** — ReAct think-act-observe loop with 5 retrieval tools (vector, BM25, hybrid, metadata, rerank). Agent autonomously selects strategy per query. Confidence-gated at 0.8 with max 3 iterations. POST `/api/v1/agent-search`
+- **RAGAS Evaluation Pipeline** — Context recall, faithfulness, and answer relevancy metrics computed via LLM-as-judge with structured rubric and few-shot examples. CI quality gate blocks merges on regression. Feature-flagged (`RAGAS_ENABLED`, `LLM_JUDGE_ENABLED`).
+- **Structured Output Extraction** — Per-document-type Pydantic schemas (Invoice, Contract, Receipt, Medical Record) with field-level confidence scores. Batch processing with `asyncio.gather` + `Semaphore(5)`. POST `/api/v1/extract/structured`
+- **Cost Tracker & Model A/B Testing** — Per-request USD cost computation using Decimal arithmetic from `llm_traces`. SHA-256 deterministic variant routing with z-test statistical significance (n≥30). Cost comparison dashboard in Streamlit.
+- **Prompt Versioning & Regression Testing** — Semver-tagged prompts stored as `prompts/{category}/vX.Y.Z.txt`. Env-configurable active version. Automated golden eval comparison with 2% regression threshold.
+- **Interactive Demo Sandbox** — Full pipeline demo without API keys (`DEMO_MODE=true`). Pre-cached extraction, search, and evaluation results. Three-tab experience.
 - **SSE streaming progress**: Real-time job status updates via Server-Sent Events (Redis pub/sub)
 - **HNSW vector search**: pgvector semantic search over extracted records (gemini-embedding-2-preview, 768-dim)
 - **Human review workflow**: Claim, approve, or correct low-confidence extractions with full audit trail
@@ -82,8 +88,8 @@ graph LR
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
 | Extraction accuracy (golden eval) | **92.6%** across 6 document types |
-| Test suite | ~5s (774 tests) |
-| Coverage | ≥80% (CI-enforced) |
+| Test suite | ~5s (925 tests) |
+| Coverage | 90.44% (CI-enforced) |
 
 ## Business Impact
 
@@ -194,6 +200,9 @@ All endpoints are prefixed with `/api/v1`. Authenticated endpoints require `X-AP
 | `POST` | `/reports/generate` | Admin | Generate an executive report |
 | `GET` | `/reports` | Admin | List generated reports |
 | `GET` | `/reports/{report_id}` | Admin | Get a specific report |
+| `POST` | `/api/v1/agent-search` | Yes | Query documents with autonomous ReAct retrieval agent |
+| `POST` | `/api/v1/extract/structured` | Yes | Extract typed structured data from a document |
+| `POST` | `/api/v1/extract/structured/batch` | Yes | Batch structured extraction (async, semaphore-limited) |
 
 ## Quickstart
 
@@ -248,7 +257,7 @@ docker-compose exec api python -m scripts.seed_api_key
 ## Running Tests
 
 ```bash
-pytest tests/ -v  # 774 tests, ~5s
+pytest tests/ -v  # 925 tests, ~5s
 ```
 
 ## Project Structure
@@ -263,8 +272,8 @@ app/
   storage/      -- Pluggable storage backends (local, R2)
   utils/        -- Hashing, MIME detection, token counting
 worker/         -- ARQ async job processor
-frontend/       -- Streamlit 8-page dashboard
-alembic/        -- Database migrations (001-009)
+frontend/       -- Streamlit 13-page dashboard
+alembic/        -- Database migrations (001-010)
 scripts/        -- Seed scripts (API keys, sample docs, cleanup)
 tests/          -- Unit + integration tests
 ```
