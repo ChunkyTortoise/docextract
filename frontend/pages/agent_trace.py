@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import streamlit as st
+from frontend.theme import PLOTLY_DARK
 
 
 def render() -> None:
@@ -140,6 +141,7 @@ def _render_trace(result: dict) -> None:
                     yaxis=dict(range=[0, 1.05]),
                     height=300,
                     margin=dict(l=0, r=0, t=20, b=0),
+                    **PLOTLY_DARK,
                 )
                 st.plotly_chart(fig, use_container_width=True)
             except ImportError:

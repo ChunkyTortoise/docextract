@@ -7,6 +7,7 @@ from datetime import date, timedelta
 import streamlit as st
 import plotly.graph_objects as go
 import frontend.api_client as api
+from frontend.theme import PLOTLY_DARK
 
 
 def render() -> None:
@@ -68,7 +69,7 @@ def render() -> None:
                         mode="lines+markers",
                         line=dict(color="#2ecc71"),
                     ))
-                    fig.update_layout(xaxis_title="Period", yaxis_title="Dollars Saved ($)")
+                    fig.update_layout(xaxis_title="Period", yaxis_title="Dollars Saved ($)", **PLOTLY_DARK)
                     st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.info("No trend data available for this period.")
@@ -82,7 +83,7 @@ def render() -> None:
                         mode="lines+markers",
                         line=dict(color="#3498db"),
                     ))
-                    fig.update_layout(xaxis_title="Period", yaxis_title="Net Value ($)")
+                    fig.update_layout(xaxis_title="Period", yaxis_title="Net Value ($)", **PLOTLY_DARK)
                     st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.info("No trend data available for this period.")

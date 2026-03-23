@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import plotly.graph_objects as go
 import streamlit as st
+from frontend.theme import PLOTLY_DARK
 
 
 # ---------------------------------------------------------------------------
@@ -223,6 +224,7 @@ def render() -> None:
             xaxis_title="Model",
             height=350,
             margin=dict(t=30),
+            **PLOTLY_DARK,
         )
         st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -266,6 +268,7 @@ def render() -> None:
                 height=350,
                 margin=dict(t=30),
                 legend=dict(orientation="h", yanchor="bottom", y=-0.4),
+                **PLOTLY_DARK,
             )
             st.plotly_chart(fig_scatter, use_container_width=True)
         else:

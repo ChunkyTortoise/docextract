@@ -3,6 +3,8 @@ import os
 
 import streamlit as st
 
+from frontend.theme import apply_theme
+
 # Page config must be first
 st.set_page_config(
     page_title="DocExtract AI",
@@ -10,6 +12,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+apply_theme()
 
 DEMO_MODE = os.getenv("DEMO_MODE", "").lower() in ("true", "1", "yes")
 

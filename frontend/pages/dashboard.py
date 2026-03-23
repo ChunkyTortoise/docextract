@@ -9,6 +9,21 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import frontend.api_client as api
+from frontend.theme import PLOTLY_DARK
+try:
+    from streamlit_extras.stylable_container import stylable_container as _stylable
+    _HAS_EXTRAS = True
+except ImportError:
+    _HAS_EXTRAS = False
+
+_METRIC_CSS = """
+{
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 10px;
+    padding: 0.75rem 0.5rem;
+}
+"""
 
 
 def _compute_processing_times(jobs: list[dict]) -> list[float]:
@@ -72,21 +87,22 @@ def render() -> None:
         stats = api.get_stats()
 
         # Top metrics
-        col1, col2, col3, col4, col5, col6 = st.columns(6)
-        with col1:
-            st.metric("Total Documents", stats.get("total_documents", 0))
-        with col2:
-            st.metric("Total Jobs", stats.get("total_jobs", 0))
-        with col3:
-            st.metric("Success Rate", f"{stats.get('success_rate', 0):.1f}%")
-        with col4:
-            avg_ms = stats.get("avg_processing_time_ms", 0)
-            st.metric("Avg Processing Time", f"{avg_ms / 1000:.1f}s")
-        with col5:
-            st.metric("Needs Review", stats.get("needs_review", 0))
-        with col6:
-            avg_conf = stats.get("avg_confidence_score", 0)
-            st.metric("Avg Confidence", f"{avg_conf:.1%}")
+        _metrics = [
+            ("Total Documents", stats.get("total_documents", 0)),
+            ("Total Jobs", stats.get("total_jobs", 0)),
+            ("Success Rate", f"{stats.get('success_rate', 0):.1f}%"),
+            ("Avg Processing", f"{stats.get('avg_processing_time_ms', 0) / 1000:.1f}s"),
+            ("Needs Review", stats.get("needs_review", 0)),
+            ("Avg Confidence", f"{stats.get('avg_confidence_score', 0):.1%}"),
+        ]
+        cols = st.columns(len(_metrics))
+        for i, (label, value) in enumerate(_metrics):
+            with cols[i]:
+                if _HAS_EXTRAS:
+                    with _stylable(key=f"kpi_{i}", css_styles=_METRIC_CSS):
+                        st.metric(label, value)
+                else:
+                    st.metric(label, value)
 
         st.divider()
 
@@ -101,6 +117,7 @@ def render() -> None:
                     values=list(type_data.values()),
                     names=[k.replace("_", " ").title() for k in type_data.keys()],
                     title="Document Type Distribution",
+                    template="plotly_dark",
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
@@ -119,7 +136,7 @@ def render() -> None:
                     y=[completed, failed, max(0, in_progress)],
                     marker_color=["#2ecc71", "#e74c3c", "#3498db"],
                 ))
-                fig.update_layout(title="Job Status Overview")
+                fig.update_layout(title="Job Status Overview", **PLOTLY_DARK)
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("No job data yet")
@@ -145,6 +162,7 @@ def render() -> None:
                 fig.update_layout(
                     xaxis_title="Duration",
                     yaxis_title="Jobs",
+                    **PLOTLY_DARK,
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
@@ -163,6 +181,7 @@ def render() -> None:
                 fig.update_layout(
                     xaxis_title="Date",
                     yaxis_title="Jobs Submitted",
+                    **PLOTLY_DARK,
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:

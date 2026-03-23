@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import streamlit as st
 import plotly.graph_objects as go
+from frontend.theme import PLOTLY_DARK
 
 # ---------------------------------------------------------------------------
 # Mock data helpers (used when no real eval data is available)
@@ -212,6 +213,7 @@ def render() -> None:
         yaxis=dict(range=[0, 1.05]),
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
         height=400,
+        **PLOTLY_DARK,
     )
     st.plotly_chart(fig, use_container_width=True)
 
