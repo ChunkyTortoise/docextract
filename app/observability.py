@@ -113,12 +113,19 @@ def setup_telemetry(app: "FastAPI") -> None:
             "circuit_breaker_state",
             description="Circuit breaker state per model: 0=CLOSED, 1=HALF_OPEN, 2=OPEN",
         ),
-        # Cost tracking gauge — add when OTEL_ENABLED=true:
-        # "llm_cost_usd": _meter.create_gauge(
-        #     "llm_cost_usd",
-        #     description="Cumulative LLM spend in USD per model/operation (Gauge, updated by CostTracker)",
-        #     unit="USD",
-        # ),
+        "cache_hits": _meter.create_counter(
+            "semantic_cache_hits_total",
+            description="Semantic cache hits",
+        ),
+        "cache_misses": _meter.create_counter(
+            "semantic_cache_misses_total",
+            description="Semantic cache misses",
+        ),
+        "cache_cost_saved": _meter.create_counter(
+            "semantic_cache_cost_saved_usd",
+            description="Cumulative USD saved by semantic cache",
+            unit="USD",
+        ),
     }
 
     metrics_app = make_asgi_app()
@@ -166,6 +173,21 @@ def emit_circuit_breaker_state(model: str, state: str) -> None:
         return
     numeric = _CB_STATE_VALUES.get(state, 0)
     _instruments["circuit_breaker"].set(numeric, attributes={"model": model})
+
+
+def emit_cache_metrics(hit: bool, cost_saved_usd: float = 0.0) -> None:
+    """Emit semantic cache hit/miss metrics.
+
+    No-op when OTel is disabled.
+    """
+    if not settings.otel_enabled or not _instruments:
+        return
+    if hit:
+        _instruments["cache_hits"].add(1)
+        if cost_saved_usd > 0:
+            _instruments["cache_cost_saved"].add(cost_saved_usd)
+    else:
+        _instruments["cache_misses"].add(1)
 
 
 def get_tracer() -> Any:

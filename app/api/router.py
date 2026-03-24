@@ -7,10 +7,12 @@ from app.api import (
     agent_eval,
     agent_search,
     api_keys,
+    cache_stats,
     documents,
     export,
     extract_structured,
     feedback,
+    finetune_export,
     health,
     jobs,
     metrics,
@@ -41,3 +43,5 @@ api_router.include_router(agent_search.router)
 api_router.include_router(agent_eval.router)
 api_router.include_router(extract_structured.router)
 api_router.include_router(feedback.router)
+api_router.include_router(finetune_export.router)
+api_router.include_router(cache_stats.router)

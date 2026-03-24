@@ -77,6 +77,11 @@ class Settings(BaseSettings):
     # Guardrails — PII detection and hallucination boundary checking
     guardrails_enabled: bool = False
 
+    # Semantic cache — cache LLM responses by embedding similarity
+    semantic_cache_enabled: bool = False
+    semantic_cache_similarity_threshold: float = 0.95
+    semantic_cache_ttl_seconds: int = 3600
+
     # Observability
     otel_enabled: bool = False
     otel_service_name: str = "docextract"

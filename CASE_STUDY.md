@@ -74,7 +74,7 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 
 ## The Results
 
-**925 tests passing** — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, load tests via Locust.
+**1,109 tests passing** — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, load tests via Locust.
 
 **92.6% extraction accuracy** measured against 16 golden eval fixtures across 6 document types (invoice, receipt, purchase order, bank statement, medical record, identity document). Enforced in CI with a 2% regression tolerance.
 
@@ -92,7 +92,7 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 
 | Metric | Value |
 |--------|-------|
-| Test suite runtime | 2 seconds (925 tests) |
+| Test suite runtime | 2 seconds (1,109 tests) |
 | Extraction accuracy | 92.6% (golden eval, 16 fixtures, 6 doc types) |
 | Embedding model | gemini-embedding-2-preview, 768-dim, HNSW index |
 | Extraction confidence threshold | 0.80 global; per-type overrides (0.75–0.90) |
@@ -203,13 +203,23 @@ Prompts stored as versioned files (`prompts/{category}/vX.Y.Z.txt`) with env-con
 **Interactive Demo Sandbox**
 `DEMO_MODE=true` enables a pre-cached demo with no API keys, no database, and no document uploads. Three tabs: structured extraction with field-level confidence visualization, hybrid semantic search, and RAGAS evaluation scores. Loads in under 3 seconds.
 
+**Streaming Agent Reasoning (SSE)**
+The agentic RAG loop now streams Think → Act → Observe steps in real-time via Server-Sent Events. Each reasoning cycle is emitted as an SSE event, enabling live UI updates of the agent's decision-making process. The `search()` and `search_stream()` methods share a common `_run_iteration()` engine with zero code duplication. POST `/api/v1/agent-search/stream`.
+
+**Multi-Document Synthesis (Map-Reduce RAG)**
+Cross-document queries like "compare payment terms across all vendor contracts" are handled via map-reduce: the map phase extracts per-document evidence with bounded concurrency (`asyncio.gather` + `Semaphore`), the reduce phase synthesizes a combined answer with `[Doc N]` citations. POST `/api/v1/agent-search/synthesize`.
+
+**Semantic Caching Layer**
+LLM responses are cached by embedding cosine similarity rather than exact string match. The in-memory numpy cache supports sub-millisecond lookups over 10K+ entries with TTL-based expiry and FIFO eviction. Prometheus counters track hit rate and cumulative cost savings. Feature-flagged via `SEMANTIC_CACHE_ENABLED`.
+
+**Fine-Tuning Data Pipeline (DPO + JSONL Export)**
+HITL corrections export as training datasets in three formats: supervised JSONL (OpenAI fine-tune format), DPO pairs (corrected = chosen, original = rejected for RLHF alignment), and evaluation JSONL for regression testing. Deterministic train/val split via SHA-256 hash, deduplication by record_id, and doc_type filtering. GET `/api/v1/finetune/export` + `/finetune/stats`.
+
 ## What I'd Still Do Differently
 
 - **Field-level confidence**: Current confidence scores are document-level. Field-level scores (e.g., `total: 0.97, address: 0.61`) would let reviewers focus attention on specific uncertain fields rather than re-reviewing the entire record.
 - **Multilingual extraction prompts**: Non-English documents extract with degraded accuracy because prompts are English-only. A language-detect + prompt-translate layer would extend the system to European and LATAM markets without model changes.
 - **Full SROIE F1 benchmark**: The benchmark script exists, dry-run scoring validation passes, but publishing real field-level F1 numbers against the full SROIE dataset requires API credits and dataset download. The golden eval accuracy (92.6%) covers all doc types but SROIE would add an externally auditable reference point.
-- **Streaming agentic RAG**: the ReAct loop currently runs to completion before returning; SSE streaming of intermediate reasoning steps would improve perceived latency
-- **Cross-document queries**: agentic retrieval is currently scoped to single documents; extending to multi-document queries with source attribution is a natural next step
 
 ## Key Takeaways
 
@@ -231,7 +241,7 @@ Four things I'm proud of in this build:
 - **Two-pass Claude extraction**: Pass 1 extracts structured JSON with a confidence score. If confidence < 80%, Pass 2 fires a tool_use correction call — Claude returns field-level fixes as structured data, not free text.
 - **Agentic RAG (ReAct)**: autonomous retrieval agent selects from 5 tools per query — vector, BM25, hybrid, metadata, rerank. Confidence-gated at 0.8 with max 3 iterations.
 - **RAGAS evaluation pipeline**: context recall, faithfulness, and answer relevancy scored by LLM-as-judge with structured rubric. CI gate blocks regressions.
-- **925 tests in 2 seconds**: Full unit + integration coverage including eval regression gate, circuit breaker state machine tests, and OTel bridge tests.
+- **1,109 tests in 2 seconds**: Full unit + integration coverage including eval regression gate, circuit breaker state machine tests, and OTel bridge tests.
 
 Stack: FastAPI + ARQ + pgvector HNSW + Claude Sonnet/Haiku + OpenTelemetry + Prometheus + Streamlit
 Live: https://docextract-api.onrender.com | https://docextract-frontend.onrender.com

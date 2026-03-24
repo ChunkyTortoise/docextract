@@ -1,13 +1,15 @@
 """Agentic RAG with ReAct reasoning loop.
 
 Think → Act → Observe, repeated until confident or max_iterations reached.
+Supports both batch (search) and streaming (search_stream) execution.
 """
 from __future__ import annotations
 
 import json
 import logging
 import re
-from typing import TYPE_CHECKING
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, AsyncIterator, Literal
 
 from pydantic import BaseModel
 
@@ -40,6 +42,28 @@ class AgenticRAGResult(BaseModel):
     confidence: float
     tools_used: list[str]
     question: str
+
+
+class StreamEvent(BaseModel):
+    """Event emitted during streaming agent search."""
+    event_type: Literal["step", "done"]
+    step: ReasoningStep | None = None
+    result: AgenticRAGResult | None = None
+
+
+# ---------------------------------------------------------------------------
+# Internal iteration state
+# ---------------------------------------------------------------------------
+
+@dataclass
+class _IterationState:
+    """Mutable state carried between ReAct iterations."""
+    accumulated_results: list[SearchResult] = field(default_factory=list)
+    reasoning_trace: list[ReasoningStep] = field(default_factory=list)
+    tools_used: list[str] = field(default_factory=list)
+    final_answer: str = ""
+    final_confidence: float = 0.0
+    should_stop: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -93,84 +117,135 @@ class AgenticRAG:
         max_iterations: int = 3,
     ) -> AgenticRAGResult:
         """Run the ReAct loop and return a fully-traced result."""
-        from app.config import settings
-
-        accumulated_results: list[SearchResult] = []
-        reasoning_trace: list[ReasoningStep] = []
-        tools_used: list[str] = []
-        final_answer = ""
-        final_confidence = 0.0
+        state = _IterationState()
 
         for iteration in range(1, max_iterations + 1):
-            # ---- THINK: which tool to call? ----
-            think_response = await self._call_llm(
-                system=_THINK_SYSTEM,
-                user=self._build_think_prompt(question, accumulated_results, doc_ids),
-                models=settings.classification_models,
-                operation="rag_think",
+            await self._run_iteration(
+                iteration=iteration,
+                max_iterations=max_iterations,
+                question=question,
+                doc_ids=doc_ids,
+                state=state,
             )
-            think_data = _parse_json(think_response)
-            thought = str(think_data.get("thought", ""))
-            action = str(think_data.get("action", "search_hybrid"))
-            action_input: dict = dict(think_data.get("action_input", {}))
-
-            # Ensure doc_ids filter is forwarded if specified at request level
-            if doc_ids and "doc_ids" not in action_input:
-                action_input["doc_ids"] = doc_ids
-
-            # ---- ACT: execute the tool ----
-            tool_results, observation = await self._execute_tool(action, action_input)
-
-            if tool_results:
-                accumulated_results = _merge_results(accumulated_results, tool_results)
-            if action not in tools_used:
-                tools_used.append(action)
-
-            # ---- OBSERVE: self-assess confidence ----
-            evaluate_response = await self._call_llm(
-                system=_EVALUATE_SYSTEM,
-                user=self._build_evaluate_prompt(question, accumulated_results),
-                models=settings.classification_models,
-                operation="rag_evaluate",
-            )
-            eval_data = _parse_json(evaluate_response)
-            confidence = float(eval_data.get("confidence", 0.0))
-            reasoning = str(eval_data.get("reasoning", ""))
-            candidate_answer = str(eval_data.get("final_answer", ""))
-
-            reasoning_trace.append(
-                ReasoningStep(
-                    step=iteration,
-                    thought=thought,
-                    action=action,
-                    action_input=action_input,
-                    observation=observation,
-                    confidence=confidence,
-                )
-            )
-
-            final_confidence = confidence
-
-            if confidence >= CONFIDENCE_THRESHOLD or iteration == max_iterations:
-                if candidate_answer:
-                    final_answer = candidate_answer
-                else:
-                    # Generate final answer explicitly
-                    final_answer = await self._generate_answer(
-                        question, accumulated_results, models=settings.extraction_models
-                    )
+            if state.should_stop:
                 break
 
-        # Deduplicate sources
-        sources = _deduplicate(accumulated_results)[:10]
+        return self._build_result(question, state)
 
+    async def search_stream(
+        self,
+        question: str,
+        doc_ids: list[str] | None = None,
+        max_iterations: int = 3,
+    ) -> AsyncIterator[StreamEvent]:
+        """Stream ReAct reasoning steps as they execute.
+
+        Yields a StreamEvent with event_type="step" after each Think/Act/Observe
+        cycle, then a final StreamEvent with event_type="done" containing the
+        complete AgenticRAGResult.
+        """
+        state = _IterationState()
+
+        for iteration in range(1, max_iterations + 1):
+            await self._run_iteration(
+                iteration=iteration,
+                max_iterations=max_iterations,
+                question=question,
+                doc_ids=doc_ids,
+                state=state,
+            )
+            # Yield the step that was just appended
+            yield StreamEvent(
+                event_type="step",
+                step=state.reasoning_trace[-1],
+            )
+            if state.should_stop:
+                break
+
+        result = self._build_result(question, state)
+        yield StreamEvent(event_type="done", result=result)
+
+    # ------------------------------------------------------------------
+    # Iteration engine (shared by search and search_stream)
+    # ------------------------------------------------------------------
+
+    async def _run_iteration(
+        self,
+        iteration: int,
+        max_iterations: int,
+        question: str,
+        doc_ids: list[str] | None,
+        state: _IterationState,
+    ) -> None:
+        """Execute one Think → Act → Observe cycle, mutating *state* in place."""
+        from app.config import settings
+
+        # ---- THINK: which tool to call? ----
+        think_response = await self._call_llm(
+            system=_THINK_SYSTEM,
+            user=self._build_think_prompt(question, state.accumulated_results, doc_ids),
+            models=settings.classification_models,
+            operation="rag_think",
+        )
+        think_data = _parse_json(think_response)
+        thought = str(think_data.get("thought", ""))
+        action = str(think_data.get("action", "search_hybrid"))
+        action_input: dict = dict(think_data.get("action_input", {}))
+
+        if doc_ids and "doc_ids" not in action_input:
+            action_input["doc_ids"] = doc_ids
+
+        # ---- ACT: execute the tool ----
+        tool_results, observation = await self._execute_tool(action, action_input)
+
+        if tool_results:
+            state.accumulated_results = _merge_results(state.accumulated_results, tool_results)
+        if action not in state.tools_used:
+            state.tools_used.append(action)
+
+        # ---- OBSERVE: self-assess confidence ----
+        evaluate_response = await self._call_llm(
+            system=_EVALUATE_SYSTEM,
+            user=self._build_evaluate_prompt(question, state.accumulated_results),
+            models=settings.classification_models,
+            operation="rag_evaluate",
+        )
+        eval_data = _parse_json(evaluate_response)
+        confidence = float(eval_data.get("confidence", 0.0))
+        candidate_answer = str(eval_data.get("final_answer", ""))
+
+        state.reasoning_trace.append(
+            ReasoningStep(
+                step=iteration,
+                thought=thought,
+                action=action,
+                action_input=action_input,
+                observation=observation,
+                confidence=confidence,
+            )
+        )
+        state.final_confidence = confidence
+
+        if confidence >= CONFIDENCE_THRESHOLD or iteration == max_iterations:
+            if candidate_answer:
+                state.final_answer = candidate_answer
+            else:
+                state.final_answer = await self._generate_answer(
+                    question, state.accumulated_results, models=settings.extraction_models
+                )
+            state.should_stop = True
+
+    @staticmethod
+    def _build_result(question: str, state: _IterationState) -> AgenticRAGResult:
+        """Assemble the final result from accumulated iteration state."""
+        sources = _deduplicate(state.accumulated_results)[:10]
         return AgenticRAGResult(
-            answer=final_answer or "No relevant information found.",
+            answer=state.final_answer or "No relevant information found.",
             sources=sources,
-            reasoning_trace=reasoning_trace,
-            iterations=len(reasoning_trace),
-            confidence=final_confidence,
-            tools_used=tools_used,
+            reasoning_trace=state.reasoning_trace,
+            iterations=len(state.reasoning_trace),
+            confidence=state.final_confidence,
+            tools_used=state.tools_used,
             question=question,
         )
 
