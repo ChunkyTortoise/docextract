@@ -36,7 +36,7 @@ pip install mcp httpx
 ### 2. Set environment variables
 
 ```bash
-export DOCEXTRACT_API_URL="https://docextract-api.onrender.com/api/v1"
+export DOCEXTRACT_API_URL="http://localhost:8000/api/v1"
 export DOCEXTRACT_API_KEY="your-api-key"
 ```
 
@@ -53,7 +53,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
       "command": "python",
       "args": ["/path/to/docextract/mcp_server.py"],
       "env": {
-        "DOCEXTRACT_API_URL": "https://docextract-api.onrender.com/api/v1",
+        "DOCEXTRACT_API_URL": "http://localhost:8000/api/v1",
         "DOCEXTRACT_API_KEY": "your-api-key"
       }
     }

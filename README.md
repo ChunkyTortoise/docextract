@@ -4,8 +4,7 @@
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Coverage](https://codecov.io/gh/ChunkyTortoise/docextract/graph/badge.svg)](https://codecov.io/gh/ChunkyTortoise/docextract)
-[![Live API](https://img.shields.io/website?url=https%3A%2F%2Fdocextract-api.onrender.com%2Fapi%2Fv1%2Fhealth&label=Live%20API)](https://docextract-api.onrender.com/docs)
-[![Swagger](https://img.shields.io/badge/docs-Swagger-blue)](https://docextract-api.onrender.com/docs)
+[![Swagger](https://img.shields.io/badge/docs-Swagger-blue)](https://github.com/ChunkyTortoise/docextract)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com)
@@ -104,13 +103,15 @@ graph LR
 
 ## Try It Now
 
+Self-hosted: `docker compose up` — see [Deployment](#deploy-your-own).
+
 ```bash
 # Health check (no auth)
-curl https://docextract-api.onrender.com/api/v1/health
+curl http://localhost:8000/api/v1/health
 
 # List records (demo key)
 curl -H "X-API-Key: demo-key-docextract-2026" \
-  https://docextract-api.onrender.com/api/v1/records
+  http://localhost:8000/api/v1/records
 ```
 
 ## Deploy Your Own
@@ -282,14 +283,16 @@ scripts/        -- Seed scripts (API keys, sample docs, cleanup)
 tests/          -- Unit + integration tests
 ```
 
-## Live Demo
+## Local Demo
 
-- **API**: https://docextract-api.onrender.com
-- **Frontend**: https://docextract-frontend.onrender.com
+Self-hosted via Docker Compose. See [Quickstart](#quickstart) above.
+
+- **API**: http://localhost:8000
+- **Frontend**: http://localhost:8501
 - **Demo API key**: `demo-key-docextract-2026`
-- **Docs**: https://docextract-api.onrender.com/docs
+- **Docs**: http://localhost:8000/docs (Swagger UI)
 
-> **Note**: The demo runs on Render's free tier. First request may take 30-60s to wake the service.
+> **Tip**: Set `DEMO_MODE=true` in your `.env` to explore the full pipeline without API keys or real documents.
 
 ## Benchmarks
 
@@ -337,7 +340,7 @@ DocExtract ships with an [MCP](https://modelcontextprotocol.io) (Model Context P
 
 ```bash
 pip install mcp
-export DOCEXTRACT_API_URL=https://docextract-api.onrender.com/api/v1
+export DOCEXTRACT_API_URL=http://localhost:8000/api/v1
 export DOCEXTRACT_API_KEY=your-api-key
 python mcp_server.py
 ```
@@ -353,7 +356,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
       "command": "python",
       "args": ["/path/to/docextract/mcp_server.py"],
       "env": {
-        "DOCEXTRACT_API_URL": "https://docextract-api.onrender.com/api/v1",
+        "DOCEXTRACT_API_URL": "http://localhost:8000/api/v1",
         "DOCEXTRACT_API_KEY": "your-api-key"
       }
     }

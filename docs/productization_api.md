@@ -1,6 +1,6 @@
 # DocExtract API Reference — Productization Endpoints
 
-Base URL: `https://docextract-api.onrender.com/api/v1`
+Base URL: `http://localhost:8000/api/v1` (self-hosted via `docker compose up`)
 
 All endpoints require `X-API-Key` header unless noted.
 
@@ -15,7 +15,7 @@ Returns the self-contained demo HTML page for portfolio visitors.
 **No auth required.**
 
 ```bash
-curl https://docextract-api.onrender.com/demo
+curl http://localhost:8000/demo
 ```
 
 ---

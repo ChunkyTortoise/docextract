@@ -162,11 +162,11 @@ Query text → Gemini embedding (768-dim)
 
 ## Deployment
 
-### Render (Current)
-- API: `docextract-api.onrender.com`
+### Docker Compose (Default)
+- API: `localhost:8000`
 - Worker: ARQ background service
-- Frontend: `docextract-frontend.onrender.com`
-- PostgreSQL + Redis: Render managed services
+- Frontend: `localhost:8501`
+- PostgreSQL + Redis: Docker-managed services
 
 ### AWS (Terraform)
 - RDS PostgreSQL 16 + ElastiCache Redis 7

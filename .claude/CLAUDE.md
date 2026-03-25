@@ -11,11 +11,11 @@ FastAPI | SQLAlchemy | pgvector | ARQ (async queue) | Redis | Anthropic | google
 - `alembic/` — DB migrations (001-010 applied)
 
 ## Deploy
-Render — 3 live services:
-- API: https://docextract-api.onrender.com (srv-d6ijm7buibrs73ad84rg)
-- Worker: srv-d6ijm7buibrs73ad84s0
-- Frontend: https://docextract-frontend.onrender.com (srv-d6ivqtq4d50c73aq6cu0)
-Dev API key: `[set in Render dashboard]`
+Self-hosted via `docker compose up`:
+- API: http://localhost:8000
+- Worker: ARQ background service
+- Frontend: http://localhost:8501
+Also supports: Render Blueprint, K8s/Kustomize, AWS Terraform (RDS+ElastiCache)
 
 ## Test
 ```pytest tests/  # 1,109 tests```

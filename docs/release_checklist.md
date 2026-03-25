@@ -28,14 +28,14 @@
 - [ ] Run smoke test:
 
 ```bash
-export DOCEXTRACT_API_URL=https://docextract-api.onrender.com
+export DOCEXTRACT_API_URL=http://localhost:8000
 export DOCEXTRACT_API_KEY=<prod-key>
 bash scripts/smoke_productization.sh
 ```
 
 - [ ] `GET /demo` renders the demo page
 - [ ] Upload a test document end-to-end
-- [ ] Check Render logs for errors in first 5 minutes post-deploy
+- [ ] Check container logs for errors in first 5 minutes post-deploy (`docker compose logs`)
 
 ## Rollback Procedure
 

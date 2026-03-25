@@ -244,7 +244,7 @@ Four things I'm proud of in this build:
 - **1,109 tests in 2 seconds**: Full unit + integration coverage including eval regression gate, circuit breaker state machine tests, and OTel bridge tests.
 
 Stack: FastAPI + ARQ + pgvector HNSW + Claude Sonnet/Haiku + OpenTelemetry + Prometheus + Streamlit
-Live: https://docextract-api.onrender.com | https://docextract-frontend.onrender.com
+Self-hosted: `docker compose up` (API http://localhost:8000, Frontend http://localhost:8501)
 GitHub: ChunkyTortoise/docextract
 
 The circuit breaker + eval gate combination is the piece I'd carry into any future AI pipeline — reliability and measurable quality are what separate production systems from demos.

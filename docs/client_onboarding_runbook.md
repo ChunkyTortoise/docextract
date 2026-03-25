@@ -49,7 +49,7 @@ Three migrations apply:
 ## 3. Create an API key
 
 ```bash
-export API_URL=https://docextract-api.onrender.com
+export API_URL=http://localhost:8000
 
 curl -X POST "$API_URL/api/v1/api-keys" \
   -H "Content-Type: application/json" \
@@ -124,9 +124,9 @@ python -m scripts.seed_demo
 ## 7. Run the smoke test
 
 ```bash
-export DOCEXTRACT_API_URL=https://docextract-api.onrender.com
+export DOCEXTRACT_API_URL=http://localhost:8000
 export DOCEXTRACT_API_KEY=your-api-key-here
 bash scripts/smoke_productization.sh
 ```
 
-All 7 endpoints should return 2xx. If any fail, check Render logs.
+All 7 endpoints should return 2xx. If any fail, check container logs (`docker compose logs`).
