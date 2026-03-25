@@ -1,0 +1,12 @@
+{
+  "case_id": "adv_blank_page",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-03-24T00:00:00Z",
+  "raw_response": "{\"invoice_number\": null, \"total_amount\": null, \"vendor_name\": null, \"customer_name\": null}",
+  "parsed_extraction": {
+    "invoice_number": null,
+    "total_amount": null,
+    "vendor_name": null,
+    "customer_name": null
+  }
+}

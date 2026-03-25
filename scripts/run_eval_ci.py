@@ -22,7 +22,14 @@ from typing import Optional
 # Allow running from repo root without installing the package
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from autoresearch.eval import CaseResult, load_dataset, run_eval
+from autoresearch.eval import (
+    CaseResult,
+    brier_score,
+    calibration_curve,
+    load_dataset,
+    model_comparison_table,
+    run_eval,
+)
 from autoresearch.reporter import compare_runs, generate_report
 
 DATASET_PATH = Path(__file__).parent.parent / "autoresearch" / "eval_dataset.json"
@@ -127,6 +134,21 @@ def build_markdown_summary(
     hallucinations = sum(r.hallucination_count for r in case_results)
     format_ok = sum(1 for r in case_results if r.format_valid)
 
+    # Calibration metrics
+    bs = brier_score(case_results)
+    cal_curve = calibration_curve(case_results)
+    cal_rows = "\n".join(
+        f"| {b['bin_lower']:.2f}-{b['bin_upper']:.2f} | {b['avg_confidence']:.3f} | {b['avg_accuracy']:.3f} | {b['count']} |"
+        for b in cal_curve
+    ) if cal_curve else "| - | - | - | 0 |"
+
+    # Model comparison
+    model_rows_data = model_comparison_table(case_results)
+    model_rows = "\n".join(
+        f"| {r['model']} | {r['doc_type']} | {r['count']} | {r['accuracy']:.3f} | {r['avg_confidence']:.3f} | {r['avg_input_tokens']} | {r['avg_output_tokens']} | ${r['est_cost_usd']:.4f} |"
+        for r in model_rows_data
+    ) if model_rows_data else "| - | - | - | - | - | - | - | - |"
+
     return f"""## Eval Regression Gate — {status}
 
 | Metric | Value |
@@ -139,12 +161,25 @@ def build_markdown_summary(
 | **Avg Completeness** | {avg_completeness:.3f} |
 | **Hallucinations** | {hallucinations} |
 | **Format Valid** | {format_ok}/{len(case_results)} |
+| **Brier Score** | {bs:.4f} |
 
 ### Per-Doc-Type Accuracy
 
 | Doc Type | Cases | Score |
 |----------|-------|-------|
 {type_rows}
+
+### Confidence Calibration
+
+| Bin | Avg Confidence | Avg Accuracy | Count |
+|-----|---------------|-------------|-------|
+{cal_rows}
+
+### Model Cost/Accuracy Comparison
+
+| Model | Doc Type | Cases | Accuracy | Confidence | Avg In Tokens | Avg Out Tokens | Est Cost |
+|-------|----------|-------|----------|-----------|---------------|----------------|----------|
+{model_rows}
 """
 
 

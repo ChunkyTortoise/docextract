@@ -157,6 +157,10 @@ class CaseResult:
     completeness: float
     hallucination_count: int
     format_valid: bool
+    confidence: float = 0.0  # model-reported confidence (0.0-1.0)
+    model: str = ""  # model used for extraction
+    input_tokens: int = 0
+    output_tokens: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -220,6 +224,97 @@ def validate_response_format(extracted: dict[str, Any], doc_type: str) -> bool:
         return True
     except Exception:
         return False
+
+
+# ---------------------------------------------------------------------------
+# Brier score & calibration
+# ---------------------------------------------------------------------------
+
+def brier_score(case_results: list[CaseResult]) -> float:
+    """Compute Brier score: mean((confidence - actual_accuracy)^2).
+
+    Lower is better. 0.0 = perfect calibration. Max = 1.0.
+    If no confidence values are set, returns 0.0.
+    """
+    scored = [r for r in case_results if r.confidence > 0.0]
+    if not scored:
+        return 0.0
+    return sum((r.confidence - r.score) ** 2 for r in scored) / len(scored)
+
+
+def calibration_curve(
+    case_results: list[CaseResult],
+    n_bins: int = 5,
+) -> list[dict[str, float]]:
+    """Compute calibration curve data: predicted confidence bins vs actual accuracy.
+
+    Returns list of dicts with keys: bin_lower, bin_upper, avg_confidence, avg_accuracy, count.
+    """
+    scored = [r for r in case_results if r.confidence > 0.0]
+    if not scored:
+        return []
+
+    bin_width = 1.0 / n_bins
+    bins: list[dict[str, float]] = []
+
+    for i in range(n_bins):
+        lower = i * bin_width
+        upper = (i + 1) * bin_width
+        in_bin = [r for r in scored if lower <= r.confidence < upper or (i == n_bins - 1 and r.confidence == 1.0)]
+        if in_bin:
+            bins.append({
+                "bin_lower": round(lower, 2),
+                "bin_upper": round(upper, 2),
+                "avg_confidence": round(sum(r.confidence for r in in_bin) / len(in_bin), 4),
+                "avg_accuracy": round(sum(r.score for r in in_bin) / len(in_bin), 4),
+                "count": len(in_bin),
+            })
+    return bins
+
+
+# ---------------------------------------------------------------------------
+# Model cost/accuracy comparison
+# ---------------------------------------------------------------------------
+
+COST_PER_1K_TOKENS = {
+    "claude-sonnet-4-6": {"input": 0.003, "output": 0.015},
+    "claude-haiku-4-5": {"input": 0.00025, "output": 0.00125},
+}
+
+
+def model_comparison_table(case_results: list[CaseResult]) -> list[dict[str, Any]]:
+    """Generate per-model, per-doc-type comparison table.
+
+    Returns list of dicts with: model, doc_type, accuracy, avg_confidence,
+    avg_input_tokens, avg_output_tokens, est_cost_usd.
+    """
+    buckets: dict[tuple[str, str], list[CaseResult]] = {}
+    for r in case_results:
+        key = (r.model or "unknown", r.doc_type)
+        buckets.setdefault(key, []).append(r)
+
+    rows: list[dict[str, Any]] = []
+    for (model, doc_type), results in sorted(buckets.items()):
+        n = len(results)
+        avg_score = sum(r.score for r in results) / n
+        avg_conf = sum(r.confidence for r in results) / n
+        avg_in = sum(r.input_tokens for r in results) / n
+        avg_out = sum(r.output_tokens for r in results) / n
+
+        pricing = COST_PER_1K_TOKENS.get(model, {"input": 0.003, "output": 0.015})
+        est_cost = (avg_in / 1000 * pricing["input"]) + (avg_out / 1000 * pricing["output"])
+
+        rows.append({
+            "model": model,
+            "doc_type": doc_type,
+            "count": n,
+            "accuracy": round(avg_score, 4),
+            "avg_confidence": round(avg_conf, 4),
+            "avg_input_tokens": round(avg_in),
+            "avg_output_tokens": round(avg_out),
+            "est_cost_usd": round(est_cost, 6),
+        })
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -293,6 +388,19 @@ async def run_eval(
         hallucinations = detect_hallucinations(extracted, case["expected"], case["input_text"])
         format_valid = validate_response_format(extracted, case["doc_type"])
 
+        # Extract model/token metadata from golden fixture if available
+        model_name = ""
+        input_tokens = 0
+        output_tokens = 0
+        confidence = score  # default: use accuracy as confidence proxy
+
+        if golden:
+            model_name = fixture.get("model", "") if fixture else ""
+        elif not dry_run:
+            model_name = getattr(result, "model", "")
+            input_tokens = getattr(result, "input_tokens", 0)
+            output_tokens = getattr(result, "output_tokens", 0)
+
         cr = CaseResult(
             case_id=case["id"],
             doc_type=case["doc_type"],
@@ -301,6 +409,10 @@ async def run_eval(
             completeness=completeness,
             hallucination_count=len(hallucinations),
             format_valid=format_valid,
+            confidence=confidence,
+            model=model_name,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
         )
         return score, case.get("weight", 1.0), cr
 

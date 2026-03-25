@@ -1,0 +1,67 @@
+groups:
+  - name: docextract_slo_alerts
+    rules:
+      # Circuit breaker stuck OPEN for > 2 minutes
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state == 2
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit breaker OPEN for model {{ $labels.model }}"
+          description: "The circuit breaker for {{ $labels.model }} has been OPEN for over 2 minutes. Extractions are using the fallback model. Check Anthropic API status."
+          runbook: "docs/runbooks/common-failures.md#1-circuit-breaker-stuck-open"
+
+      # Extraction latency SLO breach (p95 > 10s)
+      - alert: ExtractionLatencyHigh
+        expr: histogram_quantile(0.95, rate(llm_call_duration_ms_bucket[5m])) > 10000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Extraction p95 latency exceeds 10s SLO"
+          description: "p95 extraction latency is {{ $value }}ms (SLO target: 8000ms for single-page). Check model response times and queue depth."
+          runbook: "docs/runbooks/common-failures.md#4-queue-backlog"
+
+      # Error rate SLO breach (> 5% of requests failing)
+      - alert: ErrorRateHigh
+        expr: rate(llm_calls_total{status="error"}[5m]) / rate(llm_calls_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LLM error rate exceeds 5% SLO"
+          description: "{{ $value | humanizePercentage }} of LLM calls are failing. Check model provider status and circuit breaker state."
+          runbook: "docs/runbooks/common-failures.md#1-circuit-breaker-stuck-open"
+
+      # Queue depth warning (> 50 pending jobs)
+      - alert: QueueDepthWarning
+        expr: arq_queue_length > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ARQ queue depth exceeds 50 jobs"
+          description: "{{ $value }} jobs pending in extraction queue. Consider scaling workers."
+          runbook: "docs/runbooks/common-failures.md#4-queue-backlog"
+
+      # Queue depth critical (> 100 pending jobs)
+      - alert: QueueDepthCritical
+        expr: arq_queue_length > 100
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ARQ queue depth exceeds 100 jobs"
+          description: "{{ $value }} jobs backed up. Workers may be down or model provider unresponsive."
+          runbook: "docs/runbooks/common-failures.md#4-queue-backlog"
+
+      # Eval quality regression
+      - alert: EvalQualityDegraded
+        expr: docextract_eval_accuracy < 0.90
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Golden eval accuracy below 90% threshold"
+          description: "Extraction accuracy is {{ $value | humanizePercentage }}. SLO target: >= 92%. Check recent prompt or model changes."

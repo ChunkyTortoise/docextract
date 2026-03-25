@@ -48,9 +48,9 @@ class TestListGoldenCases:
         cases = list_golden_cases()
         assert isinstance(cases, list)
 
-    def test_returns_16_cases(self):
+    def test_returns_at_least_16_cases(self):
         cases = list_golden_cases()
-        assert len(cases) == 16
+        assert len(cases) >= 16
 
     def test_all_dataset_cases_have_golden(self):
         from autoresearch.eval import load_dataset

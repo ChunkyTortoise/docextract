@@ -345,5 +345,176 @@
       "currency": "USD",
       "payment_terms": "Net 30"
     }
+  },
+  {
+    "id": "adv_corrupted_pdf",
+    "doc_type": "invoice",
+    "weight": 0.5,
+    "critical_fields": ["invoice_number", "total_amount"],
+    "input_text": "INV\u0000\u0000\u0000CE\n\nInvoice Num\u0000\u0000r: INV-2024-CORRUPT\n\n\u0000\u0000\u0000\u0000\u0000 \u0000\u0000\u0000\u0000\n\nFrom:\nDamaged Doc LLC\n\n\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\n\nTotal: $\u0000\u0000\u0000.00\n\n[Binary data follows - file truncated]",
+    "expected": {
+      "invoice_number": "INV-2024-CORRUPT",
+      "total_amount": null,
+      "vendor_name": "Damaged Doc LLC",
+      "customer_name": null
+    }
+  },
+  {
+    "id": "adv_blank_page",
+    "doc_type": "invoice",
+    "weight": 0.5,
+    "critical_fields": ["invoice_number", "total_amount"],
+    "input_text": "[Page 1 of 3]\n\n\n\n\n\n\n\n\n\n[Page 2 of 3]\n\n\n\n\n\n\n\n\n\n[Page 3 of 3]\n\n\n\n\n\n\n\n\n",
+    "expected": {
+      "invoice_number": null,
+      "total_amount": null,
+      "vendor_name": null,
+      "customer_name": null
+    }
+  },
+  {
+    "id": "adv_scanned_table",
+    "doc_type": "invoice",
+    "weight": 0.5,
+    "critical_fields": ["invoice_number", "total_amount"],
+    "input_text": "INVOICE\n\nlnvoice No: SCN-2024-TABLE\nDate: 2024-04-01\n\nFrom: ScanCo Ltd\nTo: ClientCo lnc\n\n[TABLE REGION - OCR CONFIDENCE LOW]\nDescripti0n          Qty    Price     T0tal\n---------           ----   ------    ------\nW|dget A             5     1OO.OO    5OO.OO\nW|dget B             1O     5O.OO    5OO.OO\nW|dget C              2    25O.OO    5OO.OO\n\nSubt0tal: 1,5OO.OO\nTax (1O%): 15O.OO\nT0TAL: 1,65O.OO\n[END TABLE REGION]",
+    "expected": {
+      "invoice_number": "SCN-2024-TABLE",
+      "vendor_name": "ScanCo Ltd",
+      "customer_name": "ClientCo Inc",
+      "total_amount": 1650.0,
+      "tax_amount": 150.0,
+      "subtotal": 1500.0,
+      "line_items": [
+        {"description": "Widget A", "quantity": 5.0, "unit_price": 100.0, "total": 500.0},
+        {"description": "Widget B", "quantity": 10.0, "unit_price": 50.0, "total": 500.0},
+        {"description": "Widget C", "quantity": 2.0, "unit_price": 250.0, "total": 500.0}
+      ]
+    }
+  },
+  {
+    "id": "adv_duplicate_fields",
+    "doc_type": "invoice",
+    "weight": 0.8,
+    "critical_fields": ["invoice_number", "total_amount", "vendor_name"],
+    "input_text": "INVOICE\n\nInvoice Number: DUP-2024-001\nDate: 2024-05-15\n\nFrom:\nAlpha Corp\n100 First St, Boston MA 02101\n\nTo:\nBeta Industries\n200 Second Ave, Chicago IL 60601\n\nDescription              Qty    Price      Total\nConsulting Services      10     $150.00    $1,500.00\n\nSubtotal: $1,500.00\nTax (6%): $90.00\nTotal: $1,590.00\n\n--- DUPLICATE PAGE SCAN ---\n\nINVOICE\n\nInvoice Number: DUP-2024-001\nDate: 2024-05-15\n\nFrom:\nAlpha Corp\n100 First St, Boston MA 02101\n\nTo:\nBeta Industries\n200 Second Ave, Chicago IL 60601\n\nDescription              Qty    Price      Total\nConsulting Services      10     $150.00    $1,500.00\n\nSubtotal: $1,500.00\nTax (6%): $90.00\nTotal: $1,590.00\n\nCurrency: USD",
+    "expected": {
+      "invoice_number": "DUP-2024-001",
+      "invoice_date": "2024-05-15",
+      "vendor_name": "Alpha Corp",
+      "vendor_address": "100 First St, Boston MA 02101",
+      "customer_name": "Beta Industries",
+      "customer_address": "200 Second Ave, Chicago IL 60601",
+      "line_items": [
+        {"description": "Consulting Services", "quantity": 10.0, "unit_price": 150.0, "total": 1500.0}
+      ],
+      "subtotal": 1500.0,
+      "tax_amount": 90.0,
+      "total_amount": 1590.0,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "adv_mixed_language",
+    "doc_type": "invoice",
+    "weight": 0.8,
+    "critical_fields": ["invoice_number", "total_amount", "vendor_name", "customer_name"],
+    "input_text": "FACTURA / INVOICE\n\nNumero de Factura: MX-2024-0199\nFecha / Date: 2024-06-10\nVencimiento / Due: 2024-07-10\n\nProveedor / Vendor:\nServicios Digitales SA de CV\nAv. Reforma 222, Col. Juarez, CDMX 06600, Mexico\n\nCliente / Customer:\nTexas Data Corp\n500 Main St, Houston TX 77002, USA\n\nDescripcion / Description          Cant    Precio     Total\nDesarrollo de software / Dev       1      $45,000 MXN  $45,000 MXN\nSoporte tecnico / Tech support     3       $5,000 MXN  $15,000 MXN\n\nSubtotal: $60,000.00 MXN\nIVA (16%): $9,600.00 MXN\nTotal: $69,600.00 MXN\n\nMoneda / Currency: MXN\nCondiciones de pago / Payment: 30 dias neto / Net 30",
+    "expected": {
+      "invoice_number": "MX-2024-0199",
+      "invoice_date": "2024-06-10",
+      "due_date": "2024-07-10",
+      "vendor_name": "Servicios Digitales SA de CV",
+      "customer_name": "Texas Data Corp",
+      "total_amount": 69600.0,
+      "tax_amount": 9600.0,
+      "subtotal": 60000.0,
+      "currency": "MXN",
+      "payment_terms": "Net 30"
+    }
+  },
+  {
+    "id": "adv_long_document",
+    "doc_type": "purchase_order",
+    "weight": 0.8,
+    "critical_fields": ["po_number", "total_amount", "vendor_name", "customer_name"],
+    "input_text": "PURCHASE ORDER\n\nPO Number: PO-2024-LONG-050\nDate: 2024-07-01\nDelivery: 2024-08-15\n\nFrom: National Supply Chain Inc\n1000 Logistics Blvd, Memphis TN 38118\n\nTo: Regional Hospital Network\n5000 Healthcare Dr, Nashville TN 37201\n\nLine  Description                    Qty     Unit Cost    Line Total\n1     Surgical Gloves (Box 100)      500     $12.00       $6,000.00\n2     N95 Respirator (Box 20)        200     $25.00       $5,000.00\n3     Disposable Gowns (Box 50)      300     $18.00       $5,400.00\n4     Face Shields (Box 25)          150     $15.00       $2,250.00\n5     Hand Sanitizer 500ml           1000    $4.50        $4,500.00\n6     Disinfectant Wipes (Can 75)    800     $6.00        $4,800.00\n7     Syringes 10ml (Box 100)        400     $22.00       $8,800.00\n8     Bandages Assorted (Box 200)    250     $8.00        $2,000.00\n9     IV Solution 1L                 600     $3.50        $2,100.00\n10    Blood Collection Tubes (100)   350     $14.00       $4,900.00\n11    Thermometer Digital            200     $12.00       $2,400.00\n12    Stethoscope Basic              50      $45.00       $2,250.00\n13    BP Cuff Disposable             300     $7.00        $2,100.00\n14    Pulse Oximeter Fingertip       100     $28.00       $2,800.00\n15    Wheelchair Standard            20      $350.00      $7,000.00\n16    Bed Pan Disposable (Box 25)    200     $9.00        $1,800.00\n17    Cotton Swabs (Box 500)         400     $5.00        $2,000.00\n18    Gauze Rolls (Box 12)           500     $6.50        $3,250.00\n19    Medical Tape (Box 24)          300     $8.50        $2,550.00\n20    Sharps Container 1 Gal         250     $4.00        $1,000.00\n\n[... additional administrative notes spanning 30 pages omitted ...]\n\nSubtotal: $70,900.00\nShipping & Handling: $2,500.00\nTax (9.25%): $6,558.25\nTotal: $79,958.25\n\nCurrency: USD\nPayment Terms: Net 60\nShipping: LTL Freight\nAuthorized: Dr. Patricia Hayes, Chief Procurement Officer",
+    "expected": {
+      "po_number": "PO-2024-LONG-050",
+      "vendor_name": "National Supply Chain Inc",
+      "customer_name": "Regional Hospital Network",
+      "total_amount": 79958.25,
+      "subtotal": 70900.0,
+      "tax_amount": 6558.25,
+      "currency": "USD",
+      "payment_terms": "Net 60",
+      "line_items": [
+        {"description": "Surgical Gloves (Box 100)", "quantity": 500.0, "unit_price": 12.0, "total": 6000.0},
+        {"description": "N95 Respirator (Box 20)", "quantity": 200.0, "unit_price": 25.0, "total": 5000.0},
+        {"description": "Disposable Gowns (Box 50)", "quantity": 300.0, "unit_price": 18.0, "total": 5400.0},
+        {"description": "Face Shields (Box 25)", "quantity": 150.0, "unit_price": 15.0, "total": 2250.0},
+        {"description": "Hand Sanitizer 500ml", "quantity": 1000.0, "unit_price": 4.5, "total": 4500.0},
+        {"description": "Disinfectant Wipes (Can 75)", "quantity": 800.0, "unit_price": 6.0, "total": 4800.0},
+        {"description": "Syringes 10ml (Box 100)", "quantity": 400.0, "unit_price": 22.0, "total": 8800.0},
+        {"description": "Bandages Assorted (Box 200)", "quantity": 250.0, "unit_price": 8.0, "total": 2000.0},
+        {"description": "IV Solution 1L", "quantity": 600.0, "unit_price": 3.5, "total": 2100.0},
+        {"description": "Blood Collection Tubes (100)", "quantity": 350.0, "unit_price": 14.0, "total": 4900.0},
+        {"description": "Thermometer Digital", "quantity": 200.0, "unit_price": 12.0, "total": 2400.0},
+        {"description": "Stethoscope Basic", "quantity": 50.0, "unit_price": 45.0, "total": 2250.0},
+        {"description": "BP Cuff Disposable", "quantity": 300.0, "unit_price": 7.0, "total": 2100.0},
+        {"description": "Pulse Oximeter Fingertip", "quantity": 100.0, "unit_price": 28.0, "total": 2800.0},
+        {"description": "Wheelchair Standard", "quantity": 20.0, "unit_price": 350.0, "total": 7000.0},
+        {"description": "Bed Pan Disposable (Box 25)", "quantity": 200.0, "unit_price": 9.0, "total": 1800.0},
+        {"description": "Cotton Swabs (Box 500)", "quantity": 400.0, "unit_price": 5.0, "total": 2000.0},
+        {"description": "Gauze Rolls (Box 12)", "quantity": 500.0, "unit_price": 6.5, "total": 3250.0},
+        {"description": "Medical Tape (Box 24)", "quantity": 300.0, "unit_price": 8.5, "total": 2550.0},
+        {"description": "Sharps Container 1 Gal", "quantity": 250.0, "unit_price": 4.0, "total": 1000.0}
+      ]
+    }
+  },
+  {
+    "id": "adv_handwritten_receipt",
+    "doc_type": "receipt",
+    "weight": 0.5,
+    "critical_fields": ["total", "transaction_date"],
+    "input_text": "[HANDWRITTEN - OCR LOW CONFIDENCE]\n\nJoe's Auto R3pair\n42 Elm St.\n\nDATE: 3/15/24\n\nOil Chang3............$45\nBrak3 Pads............$180\nLab0r (2 hrs).........$150\n\nTOT4L     $375\n\nPAID - CASH\n\nThank y0u!",
+    "expected": {
+      "merchant_name": "Joe's Auto Repair",
+      "transaction_date": "2024-03-15",
+      "items": [
+        {"description": "Oil Change", "total": 45.0},
+        {"description": "Brake Pads", "total": 180.0},
+        {"description": "Labor (2 hrs)", "total": 150.0}
+      ],
+      "total": 375.0,
+      "payment_method": "Cash",
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "adv_redacted_statement",
+    "doc_type": "bank_statement",
+    "weight": 0.8,
+    "critical_fields": ["account_number", "account_holder", "closing_balance"],
+    "input_text": "SECURE BANK\nConfidential Statement\n\nAccount Holder: [REDACTED] Martinez\nAccount Number: XXXX-XXXX-XXXX-3392\nStatement Period: 2024-04-01 to 2024-04-30\n\nOpening Balance: $15,230.00\n\nDate         Description                         Amount       Balance\n2024-04-01   [REDACTED] Employer Deposit         +$6,800.00   $22,030.00\n2024-04-05   Mortgage Payment - [REDACTED]       -$2,450.00   $19,580.00\n2024-04-10   Transfer to [REDACTED]              -$500.00     $19,080.00\n2024-04-15   [REDACTED] Insurance Co             -$340.00     $18,740.00\n2024-04-25   Wire from [REDACTED]                +$1,200.00   $19,940.00\n\nTotal Credits: $8,000.00\nTotal Debits: $3,290.00\nClosing Balance: $19,940.00\nCurrency: USD",
+    "expected": {
+      "account_number": "XXXX-XXXX-XXXX-3392",
+      "account_holder": "Martinez",
+      "bank_name": "Secure Bank",
+      "statement_period_start": "2024-04-01",
+      "statement_period_end": "2024-04-30",
+      "opening_balance": 15230.0,
+      "closing_balance": 19940.0,
+      "total_credits": 8000.0,
+      "total_debits": 3290.0,
+      "currency": "USD",
+      "transactions": [
+        {"date": "2024-04-01", "description": "Employer Deposit", "amount": 6800.0, "transaction_type": "credit", "balance": 22030.0},
+        {"date": "2024-04-05", "description": "Mortgage Payment", "amount": 2450.0, "transaction_type": "debit", "balance": 19580.0},
+        {"date": "2024-04-10", "description": "Transfer", "amount": 500.0, "transaction_type": "debit", "balance": 19080.0},
+        {"date": "2024-04-15", "description": "Insurance Co", "amount": 340.0, "transaction_type": "debit", "balance": 18740.0},
+        {"date": "2024-04-25", "description": "Wire", "amount": 1200.0, "transaction_type": "credit", "balance": 19940.0}
+      ]
+    }
   }
 ]

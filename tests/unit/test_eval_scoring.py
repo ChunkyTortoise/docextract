@@ -213,9 +213,9 @@ class TestScoreExtraction:
 # ---------------------------------------------------------------------------
 
 class TestLoadDataset:
-    def test_loads_16_cases(self):
+    def test_loads_at_least_16_cases(self):
         dataset = load_dataset()
-        assert len(dataset) == 16
+        assert len(dataset) >= 16
 
     def test_all_cases_have_required_fields(self):
         dataset = load_dataset()

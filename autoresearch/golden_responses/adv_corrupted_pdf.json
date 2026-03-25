@@ -1,0 +1,12 @@
+{
+  "case_id": "adv_corrupted_pdf",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-03-24T00:00:00Z",
+  "raw_response": "{\"invoice_number\": \"INV-2024-CORRUPT\", \"total_amount\": null, \"vendor_name\": \"Damaged Doc LLC\", \"customer_name\": null}",
+  "parsed_extraction": {
+    "invoice_number": "INV-2024-CORRUPT",
+    "total_amount": null,
+    "vendor_name": "Damaged Doc LLC",
+    "customer_name": null
+  }
+}

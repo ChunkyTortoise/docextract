@@ -1,23 +1,23 @@
 {
-  "overall_score": 0.926398,
-  "case_count": 16,
-  "timestamp": "2026-03-21T22:48:29+00:00",
+  "overall_score": 0.946229,
+  "case_count": 24,
+  "timestamp": "2026-03-25T05:48:13+00:00",
   "per_doc_type": {
     "invoice": {
-      "score": 0.9501,
-      "count": 7
+      "score": 0.9709,
+      "count": 12
     },
     "receipt": {
-      "score": 0.8214,
-      "count": 2
+      "score": 0.881,
+      "count": 3
     },
     "purchase_order": {
-      "score": 0.9643,
-      "count": 2
+      "score": 0.9762,
+      "count": 3
     },
     "bank_statement": {
-      "score": 0.9161,
-      "count": 2
+      "score": 0.9441,
+      "count": 3
     },
     "medical_record": {
       "score": 0.9885,

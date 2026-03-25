@@ -1,0 +1,19 @@
+{
+  "case_id": "adv_scanned_table",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-03-24T00:00:00Z",
+  "raw_response": "{\"invoice_number\": \"SCN-2024-TABLE\", \"vendor_name\": \"ScanCo Ltd\", \"customer_name\": \"ClientCo Inc\", \"total_amount\": 1650.0, \"tax_amount\": 150.0, \"subtotal\": 1500.0, \"line_items\": [{\"description\": \"Widget A\", \"quantity\": 5.0, \"unit_price\": 100.0, \"total\": 500.0}, {\"description\": \"Widget B\", \"quantity\": 10.0, \"unit_price\": 50.0, \"total\": 500.0}, {\"description\": \"Widget C\", \"quantity\": 2.0, \"unit_price\": 250.0, \"total\": 500.0}]}",
+  "parsed_extraction": {
+    "invoice_number": "SCN-2024-TABLE",
+    "vendor_name": "ScanCo Ltd",
+    "customer_name": "ClientCo Inc",
+    "total_amount": 1650.0,
+    "tax_amount": 150.0,
+    "subtotal": 1500.0,
+    "line_items": [
+      {"description": "Widget A", "quantity": 5.0, "unit_price": 100.0, "total": 500.0},
+      {"description": "Widget B", "quantity": 10.0, "unit_price": 50.0, "total": 500.0},
+      {"description": "Widget C", "quantity": 2.0, "unit_price": 250.0, "total": 500.0}
+    ]
+  }
+}

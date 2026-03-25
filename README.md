@@ -476,6 +476,89 @@ Cost monitoring: `/api/v1/metrics` (Prometheus) + Cost Dashboard in Streamlit fr
 
 For a detailed breakdown of the architecture decisions, RAG pipeline design, extraction accuracy benchmarks, and async job queue patterns, see the [Case Study](CASE_STUDY.md). This document covers the full engineering journey from prototype to production.
 
+## Service Level Objectives
+
+| Metric | Target |
+|--------|--------|
+| Field-level extraction accuracy | >= 92% (CI-gated, 2% regression tolerance) |
+| Single-page extraction p95 | < 8s |
+| Multi-page extraction p95 | < 45s (10 pages, streamed) |
+| Semantic search p95 | < 200ms |
+| API uptime | 99.5% monthly |
+| Circuit breaker recovery | < 60s after provider restoration |
+| Cost per 1,000 documents | < $25 blended (Sonnet/Haiku) |
+
+Full SLO definitions with error budgets: [docs/slo.md](docs/slo.md)
+
+## Production Readiness
+
+This service is designed for production deployment with:
+
+- **Reliability**: Circuit breaker model fallback, queue-based async processing, Redis-backed rate limiting, HMAC-signed webhook delivery with 4-attempt retry
+- **Observability**: OpenTelemetry traces (Jaeger/Tempo), Prometheus metrics (`/metrics`), LLM cost/latency tracking, Grafana dashboards
+- **Quality gates**: Golden eval CI gate (92% threshold), RAGAS evaluation, confidence-based two-pass correction
+- **Infrastructure**: K8s manifests with HPA auto-scaling, AWS Terraform (RDS + ElastiCache), multi-stage Docker builds
+- **Security**: API key authentication, webhook HMAC signing, rate limiting, bandit static analysis in CI
+
+| Document | Purpose |
+|----------|---------|
+| [SLO Targets](docs/slo.md) | Latency, availability, quality, cost targets |
+| [Common Failure Runbook](docs/runbooks/common-failures.md) | Circuit breaker, Redis, DB, queue, vector index recovery |
+| [Security Guide](docs/SECURITY.md) | API keys, webhooks, CORS, data handling |
+| [Release Checklist](docs/release_checklist.md) | Pre-deploy verification steps |
+| [Client Onboarding](docs/client_onboarding_runbook.md) | Setup guide for new deployments |
+| [Prometheus Alerts](deploy/prometheus/alerts.yml) | SLO breach alerting rules |
+
+## Cost Calculator
+
+| Document Type | Model | Avg Tokens | Cost/Doc | Cost/1,000 |
+|--------------|-------|------------|----------|------------|
+| Invoice (1 page) | Sonnet | ~2,500 | $0.025 | $25.00 |
+| Invoice (1 page) | Haiku (fallback) | ~2,500 | $0.004 | $4.00 |
+| Receipt | Sonnet | ~1,200 | $0.012 | $12.00 |
+| Multi-page PDF (10p) | Sonnet | ~15,000 | $0.150 | $150.00 |
+| Embedding (any) | Gemini | 768-dim | $0.0004 | $0.40 |
+
+*Costs assume Anthropic March 2026 pricing. Two-pass correction adds ~20% to base cost for low-confidence documents.*
+
+## Troubleshooting
+
+**Extraction returns low confidence**: Check if document is a scanned image. Set `OCR_ENGINE=vision` for better results on scans. Identity documents require 0.90 confidence; receipts tolerate 0.75 (configurable via `CONFIDENCE_THRESHOLDS`).
+
+**Circuit breaker stuck OPEN**: Check Anthropic API status. The circuit auto-recovers within 60s of provider restoration. See [runbook](docs/runbooks/common-failures.md#1-circuit-breaker-stuck-open).
+
+**Search returns no results**: Ensure documents have been embedded. Check `EMBEDDING_MODEL` env var. Run `GET /api/v1/records` to verify records exist.
+
+**Demo mode not working**: Set `DEMO_MODE=true` before starting. Demo uses pre-cached results and requires no API keys.
+
+**OTEL traces not appearing**: OTEL is disabled by default (`OTEL_ENABLED=false`). Enable it and verify `OTEL_EXPORTER_OTLP_ENDPOINT` points to your Jaeger/Tempo instance.
+
+## Contributing
+
+```bash
+# Setup
+git clone https://github.com/ChunkyTortoise/docextract.git
+cd docextract
+pip install -r requirements.txt -r requirements-dev.txt
+
+# Run tests (1,060+ tests, ~90% coverage)
+pytest tests/ -v --tb=short
+
+# Lint
+ruff check app/ worker/ frontend/
+
+# Type check
+mypy app/ worker/
+
+# Run golden eval (no API key needed)
+python scripts/run_eval_ci.py
+
+# Run locally
+docker-compose up  # API + Worker + Frontend + Postgres + Redis
+```
+
+PRs should pass all CI checks: lint, type check, tests (80% coverage gate), golden eval (92% accuracy gate), and Docker build.
+
 ## License
 
 MIT

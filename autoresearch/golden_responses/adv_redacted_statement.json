@@ -1,0 +1,25 @@
+{
+  "case_id": "adv_redacted_statement",
+  "model": "claude-sonnet-4-6",
+  "recorded_at": "2026-03-24T00:00:00Z",
+  "raw_response": "{\"account_number\": \"XXXX-XXXX-XXXX-3392\", \"account_holder\": \"Martinez\", \"bank_name\": \"Secure Bank\", \"statement_period_start\": \"2024-04-01\", \"statement_period_end\": \"2024-04-30\", \"opening_balance\": 15230.0, \"closing_balance\": 19940.0, \"total_credits\": 8000.0, \"total_debits\": 3290.0, \"currency\": \"USD\", \"transactions\": [{\"date\": \"2024-04-01\", \"description\": \"Employer Deposit\", \"amount\": 6800.0, \"transaction_type\": \"credit\", \"balance\": 22030.0}, {\"date\": \"2024-04-05\", \"description\": \"Mortgage Payment\", \"amount\": 2450.0, \"transaction_type\": \"debit\", \"balance\": 19580.0}, {\"date\": \"2024-04-10\", \"description\": \"Transfer\", \"amount\": 500.0, \"transaction_type\": \"debit\", \"balance\": 19080.0}, {\"date\": \"2024-04-15\", \"description\": \"Insurance Co\", \"amount\": 340.0, \"transaction_type\": \"debit\", \"balance\": 18740.0}, {\"date\": \"2024-04-25\", \"description\": \"Wire\", \"amount\": 1200.0, \"transaction_type\": \"credit\", \"balance\": 19940.0}]}",
+  "parsed_extraction": {
+    "account_number": "XXXX-XXXX-XXXX-3392",
+    "account_holder": "Martinez",
+    "bank_name": "Secure Bank",
+    "statement_period_start": "2024-04-01",
+    "statement_period_end": "2024-04-30",
+    "opening_balance": 15230.0,
+    "closing_balance": 19940.0,
+    "total_credits": 8000.0,
+    "total_debits": 3290.0,
+    "currency": "USD",
+    "transactions": [
+      {"date": "2024-04-01", "description": "Employer Deposit", "amount": 6800.0, "transaction_type": "credit", "balance": 22030.0},
+      {"date": "2024-04-05", "description": "Mortgage Payment", "amount": 2450.0, "transaction_type": "debit", "balance": 19580.0},
+      {"date": "2024-04-10", "description": "Transfer", "amount": 500.0, "transaction_type": "debit", "balance": 19080.0},
+      {"date": "2024-04-15", "description": "Insurance Co", "amount": 340.0, "transaction_type": "debit", "balance": 18740.0},
+      {"date": "2024-04-25", "description": "Wire", "amount": 1200.0, "transaction_type": "credit", "balance": 19940.0}
+    ]
+  }
+}
