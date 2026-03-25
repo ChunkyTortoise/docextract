@@ -64,6 +64,10 @@ graph LR
 - **Vision-native extraction path**: Set `OCR_ENGINE=vision` to route image documents directly through Claude's vision API, bypassing Tesseract entirely
 - **Active learning from HITL corrections**: Approved corrections feed back into extraction prompts via `ACTIVE_LEARNING_ENABLED=true`
 - **MCP tool server**: Connect Claude Desktop or any MCP-compatible agent to extract documents and search records via `mcp_server.py`
+- **Streaming Agent Reasoning (SSE)** — Real-time Server-Sent Events stream of Think → Act → Observe steps as the agentic RAG loop executes. Each reasoning step is emitted as an SSE event, enabling live UI updates. POST `/api/v1/agent-search/stream`
+- **Multi-Document Synthesis** — Map-reduce RAG across multiple documents. For each document, extracts relevant passages (map), then synthesizes a combined answer with per-document citations (reduce). Concurrent LLM orchestration via `asyncio.gather` + `Semaphore`. POST `/api/v1/agent-search/synthesize`
+- **Semantic Caching** — Caches LLM responses by embedding cosine similarity (not exact match). Sub-millisecond lookup via numpy batch cosine distance. TTL-based expiry, FIFO eviction, Prometheus hit/miss/cost-saved counters. Feature-flagged (`SEMANTIC_CACHE_ENABLED`). GET `/api/v1/cache/stats`
+- **Fine-Tuning Data Pipeline** — Exports HITL corrections as training datasets: supervised JSONL (OpenAI format), DPO pairs (chosen/rejected for RLHF), and evaluation JSONL. Deduplication, train/val split, doc_type filtering. GET `/api/v1/finetune/export` + `/finetune/stats`
 - **Agentic RAG (ReAct)** — ReAct think-act-observe loop with 5 retrieval tools (vector, BM25, hybrid, metadata, rerank). Agent autonomously selects strategy per query. Confidence-gated at 0.8 with max 3 iterations. POST `/api/v1/agent-search`
 - **RAGAS Evaluation Pipeline** — Context recall, faithfulness, and answer relevancy metrics computed via LLM-as-judge with structured rubric and few-shot examples. CI quality gate blocks merges on regression. Feature-flagged (`RAGAS_ENABLED`, `LLM_JUDGE_ENABLED`).
 - **Structured Output Extraction** — Per-document-type Pydantic schemas (Invoice, Contract, Receipt, Medical Record) with field-level confidence scores. Batch processing with `asyncio.gather` + `Semaphore(5)`. POST `/api/v1/extract/structured`
@@ -88,7 +92,7 @@ graph LR
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
 | Extraction accuracy (golden eval) | **92.6%** across 6 document types |
-| Test suite | ~5s (1,060 tests) |
+| Test suite | ~5s (1,109 tests) |
 | Coverage | 90.66% (CI-enforced) |
 
 ## Business Impact
@@ -257,7 +261,7 @@ docker-compose exec api python -m scripts.seed_api_key
 ## Running Tests
 
 ```bash
-pytest tests/ -v  # 1,060 tests, ~5s
+pytest tests/ -v  # 1,109 tests, ~5s
 ```
 
 ## Project Structure
