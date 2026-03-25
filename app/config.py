@@ -95,6 +95,12 @@ class Settings(BaseSettings):
     langsmith_api_key: str = ""
     langsmith_project: str = "docextract"
 
+    # Langfuse cloud tracing
+    langfuse_enabled: bool = False
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_host: str = "https://cloud.langfuse.com"
+
     # Model routing — fallback chains and circuit breaker config
     extraction_models: list[str] = ["claude-sonnet-4-6", "claude-haiku-4-5-20251001"]
     classification_models: list[str] = ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"]

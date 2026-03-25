@@ -32,6 +32,9 @@ _meter: Any = None
 _tracer: Any = None
 _instruments: dict[str, Any] = {}
 
+# Langfuse client — populated by setup_langfuse()
+_langfuse: Any = None
+
 # Circuit breaker state numeric mapping (for Prometheus gauge)
 _CB_STATE_VALUES = {"closed": 0, "half_open": 1, "open": 2}
 
@@ -202,9 +205,107 @@ def get_tracer() -> Any:
     return _tracer
 
 
+def setup_langfuse() -> None:
+    """Initialize Langfuse cloud tracing client.
+
+    Feature-flagged behind LANGFUSE_ENABLED=true. When disabled, all
+    langfuse_* helpers are no-ops. Requires langfuse package installed.
+    """
+    global _langfuse
+
+    if not settings.langfuse_enabled:
+        return
+
+    if not settings.langfuse_public_key or not settings.langfuse_secret_key:
+        logger.warning("LANGFUSE_ENABLED=true but keys not set, skipping")
+        return
+
+    try:
+        from langfuse import Langfuse
+
+        _langfuse = Langfuse(
+            public_key=settings.langfuse_public_key,
+            secret_key=settings.langfuse_secret_key,
+            host=settings.langfuse_host,
+        )
+        logger.info("Langfuse tracing enabled — host '%s'", settings.langfuse_host)
+    except ImportError:
+        logger.warning("langfuse package not installed, skipping Langfuse setup")
+    except Exception as e:
+        logger.warning("Langfuse initialization failed: %s", e)
+
+
+def langfuse_trace(
+    name: str,
+    *,
+    session_id: str | None = None,
+    user_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
+    input: Any = None,
+) -> Any:
+    """Create a Langfuse trace. Returns a trace object or None when disabled.
+
+    Usage with BackgroundTasks (Sync Sidecar pattern):
+        trace = langfuse_trace("extraction", session_id=request_id)
+        # ... do work ...
+        background_tasks.add_task(langfuse_flush)
+    """
+    if _langfuse is None:
+        return None
+
+    from app.services.pii_sanitizer import sanitize_for_trace
+
+    sanitized_input = sanitize_for_trace(input) if input else input
+    return _langfuse.trace(
+        name=name,
+        session_id=session_id,
+        user_id=user_id,
+        metadata=metadata,
+        input=sanitized_input,
+    )
+
+
+def langfuse_generation(
+    trace: Any,
+    name: str,
+    *,
+    model: str = "",
+    input: Any = None,
+    output: Any = None,
+    usage: dict[str, int] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> Any:
+    """Log an LLM generation within a Langfuse trace. No-op when trace is None."""
+    if trace is None:
+        return None
+
+    from app.services.pii_sanitizer import sanitize_for_trace
+
+    return trace.generation(
+        name=name,
+        model=model,
+        input=sanitize_for_trace(input) if input else input,
+        output=sanitize_for_trace(output) if output else output,
+        usage=usage,
+        metadata=metadata,
+    )
+
+
+def langfuse_flush() -> None:
+    """Flush pending Langfuse events. Call in BackgroundTasks after request."""
+    if _langfuse is not None:
+        _langfuse.flush()
+
+
+def get_langfuse() -> Any:
+    """Return the Langfuse client, or None when disabled."""
+    return _langfuse
+
+
 def _reset_for_testing() -> None:
     """Reset module-level state between tests. Not for production use."""
-    global _meter, _tracer, _instruments
+    global _meter, _tracer, _instruments, _langfuse
     _meter = None
     _tracer = None
     _instruments = {}
+    _langfuse = None

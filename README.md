@@ -4,10 +4,20 @@
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Coverage](https://codecov.io/gh/ChunkyTortoise/docextract/graph/badge.svg)](https://codecov.io/gh/ChunkyTortoise/docextract)
-[![Swagger](https://img.shields.io/badge/docs-Swagger-blue)](https://github.com/ChunkyTortoise/docextract)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com)
+
+## Production Architecture
+
+DocExtract runs as a production system with observability, evaluation gates, and resilience built in:
+
+- **Sync Sidecar Pattern**: Non-blocking Langfuse trace submission via FastAPI BackgroundTasks. Request path is never blocked by observability.
+- **Langfuse Cloud Tracing**: Every extraction, search, and review action is traced with model calls, token usage, latency, and confidence scores. PII is sanitized before trace submission.
+- **Tiered Evaluation CI Gates**: Deterministic schema/regex checks on every PR. LLM-as-a-judge (DeepEval) runs nightly against a 92.6% accuracy golden baseline. Deployment blocks if quality regresses.
+- **Circuit Breaker Failover**: Sonnet-to-Haiku model fallback chain with configurable thresholds. Prometheus gauge tracks breaker state.
+- **Cost Tracking**: Per-request USD breakdown. Semantic cache hit/miss/cost-saved counters. Model A/B testing with z-test significance.
+- **Infrastructure**: Docker multi-stage builds, Kubernetes (Kustomize + HPA), AWS Terraform IaC (RDS + ElastiCache), GitHub Actions CI/CD publishing to GHCR.
 
 ## Try the Demo
 

@@ -45,4 +45,6 @@ opentelemetry-exporter-prometheus>=0.48b0
 opentelemetry-exporter-otlp-proto-grpc>=1.27.0
 prometheus-client>=0.21.0
 langsmith>=0.1.0
+langfuse>=2.0.0
+deepeval>=3.0.0
 structlog>=24.0.0
