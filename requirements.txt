@@ -1,5 +1,4 @@
 # Streamlit Cloud demo deployment — minimal deps only.
 # Full production stack: requirements_full.txt
-streamlit==1.39.0
-streamlit-extras>=0.4.0
-plotly==5.24.1
+streamlit>=1.39.0
+plotly>=5.24.0
