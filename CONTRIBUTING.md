@@ -7,7 +7,7 @@
 ```bash
 git clone https://github.com/ChunkyTortoise/docextract
 cd docextract
-pip install -r requirements.txt -r requirements-dev.txt
+pip install -r requirements_full.txt
 cp .env.example .env  # Set ANTHROPIC_API_KEY
 ```
 

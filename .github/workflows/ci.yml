@@ -9,6 +9,21 @@ on:
     - cron: '17 6 * * *'  # Nightly at 6:17 UTC (off-minute to avoid fleet congestion)
 
 jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - name: Install bandit
+        run: pip install bandit
+      - name: Run bandit security scan
+        run: bandit -r app/ worker/ -ll -ii --format json --output bandit-report.json || true
+      - name: Check for high-severity findings
+        run: bandit -r app/ worker/ -ll -ii
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -57,7 +72,7 @@ jobs:
       - name: Install system deps
         run: sudo apt-get install -y tesseract-ocr libmagic1
       - name: Install Python deps
-        run: pip install -r requirements.txt aiosqlite pytest-cov
+        run: pip install -r requirements_full.txt aiosqlite pytest-cov
       - name: Dependency check
         run: python -m pip check
       - name: Run tests
@@ -83,7 +98,7 @@ jobs:
           python-version: "3.12"
           cache: "pip"
       - name: Install Python deps
-        run: pip install -r requirements.txt
+        run: pip install -r requirements_full.txt
       - name: Run eval regression gate (golden — no API calls)
         run: python scripts/run_eval_ci.py --ci
       - name: SROIE benchmark dry-run
@@ -119,7 +134,7 @@ jobs:
           cache: "pip"
       - name: Install system deps
         run: sudo apt-get install -y tesseract-ocr libmagic1
-      - run: pip install -r requirements.txt aiosqlite deepeval
+      - run: pip install -r requirements_full.txt aiosqlite deepeval
       - name: Run DeepEval CI tier (deterministic, no API calls)
         env:
           DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/docextract_test
@@ -139,7 +154,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
-      - run: pip install -r requirements.txt deepeval
+      - run: pip install -r requirements_full.txt deepeval
       - name: Run DeepEval nightly LLM-as-judge
         env:
           DEEPEVAL_NIGHTLY: "true"
@@ -168,7 +183,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements_full.txt
       - name: Run RAGAS evaluation
         env:
           RAGAS_ENABLED: "true"

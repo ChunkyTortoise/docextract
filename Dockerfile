@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+COPY requirements_full.txt .
+RUN pip install --no-cache-dir --user -r requirements_full.txt
 
 # Runtime stage
 FROM python:3.12-slim AS runtime

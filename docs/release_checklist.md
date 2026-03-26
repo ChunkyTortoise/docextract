@@ -5,7 +5,7 @@
 - [ ] All tests pass: `pytest tests/ --no-cov -q`
 - [ ] Ruff clean: `ruff check app worker tests`
 - [ ] No secrets committed (`git grep -r "sk-ant-\|AIza"` returns empty)
-- [ ] `requirements.txt` is up-to-date (`pip freeze > requirements.txt`)
+- [ ] `requirements_full.txt` is up-to-date (`pip freeze > requirements_full.txt`)
 - [ ] Version bump in `app/main.py` → `FastAPI(version="x.y.z")`
 - [ ] `render.yaml` migrations command correct: `alembic upgrade head && python -m scripts.seed_demo` (demo) or `alembic upgrade head` (prod)
 - [ ] New migrations reviewed for safety (no DROP TABLE, no NOT NULL without DEFAULT on large tables)
