@@ -30,5 +30,13 @@ def load_demo_eval() -> dict[str, Any]:
     return json.loads((_DEMO_DATA_DIR / "eval_sample.json").read_text())
 
 
+def load_demo_agent_trace() -> dict[str, Any]:
+    return json.loads((_DEMO_DATA_DIR / "agent_trace_demo.json").read_text())
+
+
+def load_demo_cost() -> dict[str, Any]:
+    return json.loads((_DEMO_DATA_DIR / "cost_demo.json").read_text())
+
+
 def list_demo_doc_types() -> list[str]:
     return list(_SAMPLES.keys())
