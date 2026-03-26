@@ -10,12 +10,14 @@
 
 ## For Hiring Managers
 
-| If you're evaluating for... | Where to look |
-|-----------------------------|--------------|
-| **AI / ML Engineer** | Agentic RAG ReAct loop ([`app/services/agentic_rag.py`](app/services/agentic_rag.py)), RAGAS evaluation pipeline ([`app/services/ragas_evaluator.py`](app/services/ragas_evaluator.py)), fine-tuning data pipeline ([`app/services/finetune_exporter.py`](app/services/finetune_exporter.py)), golden eval CI gate |
-| **Backend / Platform Engineer** | Circuit breaker model fallback ([`app/services/circuit_breaker.py`](app/services/circuit_breaker.py)), async ARQ job queue ([`worker/`](worker/)), K8s/HPA manifests ([`deploy/k8s/`](deploy/k8s/)), Terraform IaC ([`deploy/aws/`](deploy/aws/)), sliding-window rate limiter |
-| **Full-Stack AI Engineer** | 14-page Streamlit dashboard ([`frontend/`](frontend/)), SSE streaming progress, MCP tool server ([`mcp_server.py`](mcp_server.py)), interactive demo sandbox |
-| **MLOps / LLMOps Engineer** | Prompt versioning + regression testing ([`app/services/prompt_registry.py`](app/services/prompt_registry.py)), model A/B testing with z-test significance ([`app/services/model_ab_test.py`](app/services/model_ab_test.py)), DeepEval CI gates, cost tracking per request |
+| If you're evaluating for... | Where to look | Training behind it |
+|-----------------------------|--------------|-------------------|
+| **AI / ML Engineer** | Agentic RAG ReAct loop ([`app/services/agentic_rag.py`](app/services/agentic_rag.py)), RAGAS evaluation pipeline ([`app/services/ragas_evaluator.py`](app/services/ragas_evaluator.py)), fine-tuning data pipeline ([`app/services/finetune_exporter.py`](app/services/finetune_exporter.py)), golden eval CI gate | IBM GenAI Engineering (144h), IBM RAG & Agentic AI (24h), DeepLearning.AI Deep Learning (120h) |
+| **Backend / Platform Engineer** | Circuit breaker model fallback ([`app/services/circuit_breaker.py`](app/services/circuit_breaker.py)), async ARQ job queue ([`worker/`](worker/)), K8s/HPA manifests ([`deploy/k8s/`](deploy/k8s/)), Terraform IaC ([`deploy/aws/`](deploy/aws/)), sliding-window rate limiter | Microsoft AI & ML Engineering (75h), Google Cloud GenAI Leader (25h) |
+| **Full-Stack AI Engineer** | 14-page Streamlit dashboard ([`frontend/`](frontend/)), SSE streaming progress, MCP tool server ([`mcp_server.py`](mcp_server.py)), interactive demo sandbox | IBM BI Analyst (141h), Google Data Analytics (181h), Microsoft Data Viz (87h) |
+| **MLOps / LLMOps Engineer** | Prompt versioning + regression testing ([`app/services/prompt_registry.py`](app/services/prompt_registry.py)), model A/B testing with z-test significance ([`app/services/model_ab_test.py`](app/services/model_ab_test.py)), DeepEval CI gates, cost tracking per request | Duke LLMOps (48h), Google Advanced Data Analytics (200h) |
+
+→ Full cert-to-code mapping: [`docs/certifications.md`](docs/certifications.md) (1,208h across 14 certifications)
 
 ## Quickstart
 
@@ -140,7 +142,9 @@ tests/          -- Unit + integration tests
 
 ## Production Readiness
 
-Deployed with: Docker Compose / AWS Terraform / Kubernetes Kustomize. Grafana observability. 80% coverage gate. 94.6% eval gate in CI. HIPAA/SOC2 alignment documented.
+Deployed with: Docker Compose / AWS Terraform (RDS + ElastiCache + ECR) / Kubernetes (Kustomize + HPA). Grafana observability. 80% coverage gate. 94.6% eval gate in CI. HIPAA/SOC2 alignment documented.
+
+**Cloud infrastructure** ([`deploy/aws/main.tf`](deploy/aws/main.tf), [`deploy/k8s/`](deploy/k8s/)): Full Terraform IaC for AWS — RDS PostgreSQL, ElastiCache Redis, ECR registry, EC2 with auto-scaling. Kubernetes manifests with Kustomize overlays, Horizontal Pod Autoscaler, and Ingress. Applied from Google Cloud GenAI Leader (25h) coursework.
 
 | Document | Purpose |
 |----------|---------|
@@ -152,7 +156,7 @@ Deployed with: Docker Compose / AWS Terraform / Kubernetes Kustomize. Grafana ob
 | [Case Study](CASE_STUDY.md) | Engineering journey from prototype to production |
 | [MCP Integration](docs/mcp-integration.md) | Claude Desktop / agent framework setup |
 | [Cost Model](docs/cost-model.md) | Token costs, per-document pricing, volume estimates |
-| [Certifications Applied](docs/certifications.md) | 1,003h across 12 certifications mapped to features |
+| [Certifications Applied](docs/certifications.md) | 1,208h across 14 certifications mapped to features |
 
 ## Deployment
 
