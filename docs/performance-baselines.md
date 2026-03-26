@@ -54,7 +54,7 @@ Based on Anthropic pricing (as of 2026-03):
 
 | Metric | Sonnet 4.6 | Haiku 4.5 | Delta |
 |--------|-----------|-----------|-------|
-| Field-level accuracy | 92.6% | ~78% | +14.6% |
+| Field-level accuracy | 94.6% | ~78% | +16.6% |
 | Completeness | 0.95 | 0.82 | +0.13 |
 | Hallucination rate | ~2% | ~8% | -6% |
 | Avg latency (p50) | 2.1s | 0.9s | +1.2s |
@@ -72,15 +72,15 @@ Based on Anthropic pricing (as of 2026-03):
 
 ## Accuracy by Document Type
 
-From golden eval suite (24 fixtures, baseline 2026-03-24):
+From golden eval suite (28 fixtures, baseline 2026-03-25):
 
 | Document Type | Cases | Accuracy | Hardest Case |
 |---------------|-------|----------|-------------|
-| Invoice | 11 | 0.950 | `invoice_ocr` (OCR artifacts) |
-| Receipt | 3 | 0.821 | `receipt_sparse` (minimal info) |
+| Invoice | 12 | 0.950 | `adv_prompt_injection_system` (embedded system override) |
+| Receipt | 4 | 0.821 | `adv_prompt_injection_hidden` (HTML comment injection) |
 | Purchase Order | 3 | 0.964 | `purchase_order_large` (10 line items) |
-| Bank Statement | 3 | 0.916 | `adv_redacted_statement` (redactions) |
-| Medical Record | 2 | 0.989 | `medical_multi_icd` (4 ICD codes) |
+| Bank Statement | 4 | 0.916 | `adv_prompt_injection_data_exfil` (data exfil attempt) |
+| Medical Record | 3 | 0.989 | `adv_prompt_injection_roleplay` (roleplay hijack) |
 | Identity Document | 1 | 0.814 | `identity_passport` (date format conversion) |
 
 ## Error Budget
@@ -89,7 +89,7 @@ Based on SLO targets (see `docs/slo.md`):
 
 | SLO | Target | Current | Budget Remaining |
 |-----|--------|---------|-----------------|
-| Accuracy | >= 92% | 92.6% | 0.6% before breach |
+| Accuracy | >= 92% | 94.6% | 2.6% before breach |
 | API uptime | 99.5% | N/A | ~3.6 hrs/month |
 | Extraction p95 | < 8s | 6.8s | 1.2s headroom |
 | Search p95 | < 200ms | 120ms | 80ms headroom |

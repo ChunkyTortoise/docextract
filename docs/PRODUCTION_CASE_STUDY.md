@@ -2,7 +2,7 @@
 
 ## The Problem
 
-Most AI engineer portfolios share the same gap: impressive architectures that only exist as README descriptions. 1,109 tests prove correctness at development time, but nothing proves the system works at request time. No live URL. No trace dashboards. No eval regression gates. No cost visibility.
+Most AI engineer portfolios share the same gap: impressive architectures that only exist as README descriptions. 1,155 tests prove correctness at development time, but nothing proves the system works at request time. No live URL. No trace dashboards. No eval regression gates. No cost visibility.
 
 This case study documents how DocExtract went from a well-tested local project to a production system with observable behavior, measurable quality, and resilience patterns that survive real-world failure modes.
 
@@ -10,7 +10,7 @@ This case study documents how DocExtract went from a well-tested local project t
 
 ### Before: Strong Code, No Production Signal
 
-- 1,109 automated tests, 90%+ coverage
+- 1,155 automated tests, 90%+ coverage
 - Agentic RAG with ReAct reasoning, HITL corrections, circuit breaker failover
 - Docker, K8s manifests, Terraform IaC all checked in
 - Zero live deployments. Zero trace data. Zero eval metrics from real requests.
@@ -21,7 +21,7 @@ This case study documents how DocExtract went from a well-tested local project t
 - Every extraction, search, and review action traced via Langfuse (model calls, token usage, latency, confidence)
 - PII sanitization before any trace leaves the application boundary
 - Tiered evaluation CI gates: deterministic schema checks on every PR, LLM-as-a-judge nightly
-- Regression threshold: deployment blocks if extraction accuracy drops below 90% (baseline: 92.6%)
+- Regression threshold: deployment blocks if extraction accuracy drops below 90% (baseline: 94.6%)
 
 ## Architecture: The Sync Sidecar Pattern
 
@@ -124,8 +124,8 @@ The correction loop stores: input document, model output, human correction, corr
 
 | Metric | Value |
 |---|---|
-| Extraction accuracy (golden eval) | 92.6% |
-| Test count | 1,135 |
+| Extraction accuracy (golden eval) | 94.6% |
+| Test count | 1,155 |
 | Code coverage | 87.25% |
 | Extraction latency (p50) | ~8s |
 | Search latency (p95) | <100ms |

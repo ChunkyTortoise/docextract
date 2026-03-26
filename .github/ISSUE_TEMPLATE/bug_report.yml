@@ -1,0 +1,38 @@
+name: Bug Report
+description: Report a bug in DocExtract AI
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - API (FastAPI)
+        - Worker (ARQ)
+        - Frontend (Streamlit)
+        - Extraction Pipeline
+        - Evaluation Harness
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+  - type: input
+    id: python
+    attributes:
+      label: Python Version

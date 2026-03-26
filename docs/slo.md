@@ -8,7 +8,7 @@ These SLOs define the reliability targets for DocExtract AI in a production envi
 
 | Metric | Target | Measurement | Rationale |
 |--------|--------|-------------|-----------|
-| Field-level accuracy | >= 92% | Golden eval suite (16 fixtures, CI-gated) | Baseline established from SROIE benchmark; 2% regression tolerance |
+| Field-level accuracy | >= 92% | Golden eval suite (28 fixtures, CI-gated) | Baseline established from SROIE benchmark; 2% regression tolerance |
 | Pass 2 correction rate | 15-20% of extractions | Two-pass pipeline metrics | Below 10% suggests thresholds too lenient; above 30% suggests prompt degradation |
 | Confidence calibration | Brier score < 0.15 | Per-document-type confidence vs actual accuracy | Confidence scores should be meaningful, not inflated |
 
