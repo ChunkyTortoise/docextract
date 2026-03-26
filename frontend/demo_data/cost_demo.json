@@ -1,0 +1,70 @@
+{
+  "summary": {
+    "total_requests": 1247,
+    "total_cost_usd": 18.43,
+    "avg_cost_per_request": 0.0148,
+    "cache_hit_rate": 0.34,
+    "cache_savings_usd": 9.52,
+    "period_hours": 168
+  },
+  "by_model": [
+    {
+      "model": "claude-sonnet-4-6",
+      "operation": "extraction",
+      "requests": 623,
+      "avg_cost": 0.0085,
+      "total_cost": 5.29,
+      "avg_latency_ms": 1820,
+      "p95_latency_ms": 3100,
+      "avg_confidence": 0.946
+    },
+    {
+      "model": "claude-haiku-4-5",
+      "operation": "classification",
+      "requests": 1247,
+      "avg_cost": 0.0004,
+      "total_cost": 0.50,
+      "avg_latency_ms": 410,
+      "p95_latency_ms": 680,
+      "avg_confidence": 0.923
+    },
+    {
+      "model": "claude-sonnet-4-6",
+      "operation": "llm_judge",
+      "requests": 312,
+      "avg_cost": 0.0038,
+      "total_cost": 1.19,
+      "avg_latency_ms": 1240,
+      "p95_latency_ms": 2100,
+      "avg_confidence": 0.89
+    },
+    {
+      "model": "claude-haiku-4-5",
+      "operation": "reranking",
+      "requests": 489,
+      "avg_cost": 0.0003,
+      "total_cost": 0.15,
+      "avg_latency_ms": 290,
+      "p95_latency_ms": 520,
+      "avg_confidence": 0.91
+    }
+  ],
+  "ab_test": {
+    "name": "classification_model_comparison",
+    "status": "significant",
+    "variant_a": {
+      "model": "claude-sonnet-4-6",
+      "accuracy": 0.961,
+      "avg_cost": 0.0032,
+      "n": 250
+    },
+    "variant_b": {
+      "model": "claude-haiku-4-5",
+      "accuracy": 0.942,
+      "avg_cost": 0.0004,
+      "n": 250
+    },
+    "p_value": 0.047,
+    "conclusion": "Haiku classification is 87% cheaper with <2% quality gap — using Haiku for all classification"
+  }
+}
