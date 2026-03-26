@@ -68,7 +68,7 @@ jobs:
           API_KEY_SECRET: test-secret-32-chars-minimum-here
         run: pytest tests/ --cov=. --cov-report=xml --cov-fail-under=80 -v --tb=short
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
