@@ -101,6 +101,9 @@ class Settings(BaseSettings):
     langfuse_secret_key: str = ""
     langfuse_host: str = "https://cloud.langfuse.com"
 
+    # Local LoRA adapter — feature-flagged, falls back to Claude when disabled/unavailable
+    use_local_adapter: bool = False
+
     # Model routing — fallback chains and circuit breaker config
     extraction_models: list[str] = ["claude-sonnet-4-6", "claude-haiku-4-5-20251001"]
     classification_models: list[str] = ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"]

@@ -1,9 +1,10 @@
-"""Document type classifier using Claude tool_use."""
+"""Document type classifier using Claude tool_use (with optional local LoRA adapter)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import anthropic
 from anthropic import AsyncAnthropic
@@ -78,12 +79,21 @@ class ClassificationResult:
 
 
 async def classify(text: str, db: "AsyncSession | None" = None) -> ClassificationResult:
-    """Classify document type using Claude tool_use.
+    """Classify document type using Claude tool_use (or local LoRA adapter if enabled).
 
+    When USE_LOCAL_ADAPTER=true: tries local adapter first; falls back to Claude if
+    no adapter is registered or inference fails.
     Returns ClassificationResult with doc_type='unknown' on low confidence or error.
-    Falls back to legacy text parsing if tool_use block not found.
     Uses model router for automatic fallback on provider failures.
     """
+    if settings.use_local_adapter:
+        adapter_entry = _get_best_adapter()
+        if adapter_entry:
+            result = _predict_with_adapter(text, adapter_entry)
+            if result is not None:
+                return result
+        logger.info("Local adapter unavailable or failed — falling back to Claude")
+
     from app.services.llm_tracer import trace_llm_call
     from app.services.model_router import AllModelsUnavailableError, ModelRouter
 
@@ -145,6 +155,59 @@ async def classify(text: str, db: "AsyncSession | None" = None) -> Classificatio
     except (AllModelsUnavailableError, anthropic.APIError, KeyError, IndexError) as e:
         logger.warning("Classification failed: %s", e)
         return ClassificationResult(doc_type="unknown", confidence=0.0, reasoning=str(e))
+
+
+def _get_best_adapter() -> dict[str, Any] | None:
+    """Return the most recent adapter entry from the registry, or None if empty."""
+    try:
+        from scripts.train_qlora import REGISTRY_PATH, load_registry
+
+        registry = load_registry(REGISTRY_PATH)
+        adapters = registry.get("adapters", [])
+        if not adapters:
+            return None
+        # Prefer "all" adapters (trained on all doc types); fall back to any
+        all_adapters = [a for a in adapters if a.get("doc_type") == "all"]
+        candidates = all_adapters if all_adapters else adapters
+        return max(candidates, key=lambda a: a.get("trained_at", ""))
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Could not load adapter registry: %s", e)
+        return None
+
+
+def _predict_with_adapter(text: str, adapter_entry: dict[str, Any]) -> "ClassificationResult | None":
+    """Run inference with a local LoRA adapter. Returns None on any failure."""
+    try:
+        import torch
+        from peft import PeftModel
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        adapter_path = adapter_entry["adapter_path"]
+        base_model = adapter_entry.get("base_model", "mistralai/Mistral-7B-Instruct-v0.2")
+
+        tokenizer = AutoTokenizer.from_pretrained(base_model)
+        model = AutoModelForCausalLM.from_pretrained(
+            base_model, torch_dtype=torch.float16, device_map="auto"
+        )
+        model = PeftModel.from_pretrained(model, adapter_path)
+        model.eval()
+
+        prompt = f"Classify the document type of this text:\n{text[:2000]}"
+        inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
+        with torch.no_grad():
+            outputs = model.generate(**inputs, max_new_tokens=20)
+        decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+        doc_type = "unknown"
+        for dt in DOCUMENT_TYPES:
+            if dt in decoded.lower():
+                doc_type = dt
+                break
+
+        return ClassificationResult(doc_type=doc_type, confidence=0.85, reasoning="Local adapter prediction")
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Local adapter inference failed: %s", e)
+        return None
 
 
 def _parse_legacy_response(response) -> dict | None:
