@@ -1,0 +1,14 @@
+# K8s secrets template — all base64 values are placeholders ("your-anthropic-api-key" etc)
+f812b3fb2afa24a63b1a28b3808853ab8804ef78:deploy/k8s/secrets.yaml:generic-api-key:27
+f812b3fb2afa24a63b1a28b3808853ab8804ef78:deploy/k8s/secrets.yaml:generic-api-key:30
+f812b3fb2afa24a63b1a28b3808853ab8804ef78:deploy/k8s/secrets.yaml:generic-api-key:33
+
+# Test fixture — TEST_API_KEY = "test-api-key-12345" is a hardcoded test value
+818f5c9c38d9f74d27c6e46f55ca22bb697cc20c:tests/conftest.py:generic-api-key:51
+
+# Example curl commands in docs with Authorization: Bearer <token> placeholders
+da4b4d84de88be8e6e1c3376be4b94620f1aa2d5:README.md:curl-auth-header:54
+a3b5f50cb15e8276075c595a9971f44e3add013a:docs/specs/2026-03-19-research-docextract-portfolio-polish.md:curl-auth-header:165
+a3b5f50cb15e8276075c595a9971f44e3add013a:docs/specs/2026-03-19-feature-docextract-portfolio-polish-spec.md:curl-auth-header:242
+a3b5f50cb15e8276075c595a9971f44e3add013a:docs/specs/2026-03-19-feature-docextract-portfolio-polish-spec.md:curl-auth-header:425
+a3b5f50cb15e8276075c595a9971f44e3add013a:docs/specs/2026-03-19-feature-docextract-portfolio-polish-spec.md:curl-auth-header:472
