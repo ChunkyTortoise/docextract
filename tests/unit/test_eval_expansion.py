@@ -26,7 +26,7 @@ class TestDatasetIntegrity:
 
     def test_dataset_loads(self) -> None:
         dataset = _load_dataset()
-        assert len(dataset) >= 24, f"Expected >= 24 fixtures, got {len(dataset)}"
+        assert len(dataset) >= 28, f"Expected >= 28 fixtures, got {len(dataset)}"
 
     def test_all_cases_have_required_fields(self) -> None:
         dataset = _load_dataset()

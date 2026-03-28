@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -34,6 +34,18 @@ class UploadBatchResponse(BaseModel):
     jobs: list[UploadResponse]
 
 
+class GuardrailPiiMatch(BaseModel):
+    type: str
+    field: str
+    redacted: str
+
+
+class GuardrailSummary(BaseModel):
+    passed: bool
+    pii_detected: list[GuardrailPiiMatch] = Field(default_factory=list)
+    grounding_issues: int = 0
+
+
 class RecordItem(BaseModel):
     id: str
     job_id: str
@@ -44,7 +56,44 @@ class RecordItem(BaseModel):
     needs_review: bool
     validation_status: str | None = None
     review_status: str | None = None
+    pii_detected: bool = False
+    guardrails: GuardrailSummary | None = None
     created_at: datetime
+
+
+def record_item_from_db(r: "Any") -> "RecordItem":
+    """Build a RecordItem from a DB ExtractedRecord, extracting guardrail metadata."""
+    guardrails_data = (r.extracted_data or {}).get("_guardrails")
+    guardrails = None
+    pii_detected = False
+    if guardrails_data:
+        pii_list = guardrails_data.get("pii_detected", [])
+        grounding = guardrails_data.get("grounding", [])
+        ungrounded = sum(1 for g in grounding if g.get("status") == "ungrounded")
+        pii_detected = len(pii_list) > 0
+        guardrails = GuardrailSummary(
+            passed=guardrails_data.get("passed", True),
+            pii_detected=[
+                GuardrailPiiMatch(type=m["type"], field=m["field"], redacted=m["redacted"])
+                for m in pii_list
+            ],
+            grounding_issues=ungrounded,
+        )
+
+    return RecordItem(
+        id=str(r.id),
+        job_id=str(r.job_id),
+        document_id=str(r.document_id),
+        document_type=r.document_type,
+        extracted_data=r.extracted_data,
+        confidence_score=r.confidence_score,
+        needs_review=r.needs_review,
+        validation_status=r.validation_status,
+        review_status=None,
+        pii_detected=pii_detected,
+        guardrails=guardrails,
+        created_at=r.created_at,
+    )
 
 
 class PaginatedRecords(BaseModel):

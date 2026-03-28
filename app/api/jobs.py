@@ -16,7 +16,7 @@ from app.models.api_key import APIKey
 from app.models.job import ExtractionJob
 from app.models.record import ExtractedRecord
 from app.schemas.events import JOB_STATUS_PROGRESS, JobStatus
-from app.schemas.responses import JobResponse, RecordItem
+from app.schemas.responses import JobResponse, RecordItem, record_item_from_db
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -118,18 +118,7 @@ async def get_job_record(
     if not record:
         raise HTTPException(404, "No record found for this job")
 
-    return RecordItem(
-        id=str(record.id),
-        job_id=str(record.job_id),
-        document_id=str(record.document_id),
-        document_type=record.document_type,
-        extracted_data=record.extracted_data,
-        confidence_score=record.confidence_score,
-        needs_review=record.needs_review,
-        validation_status=record.validation_status,
-        review_status=None,
-        created_at=record.created_at,
-    )
+    return record_item_from_db(record)
 
 
 @router.patch("/{job_id}")

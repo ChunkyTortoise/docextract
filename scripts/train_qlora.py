@@ -30,12 +30,28 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Experiment tracking (optional — requires WANDB_API_KEY env var)
+# ---------------------------------------------------------------------------
+
+try:
+    import wandb as _wandb  # noqa: F401
+    _WANDB_AVAILABLE = True
+except ImportError:
+    _WANDB_AVAILABLE = False
+
+
+def _wandb_enabled() -> bool:
+    """Return True when wandb is installed and WANDB_API_KEY is set."""
+    return _WANDB_AVAILABLE and bool(os.environ.get("WANDB_API_KEY"))
 
 # ---------------------------------------------------------------------------
 # Constants — match notebook configuration
@@ -225,7 +241,7 @@ def _tokenize_dataset(texts: list[str], tokenizer, max_length: int = MAX_LENGTH)
     return ds.map(_encode, batched=True, remove_columns=["text"])
 
 
-def _run_training(model, tokenizer, dataset, output_dir: Path, epochs: int, batch_size: int):
+def _run_training(model, tokenizer, dataset, output_dir: Path, epochs: int, batch_size: int, use_wandb: bool = False):
     """Execute the training loop and save the adapter."""
     from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
 
@@ -239,7 +255,7 @@ def _run_training(model, tokenizer, dataset, output_dir: Path, epochs: int, batc
         fp16=True,
         logging_steps=10,
         save_strategy="epoch",
-        report_to="none",
+        report_to="wandb" if use_wandb else "none",
     )
     collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
     trainer = Trainer(
@@ -275,18 +291,36 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     output_dir = ADAPTER_BASE / doc_type_label / timestamp
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    use_wandb = _wandb_enabled()
+    if use_wandb and not args.dry_run:
+        import wandb
+        wandb.init(
+            project="docextract-finetune",
+            name=f"{doc_type_label}_{timestamp}",
+            config={**LORA_CONFIG, "epochs": args.epochs, "batch_size": args.batch_size, "model": args.model},
+        )
+        logger.info("W&B run: %s", wandb.run.url)
+
     log_history: list[dict] = []
     if not args.dry_run:
         model, tokenizer = _load_model_and_tokenizer(args.model)
         model = _apply_lora(model)
         dataset = _tokenize_dataset(texts, tokenizer)
-        log_history = _run_training(model, tokenizer, dataset, output_dir, args.epochs, args.batch_size)
+        log_history = _run_training(model, tokenizer, dataset, output_dir, args.epochs, args.batch_size, use_wandb=use_wandb)
         final_loss = log_history[-1].get("train_loss", 0.0) if log_history else 0.0
     else:
         logger.info("[DRY RUN] Skipping model load and training.")
         final_loss = 0.0
 
-    eval_metrics = {"train_loss": round(final_loss, 4), "training_samples": len(texts)}
+    eval_metrics: dict[str, Any] = {"train_loss": round(final_loss, 4), "training_samples": len(texts)}
+
+    if use_wandb and not args.dry_run:
+        import wandb
+        if wandb.run:
+            eval_metrics["wandb_url"] = wandb.run.url
+            wandb.summary.update({"adapter_path": str(output_dir), **eval_metrics})
+            wandb.finish()
+
     entry = update_registry(
         adapter_path=output_dir,
         doc_type=doc_type_label,

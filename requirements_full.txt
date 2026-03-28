@@ -48,3 +48,6 @@ langsmith>=0.1.0
 langfuse>=2.0.0
 deepeval>=3.0.0
 structlog>=24.0.0
+
+# Experiment tracking (optional — set WANDB_API_KEY to enable)
+wandb>=0.16.0

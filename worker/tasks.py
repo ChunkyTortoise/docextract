@@ -125,6 +125,23 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     await _update_job_status(db, redis, job, JobStatus.VALIDATING)
     validation_result = validate(doc_type, extraction_result.data, extraction_result.confidence)
 
+    # 7b. Guardrails — PII detection + hallucination grounding
+    guardrail_result = None
+    if settings.guardrails_enabled:
+        from app.services.guardrails import run_guardrails
+
+        guardrail_result = run_guardrails(
+            extraction_result.data,
+            source_text=extracted.text,
+        )
+        if guardrail_result.pii_detected:
+            validation_result.needs_review = True
+            logger.info(
+                "PII detected in job %s: %d matches — flagging for review",
+                job_id,
+                len(guardrail_result.pii_detected),
+            )
+
     # 8. Embed -> EMBEDDING
     await _update_job_status(db, redis, job, JobStatus.EMBEDDING)
     embedding_text = extracted.text[:2000]
@@ -132,12 +149,46 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     # 9. Store record
     record_id = str(uuid.uuid4())
+
+    # Build review reason — may include guardrail findings
+    review_reason = None
+    if validation_result.needs_review:
+        reasons: list[str] = []
+        if guardrail_result and guardrail_result.pii_detected:
+            pii_types = {m.pattern_type for m in guardrail_result.pii_detected}
+            reasons.append(f"PII detected: {', '.join(sorted(pii_types))}")
+        reasons.append("Auto-queued due to validation/review triggers")
+        review_reason = "; ".join(reasons)
+
+    # Attach guardrail metadata to extracted_data under _guardrails key
+    record_data = dict(extraction_result.data)
+    if guardrail_result:
+        record_data["_guardrails"] = {
+            "passed": guardrail_result.passed,
+            "pii_detected": [
+                {
+                    "type": m.pattern_type,
+                    "field": m.field_path,
+                    "redacted": m.redacted,
+                }
+                for m in guardrail_result.pii_detected
+            ],
+            "grounding": [
+                {
+                    "field": g.field,
+                    "status": g.status,
+                    "reason": g.reason,
+                }
+                for g in guardrail_result.grounding
+            ],
+        }
+
     record = ExtractedRecord(
         id=record_id,
         job_id=job.id,
         document_id=job.document_id,
         document_type=doc_type,
-        extracted_data=extraction_result.data,
+        extracted_data=record_data,
         raw_text=extracted.text[:5000],
         confidence_score=extraction_result.confidence,
         needs_review=validation_result.needs_review,
@@ -146,11 +197,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
             if validation_result.needs_review
             else ("failed" if not validation_result.is_valid else "passed")
         ),
-        review_reason=(
-            "Auto-queued due to validation/review triggers"
-            if validation_result.needs_review
-            else None
-        ),
+        review_reason=review_reason,
     )
     db.add(record)
     await db.flush()

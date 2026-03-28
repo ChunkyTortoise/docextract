@@ -13,7 +13,7 @@ from app.models.api_key import APIKey
 from app.models.embedding import DocumentEmbedding
 from app.models.record import ExtractedRecord
 from app.schemas.requests import ReviewRequest
-from app.schemas.responses import PaginatedRecords, RecordItem
+from app.schemas.responses import PaginatedRecords, RecordItem, record_item_from_db
 
 router = APIRouter(prefix="/records", tags=["records"])
 
@@ -52,21 +52,7 @@ async def list_records(
     result = await db.execute(query)
     records = result.scalars().all()
 
-    items = [
-        RecordItem(
-            id=str(r.id),
-            job_id=str(r.job_id),
-            document_id=str(r.document_id),
-            document_type=r.document_type,
-            extracted_data=r.extracted_data,
-            confidence_score=r.confidence_score,
-            needs_review=r.needs_review,
-            validation_status=r.validation_status,
-            review_status=None,
-            created_at=r.created_at,
-        )
-        for r in records
-    ]
+    items = [record_item_from_db(r) for r in records]
 
     return PaginatedRecords(
         items=items,
@@ -111,18 +97,7 @@ async def search_records(
         id_to_record = {str(r.id): r for r in all_records}
         return [
             {
-                "record": RecordItem(
-                    id=str(id_to_record[rid].id),
-                    job_id=str(id_to_record[rid].job_id),
-                    document_id=str(id_to_record[rid].document_id),
-                    document_type=id_to_record[rid].document_type,
-                    extracted_data=id_to_record[rid].extracted_data,
-                    confidence_score=id_to_record[rid].confidence_score,
-                    needs_review=id_to_record[rid].needs_review,
-                    validation_status=id_to_record[rid].validation_status,
-                    review_status=None,
-                    created_at=id_to_record[rid].created_at,
-                ),
+                "record": record_item_from_db(id_to_record[rid]),
                 "similarity": round(score / max(s for _, s in bm25_hits), 4) if bm25_hits else 0,
             }
             for rid, score in bm25_hits
@@ -146,18 +121,7 @@ async def search_records(
     if mode == "vector" or not rows:
         return [
             {
-                "record": RecordItem(
-                    id=str(record.id),
-                    job_id=str(record.job_id),
-                    document_id=str(record.document_id),
-                    document_type=record.document_type,
-                    extracted_data=record.extracted_data,
-                    confidence_score=record.confidence_score,
-                    needs_review=record.needs_review,
-                    validation_status=record.validation_status,
-                    review_status=None,
-                    created_at=record.created_at,
-                ),
+                "record": record_item_from_db(record),
                 "similarity": round(1 - distance, 4),
             }
             for record, distance in rows
@@ -183,18 +147,7 @@ async def search_records(
 
     return [
         {
-            "record": RecordItem(
-                id=str(record.id),
-                job_id=str(record.job_id),
-                document_id=str(record.document_id),
-                document_type=record.document_type,
-                extracted_data=record.extracted_data,
-                confidence_score=record.confidence_score,
-                needs_review=record.needs_review,
-                validation_status=record.validation_status,
-                review_status=None,
-                created_at=record.created_at,
-            ),
+            "record": record_item_from_db(record),
             "similarity": round(1 - distance, 4),
         }
         for record, distance, _ in scored[:limit]
@@ -244,3 +197,38 @@ async def review_record(
 
     await db.commit()
     return {"status": "ok", "record_id": record_id, "decision": review.decision}
+
+
+@router.get("/{record_id}/guardrails")
+async def run_record_guardrails(
+    record_id: str,
+    db: AsyncSession = Depends(get_db),
+    api_key: APIKey = Depends(get_api_key),
+):
+    """Run guardrails (PII detection + hallucination grounding) on a record on demand."""
+    from app.services.guardrails import run_guardrails
+
+    result = await db.execute(
+        select(ExtractedRecord).where(ExtractedRecord.id == record_id)
+    )
+    record = result.scalar_one_or_none()
+    if not record:
+        raise HTTPException(404, "Record not found")
+
+    guardrail_result = run_guardrails(
+        record.extracted_data,
+        source_text=record.raw_text or "",
+    )
+
+    return {
+        "record_id": record_id,
+        "passed": guardrail_result.passed,
+        "pii_detected": [
+            {"type": m.pattern_type, "field": m.field_path, "redacted": m.redacted}
+            for m in guardrail_result.pii_detected
+        ],
+        "grounding": [
+            {"field": g.field, "status": g.status, "reason": g.reason}
+            for g in guardrail_result.grounding
+        ],
+    }

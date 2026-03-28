@@ -1,0 +1,6 @@
+# Minimal requirements for Streamlit Cloud demo deployment.
+# The full stack requires requirements.txt (includes Tesseract, pgvector, etc.)
+# This file covers only what streamlit_demo.py needs.
+streamlit==1.39.0
+streamlit-extras>=0.4.0
+plotly==5.24.1

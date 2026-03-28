@@ -37,6 +37,7 @@ from scripts.train_qlora import (
     ADAPTER_BASE,
     MODEL_ID,
     REGISTRY_PATH,
+    _wandb_enabled,
     load_jsonl_file,
     load_jsonl_url,
     update_registry,
@@ -110,6 +111,7 @@ def _run_dpo_training(
     pairs: list[dict[str, str]],
     output_dir: Path,
     config: dict[str, Any],
+    use_wandb: bool = False,
 ) -> dict[str, Any]:
     """Execute DPO training loop and save the aligned adapter."""
     import torch
@@ -141,7 +143,7 @@ def _run_dpo_training(
         gradient_accumulation_steps=config["gradient_accumulation_steps"],
         max_length=config["max_length"],
         max_prompt_length=config["max_prompt_length"],
-        report_to="none",
+        report_to="wandb" if use_wandb else "none",
         logging_steps=10,
     )
     trainer = DPOTrainer(
@@ -184,6 +186,16 @@ def train_dpo(args: argparse.Namespace) -> dict[str, Any]:
     output_dir = ADAPTER_BASE / f"{doc_type_label}_dpo" / timestamp
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    use_wandb = _wandb_enabled()
+    if use_wandb and not args.dry_run:
+        import wandb
+        wandb.init(
+            project="docextract-finetune",
+            name=f"dpo_{doc_type_label}_{timestamp}",
+            config={**DPO_CONFIG, "model": args.model, "adapter_path": args.adapter_path},
+        )
+        logger.info("W&B run: %s", wandb.run.url)
+
     eval_metrics: dict[str, Any]
     if not args.dry_run:
         eval_metrics = _run_dpo_training(
@@ -192,12 +204,20 @@ def train_dpo(args: argparse.Namespace) -> dict[str, Any]:
             pairs=pairs,
             output_dir=output_dir,
             config=DPO_CONFIG,
+            use_wandb=use_wandb,
         )
     else:
         logger.info("[DRY RUN] Skipping DPO model load and training.")
         eval_metrics = {"dpo_loss": 0.0}
 
     eval_metrics["training_samples"] = len(pairs)
+
+    if use_wandb and not args.dry_run:
+        import wandb
+        if wandb.run:
+            eval_metrics["wandb_url"] = wandb.run.url
+            wandb.summary.update({"adapter_path": str(output_dir), **eval_metrics})
+            wandb.finish()
     entry = update_registry(
         adapter_path=output_dir,
         doc_type=doc_type_label,

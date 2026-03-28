@@ -9,7 +9,7 @@ DocExtract uses a golden eval harness to measure extraction quality and prevent 
 ```
 autoresearch/
 ├── eval.py                 # Scoring engine: field-level accuracy, Brier score, calibration
-├── eval_dataset.json       # 24 test fixtures (16 standard + 8 adversarial)
+├── eval_dataset.json       # 28 test fixtures (16 standard + 12 adversarial)
 ├── golden_responses/       # Recorded model outputs (one JSON per fixture)
 ├── fixtures.py             # Golden response loader
 ├── reporter.py             # Report generation (JSON, Markdown, delta comparison)
