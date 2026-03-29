@@ -1,3 +1,5 @@
+![DocExtract AI](docs/screenshots/banner.png)
+
 # DocExtract AI
 
 **Extract structured data from unstructured documents in seconds -- not hours.**
