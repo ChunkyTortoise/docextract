@@ -60,6 +60,18 @@ graph LR
   D --- I[Circuit Breaker]
 ```
 
+## Supported Models
+
+| Model | Provider | Env Var | Notes |
+|-------|----------|---------|-------|
+| `claude-sonnet-4-6` | Anthropic | `ANTHROPIC_API_KEY` | Default extraction model |
+| `claude-haiku-4-5-20251001` | Anthropic | `ANTHROPIC_API_KEY` | Default classification + circuit breaker fallback |
+| `glm-4-plus` | Zhipu AI | `ZHIPUAI_API_KEY` | Chinese AI model, OpenAI-compatible API |
+| `glm-4-flash` | Zhipu AI | `ZHIPUAI_API_KEY` | Fast/cheap GLM variant |
+| Gemini (embedding) | Google | `GEMINI_API_KEY` | Used for pgvector embeddings only |
+
+GLM-4 models use an OpenAI-compatible endpoint (`https://open.bigmodel.cn/api/paas/v4/`). Configure via `EXTRACTION_MODELS` env var.
+
 ## Screenshots
 
 | Upload & Extraction | Extracted Records & ROI |
