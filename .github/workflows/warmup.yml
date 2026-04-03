@@ -1,0 +1,17 @@
+name: Keep Streamlit Awake
+on:
+  schedule:
+    - cron: '47 5,17 * * *' # Every 12h at :47 (off-minute to avoid fleet congestion)
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake Streamlit app
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 120 https://docextract-demo.streamlit.app)
+          echo "Response: $STATUS"
+          if [ "$STATUS" -ge 500 ]; then
+            echo "::warning::App returned $STATUS"
+            exit 1
+          fi
