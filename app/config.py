@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from typing import List
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
@@ -29,7 +28,7 @@ class Settings(BaseSettings):
     aes_key: str = ""  # base64-encoded 32-byte key for AES-GCM
 
     # API
-    cors_origins: List[str] = ["http://localhost:8501"]
+    cors_origins: list[str] = ["http://localhost:8501"]
     log_level: str = "INFO"
 
     # Processing limits
@@ -137,7 +136,7 @@ class Settings(BaseSettings):
         return v
 
     @model_validator(mode='after')
-    def validate_production_secrets(self) -> 'Settings':
+    def validate_production_secrets(self) -> Settings:
         if self.environment != "development":
             if self.api_key_secret == "change-me-32-chars-minimum-secret":
                 raise ValueError(

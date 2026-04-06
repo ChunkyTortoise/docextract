@@ -15,7 +15,7 @@
 
 | If you're evaluating for... | Where to look | Training behind it |
 |-----------------------------|--------------|-------------------|
-| **AI / ML Engineer** | Agentic RAG ReAct loop ([`app/services/agentic_rag.py`](app/services/agentic_rag.py)), RAGAS evaluation pipeline ([`app/services/ragas_evaluator.py`](app/services/ragas_evaluator.py)), QLoRA fine-tuning pipeline ([`scripts/train_qlora.py`](scripts/train_qlora.py), [`adapters/`](adapters/)), W&B experiment tracking, golden eval CI gate | IBM GenAI Engineering (144h), IBM RAG & Agentic AI (24h), DeepLearning.AI Deep Learning (120h) |
+| **AI / ML Engineer** | Agentic RAG ReAct loop ([`app/services/agentic_rag.py`](app/services/agentic_rag.py)), RAGAS evaluation pipeline ([`app/services/ragas_evaluator.py`](app/services/ragas_evaluator.py)), QLoRA fine-tuning pipeline ([`scripts/train_qlora.py`](scripts/train_qlora.py)) — training infrastructure ready, W&B experiment tracking, golden eval CI gate | IBM GenAI Engineering (144h), IBM RAG & Agentic AI (24h), DeepLearning.AI Deep Learning (120h) |
 | **Backend / Platform Engineer** | Circuit breaker model fallback ([`app/services/circuit_breaker.py`](app/services/circuit_breaker.py)), async ARQ job queue ([`worker/`](worker/)), K8s/HPA manifests ([`deploy/k8s/`](deploy/k8s/)), Terraform IaC ([`deploy/aws/`](deploy/aws/)), sliding-window rate limiter | Microsoft AI & ML Engineering (75h), Google Cloud GenAI Leader (25h) |
 | **Full-Stack AI Engineer** | 14-page Streamlit dashboard ([`frontend/`](frontend/)), SSE streaming progress, MCP tool server ([`mcp_server.py`](mcp_server.py)), interactive demo sandbox | IBM BI Analyst (141h), Google Data Analytics (181h), Microsoft Data Viz (87h) |
 | **MLOps / LLMOps Engineer** | Prompt versioning + regression testing ([`app/services/prompt_registry.py`](app/services/prompt_registry.py)), model A/B testing with z-test significance ([`app/services/model_ab_test.py`](app/services/model_ab_test.py)), DeepEval CI gates, cost tracking per request | Duke LLMOps (48h), Google Advanced Data Analytics (200h) |
@@ -157,9 +157,9 @@ tests/          -- Unit + integration tests
 
 ## Production Readiness
 
-Deployed with: Docker Compose / AWS Terraform (RDS + ElastiCache + ECR) / Kubernetes (Kustomize + HPA). Grafana observability. 80% coverage gate. 94.6% eval gate in CI. HIPAA/SOC2 alignment documented.
+Runs locally via Docker Compose. Kubernetes and AWS Terraform configurations are deployment-ready (not yet applied to a live cluster). Grafana observability. 80% coverage gate. 94.6% eval gate in CI. HIPAA/SOC2 alignment documented.
 
-**Cloud infrastructure** ([`deploy/aws/main.tf`](deploy/aws/main.tf), [`deploy/k8s/`](deploy/k8s/)): Full Terraform IaC for AWS — RDS PostgreSQL, ElastiCache Redis, ECR registry, EC2 with auto-scaling. Kubernetes manifests with Kustomize overlays, Horizontal Pod Autoscaler, and Ingress. Applied from Google Cloud GenAI Leader (25h) coursework.
+**Cloud infrastructure** ([`deploy/aws/main.tf`](deploy/aws/main.tf), [`deploy/k8s/`](deploy/k8s/)): Full Terraform IaC for AWS — RDS PostgreSQL, ElastiCache Redis, ECR registry, EC2 with auto-scaling. Kubernetes manifests with Kustomize overlays, Horizontal Pod Autoscaler, and Ingress. Configs are complete and deployment-ready.
 
 | Document | Purpose |
 |----------|---------|
@@ -167,7 +167,7 @@ Deployed with: Docker Compose / AWS Terraform (RDS + ElastiCache + ECR) / Kubern
 | [Common Failure Runbook](docs/runbooks/common-failures.md) | Circuit breaker, Redis, DB, queue, vector index recovery |
 | [Security Guide](docs/SECURITY.md) | API keys, webhooks, CORS, data handling |
 | [Compliance & Privacy](docs/COMPLIANCE.md) | HIPAA/PHI handling, PII detection, SOC 2 alignment |
-| [Architecture](ARCHITECTURE.md) | Full system architecture overview |
+| [Architecture](docs/ARCHITECTURE.md) | Full system architecture overview |
 | [Case Study](CASE_STUDY.md) | Engineering journey from prototype to production |
 | [MCP Integration](docs/mcp-integration.md) | Claude Desktop / agent framework setup |
 | [Cost Model](docs/cost-model.md) | Token costs, per-document pricing, volume estimates |

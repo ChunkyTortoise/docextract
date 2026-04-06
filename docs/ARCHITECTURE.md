@@ -174,7 +174,7 @@ Query text → Gemini embedding (768-dim)
 - Cloudflare R2 for document storage
 
 ### Kubernetes (Kustomize)
-- Base manifests in `deploy/k8s/base/`
+- Base manifests in `deploy/k8s/`
 - Production overlay in `deploy/k8s/overlays/production/`
 - HPA for API + Worker pods
 - Ingress with TLS termination
@@ -183,7 +183,7 @@ Query text → Gemini embedding (768-dim)
 
 - **Prometheus**: `llm_call_duration_ms`, `llm_calls_total`, `circuit_breaker_state`, custom extraction metrics
 - **OpenTelemetry**: Feature-flagged span export to Jaeger/Tempo (`OTEL_ENABLED=true`)
-- **Grafana**: Pre-built dashboard (`deploy/grafana/dashboard.json`) with 9 panels
+- **Grafana**: Pre-built dashboard (`deploy/grafana/docextract-dashboard.json`) with 9 panels
 - **Cost tracking**: Per-request USD via `cost_tracker.py`, exposed on `/stats` endpoint
 - **Alert rules**: `deploy/prometheus/alerts.yml` (6 rules tied to SLOs)
 

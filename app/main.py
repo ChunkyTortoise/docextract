@@ -1,14 +1,11 @@
 """FastAPI application factory."""
 from __future__ import annotations
 
-import asyncio
-import logging
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import structlog
-
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -121,7 +118,7 @@ def create_app() -> FastAPI:
     if STATIC_DIR.is_dir():
         app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-    from app.observability import setup_telemetry, setup_langfuse
+    from app.observability import setup_langfuse, setup_telemetry
     setup_telemetry(app)
     setup_langfuse()
 
