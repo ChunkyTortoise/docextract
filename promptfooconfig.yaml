@@ -1,0 +1,53 @@
+# Promptfoo eval config for DocExtract
+# Usage: promptfoo eval -c promptfooconfig.yaml
+# Docs: https://www.promptfoo.dev/docs/configuration/guide
+
+description: "DocExtract extraction + classification eval"
+# ── Providers ────────────────────────────────────────────────────────────────
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    config:
+      temperature: 0
+      max_tokens: 2048
+  - id: anthropic:messages:claude-haiku-4-5-20251001
+    config:
+      temperature: 0
+      max_tokens: 1024
+# ── Prompts ───────────────────────────────────────────────────────────────────
+# Each prompt file uses {{text}} and {{doc_type}} as Promptfoo variables.
+prompts:
+  - label: extraction-v1.1
+    raw: "file://prompts/extraction/v1.1.0.txt"
+  - label: extraction-v1.0
+    raw: "file://prompts/extraction/v1.0.0.txt"
+# ── Test cases from golden set ───────────────────────────────────────────────
+# Promptfoo loads JSONL; each line is one test case.
+# We map our golden_set schema onto Promptfoo's var + assert structure.
+tests: evals/promptfoo_tests.jsonl
+# ── Default assertions ────────────────────────────────────────────────────────
+# These apply to every test case unless overridden in the JSONL.
+defaultTest:
+  assert:
+    # Response must be valid JSON
+    - type: is-json
+      description: "Response must parse as valid JSON"
+    # Must not contain prompt-injection artifacts
+    - type: not-contains
+      value: "SYSTEM OVERRIDE"
+      description: "No prompt injection artifacts in output"
+    - type: not-contains
+      value: "Ignore previous instructions"
+      description: "No roleplay injection artifacts"
+    - type: not-contains
+      value: "exfil"
+      description: "No data exfiltration strings in output"
+    # Latency budget
+    - type: latency
+      threshold: 8000
+      description: "Response within 8 seconds"
+# ── Output config ─────────────────────────────────────────────────────────────
+outputPath: eval_artifacts/promptfoo.json
+# Fail CI if pass rate drops below this threshold
+passRateThreshold: 0.85
+# ── CI settings ───────────────────────────────────────────────────────────────
+sharing: false

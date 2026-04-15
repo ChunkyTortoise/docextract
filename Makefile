@@ -1,4 +1,39 @@
-.PHONY: test lint quickstart-client aws-build aws-push aws-deploy k8s-apply k8s-delete k8s-logs
+.PHONY: test lint quickstart-client aws-build aws-push aws-deploy k8s-apply k8s-delete k8s-logs eval eval-fast eval-judge eval-baseline eval-clean
+
+# ── Eval targets ──────────────────────────────────────────────────────────────
+# Full suite (~$0.40, ~4 min). Run before opening a PR.
+EVAL_OUT ?= eval_artifacts
+
+eval: eval-clean
+	@mkdir -p $(EVAL_OUT)
+	npx promptfoo eval -c promptfooconfig.yaml -o $(EVAL_OUT)/promptfoo.json
+	python scripts/eval_ragas.py --golden evals/golden_set.jsonl --out $(EVAL_OUT)/ragas.json
+	python scripts/eval_llm_judge.py --golden evals/golden_set.jsonl --adv --out $(EVAL_OUT)/llm_judge.json
+	python scripts/eval_gate.py \
+	  --promptfoo $(EVAL_OUT)/promptfoo.json \
+	  --ragas     $(EVAL_OUT)/ragas.json \
+	  --judge     $(EVAL_OUT)/llm_judge.json \
+	  --baseline  autoresearch/baseline.json \
+	  --out       $(EVAL_OUT)/scores.json \
+	  --report    $(EVAL_OUT)/eval_report.html \
+	  --mode      local
+
+# Promptfoo only (~$0.02, ~20s). Use during prompt iteration.
+eval-fast:
+	npx promptfoo eval -c promptfooconfig.yaml --filter-providers anthropic --max-concurrency 4
+
+# Re-run LLM judge against last run's golden set (no API calls for Promptfoo).
+eval-judge:
+	python scripts/eval_llm_judge.py --golden evals/golden_set.jsonl --adv --out $(EVAL_OUT)/llm_judge.json
+
+# Accept current scores as new baseline (requires a green eval run first).
+eval-baseline:
+	python scripts/eval_gate.py --accept-baseline \
+	  --out $(EVAL_OUT)/scores.json --baseline autoresearch/baseline.json
+
+# Wipe eval_artifacts/.
+eval-clean:
+	@rm -rf $(EVAL_OUT) && mkdir -p $(EVAL_OUT)
 
 # ── AWS deployment helpers ───────────────────────────────────────────────────
 # Prerequisites: AWS CLI configured, Terraform installed, ECR repos created
