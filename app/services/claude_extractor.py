@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 import anthropic
+import instructor
 import structlog
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel
@@ -80,7 +81,9 @@ async def extract(
 
     from app.services.model_router import ModelRouter
 
-    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    # instructor.from_anthropic wraps the client transparently and adds
+    # automatic retry on schema validation failure (Pydantic-backed).
+    client = instructor.from_anthropic(AsyncAnthropic(api_key=settings.anthropic_api_key))
     router = ModelRouter(
         failure_threshold=settings.circuit_breaker_failure_threshold,
         recovery_timeout=settings.circuit_breaker_recovery_seconds,
@@ -97,8 +100,15 @@ async def extract(
                 f"Previous corrections for {doc_type} documents:\n{examples_json}\n\n"
             )
 
-    # Pass 1: Extract using model router with automatic fallback
-    async def _extract_call(model: str) -> anthropic.types.Message:
+    # Pass 1: Extract using model router with automatic fallback.
+    # When schema_class is available, instructor handles Pydantic validation
+    # and retries (max_retries=3) automatically before raising InstructorRetryError.
+    extract_kwargs: dict[str, Any] = {}
+    if schema_class is not None:
+        extract_kwargs["response_model"] = schema_class
+        extract_kwargs["max_retries"] = 3
+
+    async def _extract_call(model: str) -> Any:
         async with trace_llm_call(db, model, "extract") as trace_ctx:
             response = await client.messages.create(
                 model=model,
@@ -113,31 +123,56 @@ async def extract(
                         ),
                     }
                 ],
+                **extract_kwargs,
             )
             trace_ctx.record_response(response)
         return response
 
-    response, model_used = await router.call_with_fallback(
-        operation="extract",
-        chain=settings.extraction_models,
-        call_fn=_extract_call,
-    )
-
-    raw_text = response.content[0].text
-
-    # Parse JSON from response
-    extracted = _parse_json_response(raw_text)
-    confidence = float(extracted.pop("_confidence", 0.5))
-
-    # Validate against Pydantic schema
-    outcome = validate_extraction(extracted, doc_type)
-    validation_stats.record(outcome.schema_valid)
-    if not outcome.schema_valid:
-        logger.warning(
-            "Schema validation failed for %s: %s",
-            doc_type,
-            outcome.validation_errors,
+    try:
+        response, model_used = await router.call_with_fallback(
+            operation="extract",
+            chain=settings.extraction_models,
+            call_fn=_extract_call,
         )
+    except Exception as e:
+        if type(e).__name__ == "InstructorRetryError":
+            logger.warning("instructor retry exhausted for %s: %s", doc_type, e)
+            return ExtractionResult(
+                data={},
+                confidence=0.0,
+                schema_valid=False,
+                validation_errors=[f"Instructor retry exhausted after 3 attempts: {e}"],
+            )
+        raise
+
+    # Instructor returns a Pydantic model directly when response_model is set;
+    # the raw API returns anthropic.types.Message (has .content).
+    # In tests, _bypass_instructor makes from_anthropic a no-op so response is
+    # always a mock Message — isinstance(BaseModel) is False, raw path is taken.
+    if isinstance(response, BaseModel):
+        extracted = response.model_dump()
+        confidence = float(extracted.pop("_confidence", 0.85))
+        raw_text = json.dumps(extracted)
+        schema_valid, validation_errors = True, []
+        validation_stats.record(True)
+    else:
+        raw_text = response.content[0].text
+
+        # Parse JSON from response
+        extracted = _parse_json_response(raw_text)
+        confidence = float(extracted.pop("_confidence", 0.5))
+
+        # Validate against Pydantic schema
+        outcome = validate_extraction(extracted, doc_type)
+        validation_stats.record(outcome.schema_valid)
+        schema_valid = outcome.schema_valid
+        validation_errors = outcome.validation_errors
+        if not outcome.schema_valid:
+            logger.warning(
+                "Schema validation failed for %s: %s",
+                doc_type,
+                outcome.validation_errors,
+            )
 
     # Pass 2: Correction if low confidence
     corrections_applied = False
@@ -155,8 +190,8 @@ async def extract(
         confidence=confidence,
         corrections_applied=corrections_applied,
         raw_response=raw_text,
-        schema_valid=outcome.schema_valid,
-        validation_errors=outcome.validation_errors,
+        schema_valid=schema_valid,
+        validation_errors=validation_errors,
         model_used=model_used,
     )
 

@@ -224,3 +224,12 @@ class LLMMetricsResponse(BaseModel):
     total_cost_usd: float
     by_model: list[ModelStats]
     by_operation: list[OperationStats]
+
+
+class BusinessMetricsResponse(BaseModel):
+    straight_through_rate: float
+    avg_cost_usd: float
+    p50_ms: float
+    p95_ms: float
+    docs_30d: int
+    hitl_escalation_rate: float

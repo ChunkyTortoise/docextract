@@ -13,6 +13,19 @@ from app.services.claude_extractor import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _bypass_instructor(monkeypatch):
+    """Patch instructor.from_anthropic to be an identity function.
+
+    All tests in this module mock AsyncAnthropic() and expect the returned
+    mock to be used directly as the client.  instructor.from_anthropic would
+    normally wrap that mock in its own object, breaking the mock setup.
+    This fixture makes from_anthropic a no-op so mock clients pass through.
+    """
+    import instructor as _instructor
+    monkeypatch.setattr(_instructor, "from_anthropic", lambda client, **kw: client)
+
+
 def _make_text_block(text: str) -> MagicMock:
     block = MagicMock()
     block.type = "text"
@@ -320,3 +333,78 @@ class TestExtractErrorHandling:
 
         with pytest.raises(anthropic.BadRequestError):
             await extract("test", "invoice")
+
+
+class TestInstructorIntegration:
+    """Tests for instructor typed extraction behaviour.
+
+    These tests patch the ``instructor`` module directly (rather than relying
+    on the autouse _bypass_instructor fixture) so they can control whether
+    instructor is active and what it returns.
+    """
+
+    @patch("app.services.claude_extractor.settings")
+    @patch("app.services.claude_extractor.AsyncAnthropic")
+    @patch("app.services.claude_extractor.instructor")
+    @pytest.mark.asyncio
+    async def test_response_model_kwarg_passed_when_schema_class_known(
+        self, mock_instructor, mock_cls, mock_settings
+    ):
+        """When a known doc_type has a schema, response_model is passed to create()."""
+        mock_settings.anthropic_api_key = "test-key"
+        mock_settings.extraction_confidence_threshold = 0.8
+        mock_settings.confidence_thresholds = {}
+        mock_settings.active_learning_enabled = False
+        mock_settings.extraction_models = ["claude-sonnet-4-6"]
+        mock_settings.circuit_breaker_failure_threshold = 5
+        mock_settings.circuit_breaker_recovery_seconds = 60.0
+
+        raw_client = MagicMock()
+        mock_cls.return_value = raw_client
+
+        # instructor.from_anthropic returns the same mock (transparent wrap)
+        mock_instructor.from_anthropic.return_value = raw_client
+
+        extracted_json = {"invoice_number": "INV-001", "_confidence": 0.95}
+        raw_client.messages.create = AsyncMock(return_value=_make_response(
+            [_make_text_block(json.dumps(extracted_json))]
+        ))
+
+        await extract("Invoice test", "invoice")
+
+        call_kwargs = raw_client.messages.create.call_args.kwargs
+        assert "response_model" in call_kwargs
+        assert call_kwargs["max_retries"] == 3
+
+    @patch("app.services.claude_extractor.settings")
+    @patch("app.services.claude_extractor.AsyncAnthropic")
+    @patch("app.services.claude_extractor.instructor")
+    @pytest.mark.asyncio
+    async def test_instructor_retry_exhausted_returns_schema_invalid(
+        self, mock_instructor, mock_cls, mock_settings
+    ):
+        """When instructor raises InstructorRetryError, schema_valid=False is returned."""
+        mock_settings.anthropic_api_key = "test-key"
+        mock_settings.extraction_confidence_threshold = 0.8
+        mock_settings.confidence_thresholds = {}
+        mock_settings.active_learning_enabled = False
+        mock_settings.extraction_models = ["claude-sonnet-4-6"]
+        mock_settings.circuit_breaker_failure_threshold = 5
+        mock_settings.circuit_breaker_recovery_seconds = 60.0
+
+        raw_client = MagicMock()
+        mock_cls.return_value = raw_client
+        mock_instructor.from_anthropic.return_value = raw_client
+
+        # Simulate instructor retry exhaustion
+        class InstructorRetryError(Exception):
+            pass
+
+        mock_instructor.exceptions.InstructorRetryError = InstructorRetryError
+        raw_client.messages.create = AsyncMock(side_effect=InstructorRetryError("3 retries"))
+
+        result = await extract("bad doc", "invoice")
+
+        assert result.schema_valid is False
+        assert result.confidence == 0.0
+        assert "retry exhausted" in result.validation_errors[0].lower()
