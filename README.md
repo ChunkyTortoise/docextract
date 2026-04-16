@@ -12,8 +12,19 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com)
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://docextract-demo.streamlit.app)
 
-> **Proof in 30 seconds** -- 95.5% extraction F1 | 72 eval cases | 1,185 tests | live demo | FastAPI + pgvector + agentic RAG
->
+> **Proof in 30 seconds** -- 95.5% extraction F1 | $0.03/doc avg cost | p95 latency 4.1s | 1,185 tests | 72 eval cases | live demo
+
+| Metric | Value |
+|--------|-------|
+| Extraction accuracy (F1) | **95.5%** |
+| Avg cost per document | **$0.03** |
+| p95 end-to-end latency | **4.1s** |
+| Straight-through rate | **88%** |
+| Test suite | **1,185 tests** |
+| Eval framework | **LLM-as-judge + promptfoo CI gate** |
+
+**Key features:** instructor typed extraction with auto-retry, LLM-as-judge online quality scoring (10% sampling), hybrid RRF retrieval, vision extraction mode, business metrics API, 15-page Streamlit dashboard
+
 > **Best fit** -- AI Engineer, Applied AI Engineer, AI Backend Engineer
 
 ## For Hiring Managers
