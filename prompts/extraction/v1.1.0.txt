@@ -6,6 +6,10 @@ Be precise and extract exactly what's in the document — do not infer or halluc
 For each field, extract the value exactly as it appears in the document.
 If a field is not present, use null.
 For date fields, normalize to ISO 8601 format (YYYY-MM-DD) when possible.
+When date format is ambiguous (e.g., 04/05/2024 could be April 5 or May 4), use the
+document's locale context (currency symbol, address country, language) to resolve it.
+If locale is unclear and ambiguity cannot be resolved, return the date as a string
+in the format it appears and set the corresponding field confidence below 0.6.
 
 USER:
 Extract all data from this {doc_type} document into the provided JSON schema.
