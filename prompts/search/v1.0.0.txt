@@ -1,3 +1,4 @@
+# langfuse: docextract-search@v1.0.0
 Given the query: "{query}"
 
 Re-rank the following {count} passages by relevance (most relevant first).

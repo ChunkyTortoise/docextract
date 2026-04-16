@@ -92,6 +92,18 @@ def setup_telemetry(app: "FastAPI") -> None:
     trace.set_tracer_provider(tracer_provider)
     _tracer = trace.get_tracer("docextract")
 
+    # ── Anthropic SDK auto-instrumentation ───────────────────────────────────
+    try:
+        from opentelemetry.instrumentation.anthropic import AnthropicInstrumentor
+
+        AnthropicInstrumentor().instrument()
+        logger.info("AnthropicInstrumentor enabled — Anthropic API spans captured")
+    except ImportError:
+        logger.warning(
+            "opentelemetry-instrumentation-anthropic not installed, "
+            "Anthropic spans disabled (pip install opentelemetry-instrumentation-anthropic)"
+        )
+
     # ── Meter provider + Prometheus export ───────────────────────────────────
     prometheus_reader = PrometheusMetricReader()
     meter_provider = MeterProvider(resource=resource, metric_readers=[prometheus_reader])

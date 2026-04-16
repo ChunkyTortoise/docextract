@@ -1,3 +1,4 @@
+# langfuse: docextract-classification@v1.0.0
 Analyze this document and classify it into one of these types:
 - invoice: A bill from a vendor requesting payment
 - purchase_order: A buyer's order requesting goods/services
