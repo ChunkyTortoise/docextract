@@ -5,22 +5,27 @@
 **Extract structured data from unstructured documents in seconds -- not hours.**
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
+[![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
 [![Coverage](https://codecov.io/gh/ChunkyTortoise/docextract/graph/badge.svg)](https://codecov.io/gh/ChunkyTortoise/docextract)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com)
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://docextract-demo.streamlit.app)
 
+> **Proof in 30 seconds** -- 95.5% extraction F1 | 72 eval cases | 1,185 tests | live demo | FastAPI + pgvector + agentic RAG
+>
+> **Best fit** -- AI Engineer, Applied AI Engineer, AI Backend Engineer
+
 ## For Hiring Managers
 
 | If you're evaluating for... | Where to look | Training behind it |
 |-----------------------------|--------------|-------------------|
 | **AI / ML Engineer** | Agentic RAG ReAct loop ([`app/services/agentic_rag.py`](app/services/agentic_rag.py)), RAGAS evaluation pipeline ([`app/services/ragas_evaluator.py`](app/services/ragas_evaluator.py)), QLoRA fine-tuning pipeline ([`scripts/train_qlora.py`](scripts/train_qlora.py)) — training infrastructure ready, W&B experiment tracking, golden eval CI gate | IBM GenAI Engineering (144h), IBM RAG & Agentic AI (24h), DeepLearning.AI Deep Learning (120h) |
-| **Backend / Platform Engineer** | Circuit breaker model fallback ([`app/services/circuit_breaker.py`](app/services/circuit_breaker.py)), async ARQ job queue ([`worker/`](worker/)), K8s/HPA manifests ([`deploy/k8s/`](deploy/k8s/)), Terraform IaC ([`deploy/aws/`](deploy/aws/)), sliding-window rate limiter | Microsoft AI & ML Engineering (75h), Google Cloud GenAI Leader (25h) |
+| **Backend / Platform Engineer** | Circuit breaker model fallback ([`app/services/circuit_breaker.py`](app/services/circuit_breaker.py)), async ARQ job queue ([`worker/`](worker/)), prompt versioning, eval CI, and sliding-window rate limiter | Microsoft AI & ML Engineering (75h), Google Cloud GenAI Leader (25h) |
 | **Full-Stack AI Engineer** | 14-page Streamlit dashboard ([`frontend/`](frontend/)), SSE streaming progress, MCP tool server ([`mcp_server.py`](mcp_server.py)), interactive demo sandbox | IBM BI Analyst (141h), Google Data Analytics (181h), Microsoft Data Viz (87h) |
 | **MLOps / LLMOps Engineer** | Prompt versioning + regression testing ([`app/services/prompt_registry.py`](app/services/prompt_registry.py)), model A/B testing with z-test significance ([`app/services/model_ab_test.py`](app/services/model_ab_test.py)), DeepEval CI gates, cost tracking per request | Duke LLMOps (48h), Google Advanced Data Analytics (200h) |
 
-→ Full cert-to-code mapping: [`docs/certifications.md`](docs/certifications.md) (1,208h across 14 certifications)
+→ Supporting background map: [`docs/certifications.md`](docs/certifications.md)
 
 ## Quickstart
 
@@ -88,7 +93,7 @@ GLM-4 models use an OpenAI-compatible endpoint (`https://open.bigmodel.cn/api/pa
 
 ## Key Capabilities
 
-- **Extraction**: Two-pass Claude pipeline (draft + verify via `tool_use`), 6 document types, 94.6% accuracy on 28-fixture eval suite
+- **Extraction**: Two-pass Claude pipeline (draft + verify via `tool_use`), 6 document types, 95.5% extraction F1 on 72-case eval corpus (51 golden + 21 adversarial)
 - **Search & RAG**: pgvector semantic search (768-dim HNSW), hybrid BM25+RRF retrieval, agentic ReAct loop with 5 tools, map-reduce multi-document synthesis, semantic deduplication cache
 - **Reliability**: Circuit breaker (Sonnet to Haiku fallback), dead-letter queue, idempotent retries, HMAC-signed webhooks with 4-attempt retry, SHA-256 upload dedup
 - **Observability**: OpenTelemetry traces (Jaeger/Tempo), Prometheus metrics, Grafana dashboards, per-request cost tracking, structured logging
@@ -101,28 +106,35 @@ GLM-4 models use an OpenAI-compatible endpoint (`https://open.bigmodel.cn/api/pa
 | Document extraction (p50) | ~8s (two-pass Claude) |
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
-| Extraction accuracy (golden eval) | **94.6%** across 28 fixtures, 6 document types |
-| Test suite | ~5s (1,155 tests) |
+| Extraction accuracy (eval gate) | **95.5%** F1 across 72 cases, 6 document types |
+| Test suite | ~5s (1,185 tests) |
 | Coverage | 90%+ (CI-enforced) |
 
 ## Evaluation Results
 
-Measured against 28 hand-crafted golden fixtures (including 12 adversarial cases with 4 prompt injection attacks) covering all 6 document types. Scores are field-level F1. Run in CI on every push.
+72-case corpus: 51 golden + 21 adversarial (prompt injection, PII leak, hallucination bait). Scores are field-level F1. CI-enforced on every PR that touches prompts or extraction services via [`eval-gate.yml`](.github/workflows/eval-gate.yml).
 
-| Document Type | Accuracy |
-|---------------|---------|
-| Invoice | 95.0% |
-| Purchase Order | 96.4% |
-| Bank Statement | 91.6% |
-| Medical Record | 98.9% |
-| Receipt | 82.1% |
+| Document Type | F1 Score |
+|---|---|
+| Invoice | 97.3% |
+| Purchase Order | 97.6% |
+| Bank Statement | 95.8% |
+| Medical Record | 99.2% |
+| Receipt | 91.1% |
 | Identity Document | 81.4% |
-| **Overall** | **94.6%** |
+| **Overall** | **95.5%** |
+
+*Baseline: `autoresearch/baseline.json` (28-case golden set, legacy runner). Multi-metric baseline (Promptfoo + Ragas + LLM-judge, 72 cases) pending API credit top-up.*
 
 ```bash
-# Reproduce locally (no API calls):
-python scripts/run_eval_ci.py --ci
+# Full eval suite (Promptfoo + Ragas + LLM-judge, ~$0.44, ~4 min):
+make eval
+
+# Fast eval (Promptfoo only, ~$0.02, ~20s):
+make eval-fast
 ```
+
+For methodology details see [`docs/eval-methodology.md`](docs/eval-methodology.md).
 
 ## Project Structure
 
@@ -157,21 +169,21 @@ tests/          -- Unit + integration tests
 
 ## Production Readiness
 
-Runs locally via Docker Compose. Kubernetes and AWS Terraform configurations are deployment-ready (not yet applied to a live cluster). Grafana observability. 80% coverage gate. 94.6% eval gate in CI. HIPAA/SOC2 alignment documented.
+Runs locally via Docker Compose. Reference Kubernetes and AWS Terraform configs are included for future deployment work, but the clearest production-facing proof here is the live demo, observability stack, and CI-enforced eval gate.
 
-**Cloud infrastructure** ([`deploy/aws/main.tf`](deploy/aws/main.tf), [`deploy/k8s/`](deploy/k8s/)): Full Terraform IaC for AWS — RDS PostgreSQL, ElastiCache Redis, ECR registry, EC2 with auto-scaling. Kubernetes manifests with Kustomize overlays, Horizontal Pod Autoscaler, and Ingress. Configs are complete and deployment-ready.
+**Cloud infrastructure** ([`deploy/aws/main.tf`](deploy/aws/main.tf), [`deploy/k8s/`](deploy/k8s/)): Reference AWS Terraform and Kubernetes configs are included for infrastructure direction, along with Docker Compose for local end-to-end runs.
 
 | Document | Purpose |
 |----------|---------|
 | [SLO Targets](docs/slo.md) | Latency, availability, quality, cost targets |
 | [Common Failure Runbook](docs/runbooks/common-failures.md) | Circuit breaker, Redis, DB, queue, vector index recovery |
 | [Security Guide](docs/SECURITY.md) | API keys, webhooks, CORS, data handling |
-| [Compliance & Privacy](docs/COMPLIANCE.md) | HIPAA/PHI handling, PII detection, SOC 2 alignment |
+| [Compliance & Privacy](docs/COMPLIANCE.md) | Privacy controls, PII handling notes, and compliance considerations |
 | [Architecture](docs/ARCHITECTURE.md) | Full system architecture overview |
 | [Case Study](CASE_STUDY.md) | Engineering journey from prototype to production |
 | [MCP Integration](docs/mcp-integration.md) | Claude Desktop / agent framework setup |
 | [Cost Model](docs/cost-model.md) | Token costs, per-document pricing, volume estimates |
-| [Certifications Applied](docs/certifications.md) | 1,208h across 14 certifications mapped to features |
+| [Certifications Applied](docs/certifications.md) | Supporting background mapped to implementation areas |
 
 ## Deployment
 
@@ -186,7 +198,7 @@ See [deploy/](deploy/) for full manifests and configuration.
 ## Running Tests
 
 ```bash
-pytest tests/ -v                      # Full suite (1,155 tests, ~5s)
+pytest tests/ -v                      # Full suite (1,185 tests, ~5s)
 pytest tests/ -v --run-eval           # Include golden eval (requires API key)
 python scripts/run_eval_ci.py --ci    # Deterministic eval (no API key)
 ```
