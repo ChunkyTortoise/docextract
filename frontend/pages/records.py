@@ -1,9 +1,10 @@
 """Screen 4: Records browser with filtering."""
 import os
-import streamlit as st
-import pandas as pd
-import frontend.api_client as api
 
+import pandas as pd
+import streamlit as st
+
+import frontend.api_client as api
 
 DOCUMENT_TYPES = ["All", "Invoice", "Purchase Order", "Receipt", "Bank Statement", "Identity Document", "Medical Record"]
 
@@ -103,7 +104,7 @@ def render() -> None:
 
         items = data.get("items", [])
         total = data.get("total", 0)
-        has_next = data.get("has_next", False)
+        has_next = data.get("has_next", False)  # noqa: F841
 
         st.caption(f"Showing {len(items)} of {total} records")
 

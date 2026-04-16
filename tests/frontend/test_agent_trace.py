@@ -8,10 +8,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch, call
-
-import pytest
-
+from unittest.mock import MagicMock, patch
 
 # ---------------------------------------------------------------------------
 # Stubs — must be set before any frontend import

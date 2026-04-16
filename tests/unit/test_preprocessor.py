@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
-from app.services.preprocessor import preprocess_image, preprocess_bytes
+
+from app.services.preprocessor import preprocess_bytes, preprocess_image
 
 
 def make_test_image(h: int = 100, w: int = 200, gray: bool = False) -> np.ndarray:

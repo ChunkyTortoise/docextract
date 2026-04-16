@@ -3,13 +3,15 @@ from __future__ import annotations
 
 import time
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+import streamlit as st
+
 import frontend.api_client as api
 from frontend.theme import PLOTLY_DARK
+
 try:
     from streamlit_extras.stylable_container import stylable_container as _stylable
     _HAS_EXTRAS = True
@@ -60,7 +62,7 @@ def _bucket_processing_times(times: list[float]) -> dict[str, int]:
 
 def _aggregate_daily_volume(jobs: list[dict], days: int = 30) -> dict[str, int]:
     """Count jobs per day for the last N days."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.now(UTC) - timedelta(days=days)
     counts: Counter[str] = Counter()
     for j in jobs:
         created = j.get("created_at")

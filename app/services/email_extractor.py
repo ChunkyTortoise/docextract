@@ -142,8 +142,8 @@ def extract_msg_file(data: bytes) -> ExtractedContent:
     if not HAS_EXTRACT_MSG:
         raise RuntimeError("extract-msg library is required for .msg files")
 
-    import tempfile
     import os
+    import tempfile
 
     # extract_msg needs a file path
     with tempfile.NamedTemporaryFile(suffix=".msg", delete=False) as tmp:
@@ -213,9 +213,9 @@ def _process_attachment(
             result = extract_pdf(payload)
             return result.text
         elif mime in _IMAGE_MIMES:
-            from app.services.preprocessor import preprocess_bytes
-            from app.services.image_extractor import extract_image
             from app.config import settings
+            from app.services.image_extractor import extract_image
+            from app.services.preprocessor import preprocess_bytes
 
             image = preprocess_bytes(payload)
             result = extract_image(image, engine=settings.ocr_engine)
@@ -227,8 +227,9 @@ def _process_attachment(
 
 def _guess_mime_from_filename(filename: str) -> str | None:
     """Guess MIME type from file extension."""
-    from app.utils.mime import ALLOWED_MIME_TYPES
     from pathlib import Path
+
+    from app.utils.mime import ALLOWED_MIME_TYPES
 
     ext = Path(filename).suffix.lower()
     return ALLOWED_MIME_TYPES.get(ext)

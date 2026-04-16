@@ -1,15 +1,15 @@
 """Tests for Claude extractor service."""
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 import json
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
-import pytest
 import anthropic
+import pytest
 
 from app.services.claude_extractor import (
     ExtractionResult,
+    _parse_json_response,
     apply_corrections,
     extract,
-    _parse_json_response,
 )
 
 
@@ -248,7 +248,7 @@ class TestExtractionResultSchemaValid:
     @patch("app.services.claude_extractor.AsyncAnthropic")
     @pytest.mark.asyncio
     async def test_extract_records_trace_in_memory(self, mock_anthropic_cls):
-        from app.services.llm_tracer import get_in_memory_traces, clear_in_memory_traces
+        from app.services.llm_tracer import clear_in_memory_traces, get_in_memory_traces
         clear_in_memory_traces()
         client = MagicMock()
         mock_anthropic_cls.return_value = client

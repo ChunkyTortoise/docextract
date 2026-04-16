@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.services.ingestion import UnsupportedMimeType, ingest
 from app.services.pdf_extractor import ExtractedContent
-from app.services.ingestion import ingest, UnsupportedMimeType
 
 
 def _mock_result(text: str = "extracted text") -> ExtractedContent:

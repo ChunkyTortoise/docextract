@@ -1,8 +1,7 @@
 """Unit tests for BM25 search service."""
 from __future__ import annotations
 
-import pytest
-from app.services.bm25 import build_index, search_bm25, _tokenize
+from app.services.bm25 import _tokenize, build_index, search_bm25
 
 
 class TestTokenize:

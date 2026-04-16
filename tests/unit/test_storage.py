@@ -17,7 +17,7 @@ def local_storage(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_upload_creates_file(local_storage, tmp_path):
-    path = await local_storage.upload("test/file.txt", b"hello world", "text/plain")
+    path = await local_storage.upload("test/file.txt", b"hello world", "text/plain")  # noqa: F841
     assert (tmp_path / "test" / "file.txt").exists()
     assert (tmp_path / "test" / "file.txt").read_bytes() == b"hello world"
 
@@ -86,8 +86,7 @@ async def test_upload_and_download_roundtrip(local_storage):
 @pytest.fixture
 def mock_r2_storage(monkeypatch):
     """Create an R2StorageBackend with mocked boto3 client."""
-    from unittest.mock import MagicMock, AsyncMock
-    import io
+    from unittest.mock import MagicMock
 
     mock_client = MagicMock()
     mock_settings = type("S", (), {

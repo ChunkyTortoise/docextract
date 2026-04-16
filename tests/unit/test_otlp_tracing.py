@@ -83,10 +83,11 @@ class TestOTLPSettings:
 
     def test_otlp_endpoint_defaults_empty(self):
         """Default is empty string — no span export unless explicitly configured."""
-        from app.config import settings
         # Default should be empty (no exporter) unless env var is set
         # In CI, OTEL_EXPORTER_OTLP_ENDPOINT is not set
         import os
+
+        from app.config import settings
         if "OTEL_EXPORTER_OTLP_ENDPOINT" not in os.environ:
             assert settings.otel_exporter_otlp_endpoint == ""
 

@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.services.finetune_exporter import FineTuneExporter, ExportStats
-
+from app.services.finetune_exporter import FineTuneExporter
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -28,7 +28,7 @@ def _make_correction(
     c.original_data = original_data if original_data is not None else {"total": "100.00", "vendor": "Acme"}
     c.corrected_data = corrected_data if corrected_data is not None else {"total": "150.00", "vendor": "Acme Corp"}
     c.corrected_fields = corrected_fields if corrected_fields is not None else ["total", "vendor"]
-    c.created_at = created_at or datetime(2026, 3, 20, tzinfo=timezone.utc)
+    c.created_at = created_at or datetime(2026, 3, 20, tzinfo=UTC)
     return c
 
 
@@ -170,12 +170,12 @@ class TestFiltering:
         c1 = _make_correction(
             record_id="rec-1",
             corrected_data={"total": "999.00"},
-            created_at=datetime(2026, 3, 20, tzinfo=timezone.utc),
+            created_at=datetime(2026, 3, 20, tzinfo=UTC),
         )
         c2 = _make_correction(
             record_id="rec-1",
             corrected_data={"total": "100.00"},
-            created_at=datetime(2026, 3, 19, tzinfo=timezone.utc),
+            created_at=datetime(2026, 3, 19, tzinfo=UTC),
         )
         corrections = [c1, c2]  # c1 is newer (ordered desc)
         db = _mock_db_with_corrections(corrections)

@@ -1,20 +1,17 @@
 """Tests for golden-fixture-based eval — no API calls."""
 from __future__ import annotations
 
-import json
 import pytest
-from pathlib import Path
-from unittest.mock import patch
 
 from autoresearch.eval import (
     CaseResult,
-    score_completeness,
     detect_hallucinations,
-    validate_response_format,
-    run_eval,
     load_dataset,
+    run_eval,
+    score_completeness,
+    validate_response_format,
 )
-from autoresearch.fixtures import load_golden_response, list_golden_cases
+from autoresearch.fixtures import list_golden_cases, load_golden_response
 
 
 class TestLoadGoldenResponse:

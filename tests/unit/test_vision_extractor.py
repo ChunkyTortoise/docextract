@@ -1,7 +1,6 @@
 """Unit tests for vision extraction service."""
 from __future__ import annotations
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -92,6 +91,7 @@ class TestExtractVision:
     @pytest.mark.asyncio
     async def test_sends_base64_encoded_image(self):
         import base64
+
         from app.services.vision_extractor import extract_vision
 
         mock_response = MagicMock()

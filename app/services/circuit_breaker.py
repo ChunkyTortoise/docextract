@@ -15,7 +15,6 @@ import asyncio
 import time
 from enum import Enum
 from types import TracebackType
-from typing import Optional
 
 
 class CircuitState(Enum):
@@ -52,7 +51,7 @@ class AsyncCircuitBreaker:
 
         self._state: CircuitState = CircuitState.CLOSED
         self._failure_count: int = 0
-        self._opened_at: Optional[float] = None
+        self._opened_at: float | None = None
         self._half_open_in_flight: int = 0
         self._lock = asyncio.Lock()
 
@@ -82,7 +81,7 @@ class AsyncCircuitBreaker:
     # Context manager
     # ------------------------------------------------------------------
 
-    async def __aenter__(self) -> "AsyncCircuitBreaker":
+    async def __aenter__(self) -> AsyncCircuitBreaker:
         async with self._lock:
             if self._state == CircuitState.OPEN:
                 if self._should_attempt_reset():
@@ -102,9 +101,9 @@ class AsyncCircuitBreaker:
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> bool:
         async with self._lock:
             if exc_type is None:

@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import pytest
-from app.services.validation_metrics import ValidationStats, ValidationSnapshot
+
+from app.services.validation_metrics import ValidationSnapshot, ValidationStats
 
 
 class TestValidationStats:

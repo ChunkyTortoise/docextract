@@ -1,12 +1,14 @@
 """Tests for demo mode data loader."""
 import json
 from pathlib import Path
+
 import pytest
+
 from frontend.demo_mode import (
+    list_demo_doc_types,
+    load_demo_eval,
     load_demo_extraction,
     load_demo_search,
-    load_demo_eval,
-    list_demo_doc_types,
 )
 
 

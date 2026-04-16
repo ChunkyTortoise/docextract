@@ -1,6 +1,6 @@
 """Job progress bar component with stage labels."""
+
 import streamlit as st
-from datetime import datetime, timezone
 
 STAGE_LABELS = {
     "queued": "Waiting in queue...",

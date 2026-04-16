@@ -5,13 +5,12 @@ import hashlib
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.observability import emit_llm_metrics  # noqa: E402 — circular-safe lazy import
 from app.langsmith_tracing import emit_rag_trace  # noqa: E402
+from app.observability import emit_llm_metrics  # noqa: E402 — circular-safe lazy import
 
 # In-memory store for test/eval mode
 _in_memory_traces: list[dict] = []
@@ -73,7 +72,7 @@ class TraceContext:
 
 @asynccontextmanager
 async def trace_llm_call(
-    db: "AsyncSession | None",
+    db: AsyncSession | None,
     model: str,
     operation: str,
     request_id: str | None = None,
@@ -111,9 +110,10 @@ async def trace_llm_call(
             _in_memory_traces.append(trace_data)
 
 
-async def _persist_trace(db: "AsyncSession", data: dict) -> None:
+async def _persist_trace(db: AsyncSession, data: dict) -> None:
     """Persist a trace to the database."""
     import uuid
+
     from app.models.llm_trace import LLMTrace
 
     try:

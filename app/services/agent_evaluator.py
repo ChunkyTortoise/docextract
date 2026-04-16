@@ -47,7 +47,7 @@ class AgentEvaluator:
 
     def evaluate(
         self,
-        result: "AgenticRAGResult",
+        result: AgenticRAGResult,
         *,
         expected_tools: list[str] | None = None,
         ground_truth_answer: str | None = None,
@@ -77,7 +77,7 @@ class AgentEvaluator:
 
     def evaluate_tool_selection(
         self,
-        result: "AgenticRAGResult",
+        result: AgenticRAGResult,
         expected_tools: list[str] | None = None,
     ) -> tuple[float, str]:
         """Score tool selection quality.
@@ -118,7 +118,7 @@ class AgentEvaluator:
 
     def evaluate_iteration_efficiency(
         self,
-        result: "AgenticRAGResult",
+        result: AgenticRAGResult,
         max_iterations: int = 3,
     ) -> tuple[float, str]:
         """Score iteration efficiency: fewer iterations = better, for same confidence."""
@@ -144,7 +144,7 @@ class AgentEvaluator:
 
     def evaluate_confidence_calibration(
         self,
-        result: "AgenticRAGResult",
+        result: AgenticRAGResult,
         ground_truth: str | None = None,
     ) -> tuple[float, str]:
         """Score confidence calibration.

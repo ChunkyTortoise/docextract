@@ -26,8 +26,8 @@ from app.schemas.extraction_models import (
 )
 
 if TYPE_CHECKING:
-    from pydantic import BaseModel
     from sqlalchemy.ext.asyncio import AsyncSession
+
     from app.services.classifier import Classifier
     from app.services.model_router import ModelRouter
 
@@ -58,8 +58,8 @@ class StructuredExtractor:
 
     def __init__(
         self,
-        model_router: "ModelRouter",
-        classifier: "Classifier | None" = None,
+        model_router: ModelRouter,
+        classifier: Classifier | None = None,
     ) -> None:
         self._router = model_router
         self._classifier = classifier
@@ -69,7 +69,7 @@ class StructuredExtractor:
         self,
         doc_id: str,
         doc_type: str | None = None,
-        db: "AsyncSession | None" = None,
+        db: AsyncSession | None = None,
     ) -> StructuredExtractionResponse:
         """Extract structured data from a single document.
 
@@ -143,7 +143,7 @@ class StructuredExtractor:
     async def extract_batch(
         self,
         doc_ids: list[str],
-        db: "AsyncSession | None" = None,
+        db: AsyncSession | None = None,
     ) -> BatchExtractionResult:
         """Extract from multiple documents in parallel using asyncio.gather + semaphore."""
         start = time.monotonic()
@@ -205,7 +205,7 @@ class StructuredExtractor:
         self,
         doc_id: str,
         doc_type: str | None,
-        db: "AsyncSession | None",
+        db: AsyncSession | None,
     ) -> tuple[str | None, str | None]:
         """Fetch raw_text and doc_type from the extracted records table.
 
@@ -217,9 +217,11 @@ class StructuredExtractor:
             # but the default path just returns not-found.
             return None, doc_type
 
-        from sqlalchemy import select
-        from app.models.record import ExtractedRecord
         import uuid as _uuid
+
+        from sqlalchemy import select
+
+        from app.models.record import ExtractedRecord
 
         try:
             doc_uuid = _uuid.UUID(doc_id)

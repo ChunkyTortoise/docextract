@@ -1,12 +1,11 @@
 """Tests for chunker service."""
-import pytest
 
 from app.services.chunker import (
     MAX_CHUNK_TOKENS,
     OVERLAP_CHARS,
-    chunk_text,
-    _split_on_page_markers,
     _split_if_oversized,
+    _split_on_page_markers,
+    chunk_text,
 )
 from app.utils.tokens import estimate_tokens
 

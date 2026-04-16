@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 _YAML_PATH = Path(__file__).parent.parent.parent / "autoresearch" / "prompts.yaml"
 
@@ -71,7 +70,7 @@ class PromptConfig:
     params: PromptParams = field(default_factory=PromptParams)
 
 
-def load_prompt_config(path: Optional[Path] = None) -> PromptConfig:
+def load_prompt_config(path: Path | None = None) -> PromptConfig:
     """Load prompt config from YAML, falling back to hardcoded defaults."""
     yaml_path = path or _YAML_PATH
     if not yaml_path.exists():

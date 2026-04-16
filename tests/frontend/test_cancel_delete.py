@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Streamlit sys.modules stub
 # ---------------------------------------------------------------------------
@@ -139,8 +138,9 @@ class TestProgressPageCancelButton:
 
     def _render_with_job(self, job_data: dict, st_stub: MagicMock) -> MagicMock:
         sys.modules["streamlit"] = st_stub
-        import frontend.pages.progress as mod
         import importlib
+
+        import frontend.pages.progress as mod
         importlib.reload(mod)
 
         mock_api = MagicMock()
@@ -215,8 +215,9 @@ class TestRecordsDeleteDemoGuard:
         item = {"id": "rec-1", "document_type": "invoice", "confidence_score": 0.95,
                 "needs_review": False, "review_status": "approved", "created_at": "2026-01-01"}
 
-        import frontend.pages.records as mod
         import importlib
+
+        import frontend.pages.records as mod
         importlib.reload(mod)
 
         mock_api = MagicMock()

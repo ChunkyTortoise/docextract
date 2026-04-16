@@ -1,12 +1,11 @@
 """Tests for image extractor with mocked OCR engines."""
-from unittest.mock import MagicMock, patch, PropertyMock
 import sys
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 
 from app.services.pdf_extractor import ExtractedContent
-
 
 # Create a mock pytesseract module so the image_extractor can import it
 _mock_pytesseract = MagicMock()
@@ -139,7 +138,7 @@ def test_tesseract_not_found_returns_empty() -> None:
     """
     from app.services.image_extractor import extract_image
 
-    _mock_pytesseract.image_to_data.side_effect = EnvironmentError("tesseract not found")
+    _mock_pytesseract.image_to_data.side_effect = OSError("tesseract not found")
 
     image = np.zeros((100, 200), dtype=np.uint8)
     result = extract_image(image, engine="tesseract")

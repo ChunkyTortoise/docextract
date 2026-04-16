@@ -1,9 +1,10 @@
 """Async HTTP client for DocExtract AI API."""
 from __future__ import annotations
 
+from typing import Any
+
 import httpx
 import streamlit as st
-from typing import Any
 
 
 def get_client() -> httpx.Client:

@@ -10,7 +10,6 @@ import argparse
 import json
 from pathlib import Path
 
-
 FIXTURES_DIR = Path(__file__).parent.parent / "tests" / "fixtures"
 
 # Minimal valid PDF (blank single page)

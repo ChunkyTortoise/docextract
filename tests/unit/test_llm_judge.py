@@ -8,7 +8,6 @@ import pytest
 
 from app.services.llm_judge import JudgeResult, LLMJudge, _parse_judge_json
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

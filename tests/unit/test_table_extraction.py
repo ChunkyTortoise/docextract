@@ -1,9 +1,6 @@
 """Tests for structured table extraction."""
 from __future__ import annotations
 
-import io
-import pytest
-
 
 class TestTableToStructured:
     def test_converts_table_to_dict(self):

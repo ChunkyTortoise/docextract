@@ -29,7 +29,6 @@ Output JSON:
 from __future__ import annotations
 
 import argparse
-import asyncio
 import datetime
 import json
 import os
@@ -53,7 +52,7 @@ def load_jsonl(path: Path) -> list[dict]:
     return cases
 
 
-def build_ragas_dataset(cases: list[dict]) -> "datasets.Dataset":
+def build_ragas_dataset(cases: list[dict]) -> datasets.Dataset:
     """
     Build a Ragas-compatible Dataset from our golden JSONL format.
 
@@ -138,7 +137,7 @@ def run_ragas_eval(cases: list[dict]) -> dict:
         return round(sum(vals) / len(vals), 4) if vals else 0.0
 
     return {
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+        "timestamp": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
         "case_count": len(cases),
         "metrics": {
             "faithfulness": safe_mean("faithfulness"),

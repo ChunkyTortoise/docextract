@@ -13,8 +13,9 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Any, AsyncIterator, Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 from sqlalchemy import desc, func, select

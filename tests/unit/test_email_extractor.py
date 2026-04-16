@@ -1,5 +1,5 @@
 """Tests for email extractor with sample EML data."""
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -18,9 +18,9 @@ def _make_eml(
     attachment_mime: str = "application/pdf",
 ) -> bytes:
     """Create a minimal EML message."""
+    import email.mime.base
     import email.mime.multipart
     import email.mime.text
-    import email.mime.base
 
     if attachment is not None or html:
         msg = email.mime.multipart.MIMEMultipart()
@@ -240,6 +240,7 @@ class TestExtractMsgFile:
     def _inject_extract_msg(self):
         """Inject a mock extract_msg module so extract_msg_file can run."""
         import sys
+
         import app.services.email_extractor as mod
 
         mock_module = MagicMock()

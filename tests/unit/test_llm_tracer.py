@@ -2,15 +2,16 @@
 from __future__ import annotations
 
 import asyncio
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock
 
 from app.services.llm_tracer import (
     TraceContext,
-    trace_llm_call,
-    hash_prompt,
-    get_in_memory_traces,
     clear_in_memory_traces,
+    get_in_memory_traces,
+    hash_prompt,
+    trace_llm_call,
 )
 
 

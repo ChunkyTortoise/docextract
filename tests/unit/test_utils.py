@@ -31,7 +31,7 @@ def test_config_imports() -> None:
 
 
 def test_hashing_imports() -> None:
-    from app.utils.hashing import hash_file, hash_api_key, verify_api_key
+    from app.utils.hashing import hash_api_key, hash_file, verify_api_key
     assert hash_file is not None
     assert hash_api_key is not None
     assert verify_api_key is not None

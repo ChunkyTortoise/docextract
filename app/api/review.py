@@ -1,7 +1,7 @@
 """Human-in-the-loop review queue endpoints."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, func, select, update
@@ -179,7 +179,7 @@ async def approve_review_item(
     item.validation_status = "approved"
     item.needs_review = False
     item.reviewed_by = actor
-    item.reviewed_at = datetime.now(timezone.utc)
+    item.reviewed_at = datetime.now(UTC)
 
     try:
         await _append_audit(
@@ -233,7 +233,7 @@ async def correct_review_item(
     item.validation_status = "corrected"
     item.needs_review = False
     item.reviewed_by = actor
-    item.reviewed_at = datetime.now(timezone.utc)
+    item.reviewed_at = datetime.now(UTC)
 
     # Store correction for active learning
     from app.config import settings
@@ -275,7 +275,7 @@ async def review_metrics(
     db: AsyncSession = Depends(get_db),
     api_key: APIKey = Depends(require_roles("operator")),
 ) -> dict:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     stale_cutoff = now - timedelta(hours=stale_after_hours)
     reviewed_cutoff = now - timedelta(hours=24)
 

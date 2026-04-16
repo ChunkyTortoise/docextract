@@ -65,7 +65,7 @@ test:
 	pytest -v
 
 lint:
-	ruff check app worker tests
+	ruff check app/ worker/ tests/ scripts/ frontend/
 
 # ── Kubernetes helpers ───────────────────────────────────────────────────────
 # Prerequisites: kubectl + kustomize installed, kubeconfig pointing at target cluster

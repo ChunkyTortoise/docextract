@@ -1,17 +1,15 @@
 """Unit tests for multi-document synthesis (map-reduce RAG)."""
 from __future__ import annotations
 
-import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from app.services.multi_doc_synthesizer import (
-    DocumentEvidence,
     MultiDocSynthesizer,
     SynthesisResult,
 )
 from app.services.rag_tools import RagTools, SearchResult
-
 
 # ---------------------------------------------------------------------------
 # Helpers

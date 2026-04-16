@@ -1,7 +1,7 @@
 """Statistics and dashboard data endpoint."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
@@ -65,7 +65,7 @@ async def get_stats(
     ).scalar() or 0
 
     # Jobs in the last 24 hours
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    cutoff = datetime.now(UTC) - timedelta(hours=24)
     jobs_last_24h = (
         await db.execute(
             select(func.count(ExtractionJob.id)).where(

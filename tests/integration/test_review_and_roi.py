@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -110,7 +110,7 @@ async def test_review_correct_conflict_claim(client: AsyncClient, db_session: As
 
 @pytest.mark.asyncio
 async def test_review_metrics_reports_sla_and_roi(client: AsyncClient, db_session: AsyncSession):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     stale_created_at = now - timedelta(hours=30)
     fresh_created_at = now - timedelta(hours=2)
 

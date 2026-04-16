@@ -17,9 +17,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
-
 
 # SROIE target fields for evaluation
 SROIE_FIELDS = ["company", "date", "address", "total"]

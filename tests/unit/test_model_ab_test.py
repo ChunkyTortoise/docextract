@@ -1,17 +1,13 @@
 """Tests for ModelABTest — deterministic routing and z-test significance."""
 from __future__ import annotations
 
-import math
 import uuid
 
-import pytest
-
 from app.services.model_ab_test import (
+    MIN_SAMPLE_SIZE,
     ABTestResult,
     ABTestVariant,
-    MIN_SAMPLE_SIZE,
     ModelABTest,
-    _erf_approx,
     _p_value_from_z,
 )
 

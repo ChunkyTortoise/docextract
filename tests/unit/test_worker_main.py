@@ -3,8 +3,7 @@ from __future__ import annotations
 
 import sys
 import uuid
-from datetime import datetime, timedelta, timezone
-from types import ModuleType
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -29,7 +28,7 @@ if "arq" not in sys.modules:
 
     class _FakeRedisSettings:
         @classmethod
-        def from_dsn(cls, url: str) -> "_FakeRedisSettings":
+        def from_dsn(cls, url: str) -> _FakeRedisSettings:
             return cls()
 
     class _FakeCronResult:
@@ -105,7 +104,7 @@ class TestRecoverStaleJobs:
         stale_job = MagicMock()
         stale_job.id = uuid.uuid4()
         stale_job.status = "processing"
-        stale_job.started_at = datetime.now(timezone.utc) - timedelta(seconds=600)
+        stale_job.started_at = datetime.now(UTC) - timedelta(seconds=600)
 
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = [stale_job]

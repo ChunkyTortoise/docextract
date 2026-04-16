@@ -1,8 +1,6 @@
 """Tests for document type schemas."""
 from datetime import date, datetime
 
-import pytest
-
 from app.schemas.document_types import (
     DOCUMENT_TYPE_MAP,
     BankStatementSchema,

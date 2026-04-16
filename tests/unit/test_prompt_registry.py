@@ -1,13 +1,11 @@
 """Unit tests for PromptRegistry — uses tmp_path for full isolation."""
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
 
 from app.services.prompt_registry import PromptRegistry
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

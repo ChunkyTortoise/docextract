@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from app.services.cost_tracker import (
-    COST_PER_1K_TOKENS,
     CostTracker,
     RequestCost,
 )

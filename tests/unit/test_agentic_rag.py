@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import json
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.services.rag_tools import RagTools, SearchResult
 from app.services.agentic_rag import AgenticRAG, AgenticRAGResult, ReasoningStep
-
+from app.services.rag_tools import RagTools, SearchResult
 
 # ---------------------------------------------------------------------------
 # Helpers

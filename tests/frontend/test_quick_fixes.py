@@ -6,12 +6,7 @@ via sys.modules before importing any frontend code.
 from __future__ import annotations
 
 import sys
-import types
 from unittest.mock import MagicMock, patch
-
-import httpx
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # Streamlit sys.modules stub — must happen before any frontend import
@@ -52,8 +47,9 @@ class TestSearchResultsParsing:
         sys.modules.pop("frontend.api_client", None)
         sys.modules["streamlit"] = st_stub
 
-        import frontend.pages.records as mod
         import importlib
+
+        import frontend.pages.records as mod
         importlib.reload(mod)
 
         mock_api = MagicMock()
@@ -95,11 +91,11 @@ class TestSearchResultsParsing:
     def test_empty_list_response_shows_info(self):
         """Empty list search result shows info message."""
         st = self._make_st()
-        mock_api = self._run_search([], st)
+        mock_api = self._run_search([], st)  # noqa: F841
         st.info.assert_called()
 
     def test_empty_dict_response_shows_info(self):
         """Empty dict items search result shows info message."""
         st = self._make_st()
-        mock_api = self._run_search({"items": []}, st)
+        mock_api = self._run_search({"items": []}, st)  # noqa: F841
         st.info.assert_called()

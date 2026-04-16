@@ -6,12 +6,10 @@ via sys.modules before importing any frontend code.
 from __future__ import annotations
 
 import sys
-import types
 from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Streamlit sys.modules stub — must happen before any frontend import
@@ -165,8 +163,9 @@ class TestBatchUploadPage:
         sys.modules["streamlit"] = st
 
         with patch.dict("os.environ", {"DEMO_MODE": "true"}):
-            import frontend.pages.batch_upload as mod
             import importlib
+
+            import frontend.pages.batch_upload as mod
             importlib.reload(mod)
             mod.render()
 
@@ -181,8 +180,9 @@ class TestBatchUploadPage:
         mock_api = MagicMock()
 
         with patch.dict("os.environ", {"DEMO_MODE": "false"}):
-            import frontend.pages.batch_upload as mod
             import importlib
+
+            import frontend.pages.batch_upload as mod
             importlib.reload(mod)
             with patch.object(mod, "api", mock_api):
                 with patch.object(mod, "display_progress", MagicMock()):
@@ -205,8 +205,9 @@ class TestBatchUploadPage:
         mock_api.get_job.return_value = job_data
 
         with patch.dict("os.environ", {"DEMO_MODE": "false"}):
-            import frontend.pages.batch_upload as mod
             import importlib
+
+            import frontend.pages.batch_upload as mod
             importlib.reload(mod)
             with patch.object(mod, "api", mock_api):
                 with patch.object(mod, "display_progress", MagicMock()):
@@ -229,8 +230,9 @@ class TestBatchUploadPage:
         mock_api.get_job.return_value = job_data
 
         with patch.dict("os.environ", {"DEMO_MODE": "false"}):
-            import frontend.pages.batch_upload as mod
             import importlib
+
+            import frontend.pages.batch_upload as mod
             importlib.reload(mod)
             with patch.object(mod, "api", mock_api):
                 with patch.object(mod, "display_progress", MagicMock()):

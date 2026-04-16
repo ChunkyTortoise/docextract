@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -14,12 +13,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from autoresearch.eval import CaseResult
 from scripts.run_eval_ci import (
     REGRESSION_TOLERANCE,
+    build_markdown_summary,
     check_regression,
     load_baseline,
     save_baseline,
-    build_markdown_summary,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

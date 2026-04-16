@@ -24,7 +24,7 @@ class BatchExtractionRequest(BaseModel):
     doc_ids: list[str]
 
 
-def _make_extractor() -> "object":
+def _make_extractor() -> object:
     from app.services.structured_extractor import StructuredExtractor
 
     model_router = ModelRouter(

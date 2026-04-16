@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import io
 import uuid
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -13,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.document import Document
 from app.models.job import ExtractionJob
 from app.models.record import ExtractedRecord
-
 
 # ---------------------------------------------------------------------------
 # Helpers

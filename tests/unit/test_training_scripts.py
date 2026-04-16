@@ -9,8 +9,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
+from scripts.eval_adapter import calculate_metrics, format_comparison_table, parse_ground_truth
+from scripts.train_dpo import build_dpo_pairs, validate_dpo_pairs
 from scripts.train_qlora import (
     LORA_CONFIG,
     QUANT_CONFIG,
@@ -20,9 +20,6 @@ from scripts.train_qlora import (
     load_registry,
     update_registry,
 )
-from scripts.train_dpo import build_dpo_pairs, validate_dpo_pairs
-from scripts.eval_adapter import calculate_metrics, format_comparison_table, parse_ground_truth
-
 
 # ---------------------------------------------------------------------------
 # JSONL file loading

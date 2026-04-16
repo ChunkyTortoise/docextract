@@ -6,13 +6,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from app.services.prompt_registry import PromptRegistry
 from app.services.prompt_regression import (
     PromptRegressionResult,
     PromptRegressionTester,
     _classify_changes,
 )
-from app.services.prompt_registry import PromptRegistry
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -92,7 +91,7 @@ class TestPromptRegressionTesterCompare:
         metrics = {"accuracy": 0.90}
         evaluator = _make_evaluator([metrics, metrics])
         tester = PromptRegressionTester(registry, evaluator)
-        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")
+        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")  # noqa: F841
         assert evaluator.run.call_count == 2
 
     @pytest.mark.asyncio
@@ -103,7 +102,7 @@ class TestPromptRegressionTesterCompare:
         )
         evaluator = _make_evaluator([{"accuracy": 0.90}, {"accuracy": 0.90}])
         tester = PromptRegressionTester(registry, evaluator)
-        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")
+        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")  # noqa: F841
         assert isinstance(result, PromptRegressionResult)
 
     @pytest.mark.asyncio
@@ -116,7 +115,7 @@ class TestPromptRegressionTesterCompare:
             [{"accuracy": 0.90}, {"accuracy": 0.87}]  # 3% drop
         )
         tester = PromptRegressionTester(registry, evaluator)
-        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")
+        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")  # noqa: F841
         assert len(result.regressions) == 1
         assert "accuracy" in result.regressions[0]
 
@@ -130,7 +129,7 @@ class TestPromptRegressionTesterCompare:
             [{"accuracy": 0.85}, {"accuracy": 0.89}]  # +4%
         )
         tester = PromptRegressionTester(registry, evaluator)
-        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")
+        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")  # noqa: F841
         assert len(result.improvements) == 1
         assert "accuracy" in result.improvements[0]
 
@@ -144,7 +143,7 @@ class TestPromptRegressionTesterCompare:
             [{"accuracy": 0.90}, {"accuracy": 0.90}]
         )
         tester = PromptRegressionTester(registry, evaluator)
-        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")
+        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")  # noqa: F841
         assert result.passed is True
 
     @pytest.mark.asyncio
@@ -157,7 +156,7 @@ class TestPromptRegressionTesterCompare:
             [{"accuracy": 0.92}, {"accuracy": 0.88}]  # -4% > threshold
         )
         tester = PromptRegressionTester(registry, evaluator)
-        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")
+        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")  # noqa: F841
         assert result.passed is False
         assert result.regressions
 
@@ -171,7 +170,7 @@ class TestPromptRegressionTesterCompare:
         candidate_m = {"accuracy": 0.91, "completeness": 0.86}
         evaluator = _make_evaluator([baseline_m, candidate_m])
         tester = PromptRegressionTester(registry, evaluator)
-        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")
+        result = await tester.compare("extraction", "v1.0.0", "v1.1.0")  # noqa: F841
         assert result.baseline_metrics == baseline_m
         assert result.metrics == candidate_m
 

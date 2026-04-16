@@ -8,7 +8,7 @@ import hmac
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 import redis.asyncio as aioredis
@@ -67,7 +67,7 @@ async def send_webhook(url: str, payload: dict, secret: str, webhook_id: str | N
     headers = {
         "Content-Type": "application/json",
         "X-Signature-256": signature,
-        "X-Timestamp": datetime.now(timezone.utc).isoformat(),
+        "X-Timestamp": datetime.now(UTC).isoformat(),
     }
 
     last_error: str = ""
@@ -106,7 +106,7 @@ async def _push_to_dlq(url: str, payload: dict, error: str, webhook_id: str | No
                 "endpoint": url,
                 "payload": payload,
                 "error": error,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "webhook_id": webhook_id,
             })
             await redis.rpush(DLQ_KEY, dlq_entry)

@@ -1,15 +1,16 @@
 """Tests for active learning correction store."""
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 class TestStoreCorrction:
     @pytest.mark.asyncio
     async def test_store_correction_computes_field_diff(self):
-        from app.services.correction_store import store_correction
         from app.models.correction import Correction
+        from app.services.correction_store import store_correction
 
         mock_db = AsyncMock()
         added_correction = None
@@ -66,8 +67,8 @@ class TestStoreCorrction:
 class TestGetFewShotExamples:
     @pytest.mark.asyncio
     async def test_returns_formatted_examples(self):
-        from app.services.correction_store import get_few_shot_examples
         from app.models.correction import Correction
+        from app.services.correction_store import get_few_shot_examples
 
         correction = Correction(
             id="c1",
@@ -128,7 +129,7 @@ class TestFewShotInjection:
     @pytest.mark.asyncio
     async def test_few_shot_examples_injected_when_enabled(self):
         """When ACTIVE_LEARNING_ENABLED=true, correction examples prefix the prompt."""
-        from unittest.mock import AsyncMock, MagicMock, patch
+        from unittest.mock import AsyncMock, MagicMock
 
         mock_response = MagicMock()
         mock_response.content = [MagicMock(text='{"total": "100", "_confidence": 0.90}')]

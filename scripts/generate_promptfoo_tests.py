@@ -41,7 +41,7 @@ def _critical_fields_js(case: dict) -> list[dict]:
                 f"  }} catch(e) {{ return false; }} "
                 f"}})()"
             )
-        elif isinstance(val, (int, float)):
+        elif isinstance(val, int | float):
             # Numeric: allow 1% tolerance
             low = round(val * 0.99, 4)
             high = round(val * 1.01, 4)

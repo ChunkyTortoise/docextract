@@ -4,8 +4,9 @@ from __future__ import annotations
 import os
 from datetime import date, timedelta
 
-import streamlit as st
 import plotly.graph_objects as go
+import streamlit as st
+
 import frontend.api_client as api
 from frontend.theme import PLOTLY_DARK
 

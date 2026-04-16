@@ -142,7 +142,9 @@ class RAGASEvaluator:
                 overall=None,
             )
 
-        contexts_text = "\n\n".join(f"[Context {i+1}]\n{c}" for i, c in enumerate(contexts))
+        contexts_text = "\n\n".join(  # noqa: F841
+            f"[Context {i+1}]\n{c}" for i, c in enumerate(contexts)
+        )
 
         recall: float | None = None
         if ground_truth:

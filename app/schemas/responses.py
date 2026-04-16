@@ -61,7 +61,7 @@ class RecordItem(BaseModel):
     created_at: datetime
 
 
-def record_item_from_db(r: "Any") -> "RecordItem":
+def record_item_from_db(r: Any) -> RecordItem:
     """Build a RecordItem from a DB ExtractedRecord, extracting guardrail metadata."""
     guardrails_data = (r.extracted_data or {}).get("_guardrails")
     guardrails = None

@@ -1,7 +1,7 @@
 """LLM metrics endpoint."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
@@ -30,7 +30,7 @@ async def get_llm_metrics(
     api_key: APIKey = Depends(get_api_key),
 ) -> LLMMetricsResponse:
     """Get aggregated LLM call metrics for the last N hours."""
-    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    since = datetime.now(UTC) - timedelta(hours=hours)
 
     result = await db.execute(
         select(LLMTrace).where(LLMTrace.created_at >= since)

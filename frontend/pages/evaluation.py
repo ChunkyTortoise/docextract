@@ -1,10 +1,11 @@
 """Evaluation Dashboard — RAGAS and LLM-judge metrics over time."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-import streamlit as st
 import plotly.graph_objects as go
+import streamlit as st
+
 from frontend.theme import PLOTLY_DARK
 
 # ---------------------------------------------------------------------------
@@ -26,7 +27,7 @@ def _generate_mock_runs(n: int = 10) -> list[dict]:
     import random
 
     random.seed(42)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     rows = []
     for i in range(n):
         run_ts = now - timedelta(days=n - i - 1)

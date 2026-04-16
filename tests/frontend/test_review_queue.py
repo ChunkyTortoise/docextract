@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Streamlit sys.modules stub
 # ---------------------------------------------------------------------------
@@ -161,8 +160,9 @@ class TestReviewPageRender:
 
     def _render(self, demo_mode: bool, mock_api: MagicMock, st_stub: MagicMock) -> None:
         sys.modules["streamlit"] = st_stub
-        import frontend.pages.review as mod
         import importlib
+
+        import frontend.pages.review as mod
         importlib.reload(mod)
         env = {"DEMO_MODE": "true" if demo_mode else "false"}
         with patch.dict("os.environ", env):

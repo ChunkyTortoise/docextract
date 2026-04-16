@@ -1,7 +1,6 @@
 """Tests for auth middleware — API key validation and rate limiting."""
 from __future__ import annotations
 
-import time
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -137,7 +136,6 @@ class TestAPIKeyModel:
 
     def test_rate_limit_default(self):
         """rate_limit_per_minute column has default=60."""
-        from sqlalchemy import inspect as sa_inspect
 
         col = APIKey.__table__.columns["rate_limit_per_minute"]
         assert col.default.arg == 60

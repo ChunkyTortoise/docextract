@@ -1,8 +1,6 @@
 """Tests for SROIE benchmark scoring logic."""
 from __future__ import annotations
 
-import pytest
-
 
 class TestNormalizeText:
     def test_lowercases(self):
@@ -80,7 +78,7 @@ class TestFieldScore:
 
 class TestScoreSingleDocument:
     def test_perfect_prediction_updates_scores(self):
-        from scripts.benchmark_sroie import score_single_document, FieldScore, SROIE_FIELDS
+        from scripts.benchmark_sroie import score_single_document
         field_scores: dict = {}
         score_single_document(
             {"company": "ACME", "date": "2024-01-01", "address": "123 Main St", "total": "50.00"},
@@ -123,7 +121,7 @@ class TestRunDryRun:
 
 class TestBenchmarkResultsTable:
     def test_format_table_has_headers(self):
-        from scripts.benchmark_sroie import run_dry_run, format_results_table
+        from scripts.benchmark_sroie import format_results_table, run_dry_run
         results = run_dry_run()
         table = format_results_table(results)
         assert "SROIE Benchmark" in table

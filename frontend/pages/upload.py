@@ -2,8 +2,8 @@
 import os
 
 import streamlit as st
-import frontend.api_client as api
 
+import frontend.api_client as api
 
 MIME_TYPES = {
     "application/pdf": "PDF",
@@ -47,7 +47,7 @@ def render() -> None:
         with col2:
             priority = st.selectbox("Priority", ["Normal", "High"], index=0)
 
-        webhook_url = st.text_input(
+        webhook_url = st.text_input(  # noqa: F841
             "Webhook URL (optional)",
             placeholder="https://your-server.com/webhook",
         )

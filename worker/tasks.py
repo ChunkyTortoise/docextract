@@ -1,15 +1,13 @@
 """ARQ worker task: orchestrates the full document processing pipeline."""
 from __future__ import annotations
 
-import logging
 import uuid
-
-import structlog
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
 import redis.asyncio as aioredis
+import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -59,11 +57,11 @@ async def process_document(ctx: dict[str, Any], job_id: str) -> dict[str, Any]:
 
 async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict[str, Any]:
     from app.dependencies import get_storage
+    from app.models.audit_log import AuditLog
     from app.models.document import Document
     from app.models.embedding import DocumentEmbedding
     from app.models.job import ExtractionJob
     from app.models.record import ExtractedRecord
-    from app.models.audit_log import AuditLog
     from app.models.validation_error import ValidationError as ValidationErrorModel
     from app.schemas.document_types import DOCUMENT_TYPE_MAP
     from app.services.classifier import classify
@@ -238,7 +236,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     ))
 
     # 10. Complete job
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     job.status = (
         JobStatus.NEEDS_REVIEW.value
         if validation_result.needs_review
@@ -285,10 +283,10 @@ async def _emit_page_events(
     redis: aioredis.Redis, job_id: str, text: str, total_pages: int
 ) -> None:
     """Emit EXTRACTING_PAGE SSE events for each page of a multi-page document."""
-    from worker.events import publish_event
-
     # Split text on page markers emitted by pdf_extractor (---PAGE N---)
     import re
+
+    from worker.events import publish_event
     page_pattern = re.compile(r"---PAGE \d+---")
     parts = page_pattern.split(text)
 
@@ -314,7 +312,7 @@ async def _update_job_status(db: AsyncSession, redis: aioredis.Redis, job: Any, 
     job.stage_detail = status.value
 
     if status == JobStatus.PREPROCESSING:
-        job.started_at = datetime.now(timezone.utc)
+        job.started_at = datetime.now(UTC)
 
     await db.flush()
     await publish_event(redis, str(job.id), {
@@ -335,7 +333,7 @@ async def _fail_job(db: AsyncSession, redis: aioredis.Redis, job_id: str, error:
         if job:
             job.status = JobStatus.FAILED.value
             job.error_message = error[:500]
-            job.completed_at = datetime.now(timezone.utc)
+            job.completed_at = datetime.now(UTC)
             await db.commit()
     except Exception as e:
         logger.error("Failed to update job failure status: %s", e)

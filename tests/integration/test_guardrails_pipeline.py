@@ -1,16 +1,14 @@
 """Integration tests: guardrails wired into extraction pipeline and API."""
 from __future__ import annotations
 
-import pytest
+from datetime import UTC
 
-from app.services.guardrails import GuardrailResult, PiiMatch, GroundingResult, run_guardrails
 from app.schemas.responses import (
     GuardrailPiiMatch,
     GuardrailSummary,
-    RecordItem,
     record_item_from_db,
 )
-
+from app.services.guardrails import run_guardrails
 
 # ── record_item_from_db helper ───────────────────────────────────────────────
 
@@ -27,9 +25,9 @@ class FakeRecord:
         self.confidence_score = kwargs.get("confidence_score", 0.95)
         self.needs_review = kwargs.get("needs_review", False)
         self.validation_status = kwargs.get("validation_status", "passed")
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        self.created_at = kwargs.get("created_at", datetime.now(timezone.utc))
+        self.created_at = kwargs.get("created_at", datetime.now(UTC))
 
 
 class TestRecordItemFromDb:

@@ -15,7 +15,6 @@ New JSONL schema:
 """
 
 import json
-import os
 import re
 import sys
 from pathlib import Path
@@ -64,7 +63,7 @@ def derive_ground_truth_contexts(input_text: str, expected: dict) -> list[str]:
     """
     contexts = []
     for key, val in expected.items():
-        if val is None or isinstance(val, (list, dict)):
+        if val is None or isinstance(val, list | dict):
             continue
         val_str = str(val).strip()
         if not val_str or val_str in ("null", "None", "unknown"):

@@ -1,8 +1,9 @@
 """Unit tests for the feedback collection endpoint and data models."""
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from pydantic import ValidationError
 
 _MOCK_API_KEY = MagicMock()  # stand-in for an authenticated APIKey instance
@@ -11,11 +12,10 @@ from app.api.feedback import (
     FeedbackRequest,
     FeedbackResponse,
     FeedbackSummary,
-    submit_feedback,
     get_feedback_summary,
     router,
+    submit_feedback,
 )
-
 
 # ---------------------------------------------------------------------------
 # FeedbackRequest validation
@@ -156,7 +156,7 @@ class TestSubmitFeedbackEndpoint:
             doc_type="invoice",
         )
 
-        result = await submit_feedback(request, db, api_key=_MOCK_API_KEY)
+        result = await submit_feedback(request, db, api_key=_MOCK_API_KEY)  # noqa: F841
 
         db.execute.assert_awaited_once()
         call_kwargs = db.execute.call_args
@@ -180,7 +180,7 @@ class TestSubmitFeedbackEndpoint:
         db = AsyncMock()
         request = FeedbackRequest(record_id="rec-123", rating="positive")
 
-        result = await submit_feedback(request, db, api_key=_MOCK_API_KEY)
+        result = await submit_feedback(request, db, api_key=_MOCK_API_KEY)  # noqa: F841
 
         assert isinstance(result, FeedbackResponse)
         assert result.status == "recorded"

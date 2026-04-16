@@ -1,17 +1,13 @@
 """Tests for output guardrails: PII detection and hallucination boundary checking."""
 from __future__ import annotations
 
-import pytest
-
 from app.services.guardrails import (
     GuardrailResult,
-    GroundingResult,
     HallucinationChecker,
     PiiDetector,
     PiiMatch,
     run_guardrails,
 )
-
 
 # ── PiiDetector ───────────────────────────────────────────────────────────────
 

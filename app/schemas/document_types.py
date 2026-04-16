@@ -4,7 +4,6 @@ No app.* imports — pure Pydantic.
 from __future__ import annotations
 
 from datetime import date, datetime
-from decimal import Decimal
 from enum import Enum
 from typing import Any
 
@@ -65,7 +64,7 @@ class InvoiceSchema(BaseModel):
     def parse_date(cls, v: Any) -> str | None:
         if v is None:
             return None
-        if isinstance(v, (date, datetime)):
+        if isinstance(v, date | datetime):
             return v.isoformat()[:10]
         return str(v)
 

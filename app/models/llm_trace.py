@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from sqlalchemy import (
-    Column, DateTime, Float, Index, Integer, String, Text
-)
+from sqlalchemy import Column, DateTime, Float, Index, Integer, String, Text
 
 from app.models.database import Base
 
@@ -30,7 +28,7 @@ class LLMTrace(Base):
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
     )
 
     __table_args__ = (

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -18,12 +18,12 @@ from app.models.executive_report import ExecutiveReport
 from app.models.job import ExtractionJob
 from app.models.record import ExtractedRecord
 from app.schemas.responses import (
-    ROISummaryResponse,
-    ROITrendsResponse,
     ReportGenerateResponse,
     ReportGetResponse,
     ReportListResponse,
     ReportMetadata,
+    ROISummaryResponse,
+    ROITrendsResponse,
 )
 
 router = APIRouter(tags=["roi"])
@@ -56,7 +56,7 @@ def _save_index(payload: dict) -> None:
 
 
 def _range(date_from: datetime | None, date_to: datetime | None) -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     end = date_to or now
     start = date_from or (end - timedelta(days=30))
     return start, end
@@ -245,7 +245,7 @@ async def generate_report(
                     [
                         "<html><head><title>DocExtract Executive Report</title></head><body>",
                         "<h1>DocExtract Executive Report</h1>",
-                        f"<p>Generated: {datetime.now(timezone.utc).isoformat()}</p>",
+                        f"<p>Generated: {datetime.now(UTC).isoformat()}</p>",
                         f"<pre>{json.dumps(summary, indent=2)}</pre>",
                         "</body></html>",
                     ]
@@ -277,7 +277,7 @@ async def generate_report(
     index = _load_index()
     index[report_id] = {
         "report_id": report_id,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "files": files,
         "from": start.isoformat(),
         "to": end.isoformat(),

@@ -50,7 +50,7 @@ def main() -> None:
     metric_lines = "\n".join(
         f"  • {k}: {v:.4f}" if isinstance(v, float) else f"  • {k}: {v}"
         for k, v in scores.items()
-        if k not in ("timestamp", "mode") and isinstance(v, (int, float))
+        if k not in ("timestamp", "mode") and isinstance(v, int | float)
     )
 
     text = (

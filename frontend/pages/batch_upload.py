@@ -3,9 +3,9 @@ import os
 import time
 
 import streamlit as st
+
 import frontend.api_client as api
 from frontend.components.progress_bar import display_progress
-
 
 TERMINAL_STATUSES = {"completed", "failed", "cancelled"}
 

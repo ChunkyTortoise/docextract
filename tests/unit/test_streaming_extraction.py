@@ -1,8 +1,9 @@
 """Tests for streaming page-by-page extraction events."""
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 
 class TestJobStatusEnum:
@@ -20,7 +21,6 @@ class TestJobStatusEnum:
 class TestEmitPageEvents:
     @pytest.mark.asyncio
     async def test_emits_one_event_per_page(self):
-        from app.schemas.events import JobStatus
         mock_redis = AsyncMock()
         published = []
 

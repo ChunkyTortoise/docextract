@@ -9,7 +9,6 @@ from app.services.email_extractor import extract_eml, extract_msg_file
 from app.services.image_extractor import extract_image
 from app.services.pdf_extractor import ExtractedContent, extract_pdf
 from app.services.preprocessor import preprocess_bytes
-from app.utils.mime import is_allowed_mime_type
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ IMAGE_MIME_TYPES = {
 }
 
 
-class UnsupportedMimeType(Exception):
+class UnsupportedMimeType(Exception):  # noqa: N818
     pass
 
 
@@ -49,6 +48,8 @@ def ingest(file_bytes: bytes, mime_type: str, filename: str) -> ExtractedContent
         if (settings.ocr_engine == "vision" or settings.vision_extraction_enabled):
             from app.services.vision_extractor import (
                 IMAGE_MIME_TYPES as VISION_MIME_TYPES,
+            )
+            from app.services.vision_extractor import (
                 extract_vision,
             )
             if mime_type in VISION_MIME_TYPES:

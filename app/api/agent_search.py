@@ -39,6 +39,7 @@ class AgentSearchRequest(BaseModel):
 def _build_agent(db: AsyncSession) -> AgenticRAG:
     """Construct an AgenticRAG instance with default wiring."""
     from anthropic import AsyncAnthropic
+
     from app.config import settings
     from app.services.model_router import ModelRouter
 

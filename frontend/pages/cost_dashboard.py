@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 import random
-from datetime import datetime, timedelta, timezone
 
 import plotly.graph_objects as go
 import streamlit as st
-from frontend.theme import PLOTLY_DARK
 
+from frontend.theme import PLOTLY_DARK
 
 # ---------------------------------------------------------------------------
 # Mock data helpers

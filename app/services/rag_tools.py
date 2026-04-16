@@ -38,8 +38,8 @@ class RagTools:
 
     def __init__(
         self,
-        db: "AsyncSession | None" = None,
-        anthropic_client: "AsyncAnthropic | None" = None,
+        db: AsyncSession | None = None,
+        anthropic_client: AsyncAnthropic | None = None,
     ) -> None:
         self._db = db
         self._anthropic_client = anthropic_client
@@ -60,9 +60,10 @@ class RagTools:
             return []
 
         from sqlalchemy import select
-        from app.services.embedder import embed
+
         from app.models.embedding import DocumentEmbedding
         from app.models.record import ExtractedRecord
+        from app.services.embedder import embed
 
         try:
             query_vector = await embed(query, db=self._db)
@@ -77,8 +78,6 @@ class RagTools:
                 .limit(top_k)
             )
             if doc_ids:
-                from sqlalchemy import cast
-                from sqlalchemy.dialects.postgresql import UUID as PGUUID
                 import uuid as uuid_mod
                 uuid_list = [uuid_mod.UUID(d) for d in doc_ids]
                 stmt = stmt.where(ExtractedRecord.document_id.in_(uuid_list))
@@ -119,9 +118,10 @@ class RagTools:
             logger.warning("search_bm25 called without DB session — returning empty")
             return []
 
-        from sqlalchemy import select, desc
-        from app.services.bm25 import build_index, search_bm25
+        from sqlalchemy import desc, select
+
         from app.models.record import ExtractedRecord
+        from app.services.bm25 import build_index, search_bm25
 
         try:
             stmt = (
@@ -235,9 +235,11 @@ class RagTools:
             logger.warning("lookup_metadata called without DB session")
             return {}
 
-        from sqlalchemy import select
-        from app.models.record import ExtractedRecord
         import uuid as uuid_mod
+
+        from sqlalchemy import select
+
+        from app.models.record import ExtractedRecord
 
         try:
             uid = uuid_mod.UUID(doc_id)
@@ -301,7 +303,8 @@ class RagTools:
             )
             raw = response.content[0].text.strip()
 
-            import json, re
+            import json
+            import re
             match = re.search(r"\[[\d,\s]+\]", raw)
             if not match:
                 return results

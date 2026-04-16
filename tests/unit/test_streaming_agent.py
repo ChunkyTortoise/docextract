@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from app.services.agentic_rag import (
     AgenticRAG,
@@ -12,7 +13,6 @@ from app.services.agentic_rag import (
     StreamEvent,
 )
 from app.services.rag_tools import RagTools, SearchResult
-
 
 # ---------------------------------------------------------------------------
 # Helpers (reused from test_agentic_rag.py)

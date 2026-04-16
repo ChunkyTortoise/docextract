@@ -1,10 +1,10 @@
 """Tests for classifier service."""
-from unittest.mock import AsyncMock, MagicMock, patch
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.classifier import ClassificationResult, classify, DOCUMENT_TYPES, CLASSIFY_TOOL
+from app.services.classifier import CLASSIFY_TOOL, DOCUMENT_TYPES, ClassificationResult, classify
 
 
 def _make_mock_response(doc_type: str, confidence: float, reasoning: str) -> MagicMock:
@@ -240,7 +240,7 @@ class TestClassifyToolUse:
     @patch("app.services.classifier.AsyncAnthropic")
     @pytest.mark.asyncio
     async def test_classify_records_in_memory_trace(self, mock_anthropic_cls):
-        from app.services.llm_tracer import get_in_memory_traces, clear_in_memory_traces
+        from app.services.llm_tracer import clear_in_memory_traces, get_in_memory_traces
         clear_in_memory_traces()
         client = MagicMock()
         mock_anthropic_cls.return_value = client

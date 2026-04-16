@@ -1,9 +1,9 @@
 """Tests for PDF extractor with mocked fitz/pdfplumber."""
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.services.pdf_extractor import extract_pdf, ExtractedContent
+from app.services.pdf_extractor import ExtractedContent, extract_pdf
 
 
 def _make_mock_page(text_blocks: list[tuple] | None = None) -> MagicMock:

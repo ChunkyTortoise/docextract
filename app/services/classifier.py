@@ -1,9 +1,8 @@
 """Document type classifier using Claude tool_use (with optional local LoRA adapter)."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
-from pathlib import Path
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import anthropic
@@ -78,7 +77,7 @@ class ClassificationResult:
     reasoning: str
 
 
-async def classify(text: str, db: "AsyncSession | None" = None) -> ClassificationResult:
+async def classify(text: str, db: AsyncSession | None = None) -> ClassificationResult:
     """Classify document type using Claude tool_use (or local LoRA adapter if enabled).
 
     When USE_LOCAL_ADAPTER=true: tries local adapter first; falls back to Claude if
@@ -175,7 +174,7 @@ def _get_best_adapter() -> dict[str, Any] | None:
         return None
 
 
-def _predict_with_adapter(text: str, adapter_entry: dict[str, Any]) -> "ClassificationResult | None":
+def _predict_with_adapter(text: str, adapter_entry: dict[str, Any]) -> ClassificationResult | None:
     """Run inference with a local LoRA adapter. Returns None on any failure."""
     try:
         import torch

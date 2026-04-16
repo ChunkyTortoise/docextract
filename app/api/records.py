@@ -1,7 +1,7 @@
 """Extracted records endpoints."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, desc, func, select
@@ -13,7 +13,7 @@ from app.models.api_key import APIKey
 from app.models.embedding import DocumentEmbedding
 from app.models.record import ExtractedRecord
 from app.schemas.requests import ReviewRequest
-from app.schemas.responses import PaginatedRecords, RecordItem, record_item_from_db
+from app.schemas.responses import PaginatedRecords, record_item_from_db
 
 router = APIRouter(prefix="/records", tags=["records"])
 
@@ -77,8 +77,8 @@ async def search_records(
     mode=bm25: pure BM25 text match
     mode=hybrid: RRF combination of vector + BM25 rankings
     """
-    from app.services.embedder import embed
     from app.services.bm25 import build_index, search_bm25
+    from app.services.embedder import embed
 
     if mode == "bm25":
         # Pure BM25: load all record texts, build index, search
@@ -186,7 +186,7 @@ async def review_record(
         raise HTTPException(404, "Record not found")
 
     record.validation_status = review.decision
-    record.reviewed_at = datetime.now(timezone.utc)
+    record.reviewed_at = datetime.now(UTC)
     record.reviewed_by = str(api_key.id)
     record.needs_review = False
 

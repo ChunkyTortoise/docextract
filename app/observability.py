@@ -23,6 +23,7 @@ from app.config import settings
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
+
     from app.services.llm_tracer import TraceContext
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ _langfuse: Any = None
 _CB_STATE_VALUES = {"closed": 0, "half_open": 1, "open": 2}
 
 
-def setup_telemetry(app: "FastAPI") -> None:
+def setup_telemetry(app: FastAPI) -> None:
     """Register OTel providers, mount /metrics, and configure OTLP span export.
 
     Safe to call when disabled — becomes a no-op. Import errors from missing
@@ -152,7 +153,7 @@ def setup_telemetry(app: "FastAPI") -> None:
     )
 
 
-def emit_llm_metrics(ctx: "TraceContext") -> None:
+def emit_llm_metrics(ctx: TraceContext) -> None:
     """Emit OTel metrics from a completed TraceContext.
 
     No-op when OTel is disabled or instruments are not yet initialized.

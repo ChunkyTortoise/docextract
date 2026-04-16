@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -96,7 +97,7 @@ class CostTracker:
             latency_ms=latency_ms,
         )
 
-    async def get_cost_summary(self, db: "AsyncSession", days: int = 7) -> dict:
+    async def get_cost_summary(self, db: AsyncSession, days: int = 7) -> dict:
         """Get cost summary from llm_traces table aggregated by model and operation.
 
         Queries the existing llm_traces table (populated by trace_llm_call) and
@@ -109,11 +110,11 @@ class CostTracker:
         Returns:
             Nested dict: {model: {operation: {total_cost, avg_cost, call_count}}}
         """
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
-        from sqlalchemy import select, text
+        from sqlalchemy import text
 
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
 
         # Fetch traces within the window that have token data
         stmt = text(
@@ -164,7 +165,7 @@ class CostTracker:
 
         return summary
 
-    async def get_model_comparison(self, db: "AsyncSession", days: int = 7) -> list[dict]:
+    async def get_model_comparison(self, db: AsyncSession, days: int = 7) -> list[dict]:
         """Compare cost vs latency across models for the same operations.
 
         Args:
@@ -174,11 +175,11 @@ class CostTracker:
         Returns:
             List of dicts with keys: model, operation, avg_cost, avg_latency, call_count.
         """
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         from sqlalchemy import text
 
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
 
         stmt = text(
             """

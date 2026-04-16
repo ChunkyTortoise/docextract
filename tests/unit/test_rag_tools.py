@@ -1,11 +1,11 @@
 """Unit tests for RagTools — each tool returns list[SearchResult] or dict."""
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.services.rag_tools import RagTools, SearchResult
+import pytest
 
+from app.services.rag_tools import RagTools, SearchResult
 
 # ---------------------------------------------------------------------------
 # Helpers

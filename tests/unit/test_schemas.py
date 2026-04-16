@@ -8,7 +8,7 @@ os.environ.setdefault("API_KEY_SECRET", "test-secret-key-that-is-32-chars!")
 
 
 def test_events_imports() -> None:
-    from app.schemas.events import JobEvent, JobStatus, JOB_STATUS_PROGRESS
+    from app.schemas.events import JOB_STATUS_PROGRESS, JobStatus
     assert JobStatus.QUEUED == "queued"
     assert JobStatus.COMPLETED == "completed"
     assert JOB_STATUS_PROGRESS[JobStatus.QUEUED] == 0
@@ -112,8 +112,8 @@ def test_models_import() -> None:
         AuditLog,
         Document,
         DocumentEmbedding,
-        ExtractionJob,
         ExtractedRecord,
+        ExtractionJob,
         ValidationError,
     )
     assert APIKey.__tablename__ == "api_keys"

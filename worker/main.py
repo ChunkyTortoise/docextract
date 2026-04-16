@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import redis.asyncio as aioredis
 from arq.connections import RedisSettings
@@ -47,7 +47,7 @@ async def recover_stale_jobs(redis: aioredis.Redis) -> None:
     from app.models.database import AsyncSessionLocal
     from app.models.job import ExtractionJob
 
-    stale_cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.job_timeout_seconds)
+    stale_cutoff = datetime.now(UTC) - timedelta(seconds=settings.job_timeout_seconds)
 
     async with AsyncSessionLocal() as db:
         result = await db.execute(

@@ -4,16 +4,11 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-import pytest
-from pydantic import ValidationError
-
 from app.schemas.extraction_models import (
     ContractExtraction,
     InvoiceExtraction,
-    LineItem,
     MedicalRecordExtraction,
     ReceiptExtraction,
-    ReceiptItem,
 )
 
 

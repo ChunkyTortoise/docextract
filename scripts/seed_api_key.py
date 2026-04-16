@@ -9,10 +9,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import secrets
-import sys
 import uuid
 
-from app.config import settings
 from app.models.database import AsyncSessionLocal
 from app.utils.hashing import hash_api_key
 

@@ -27,7 +27,7 @@ def _get_client() -> genai.Client:
     return genai.Client(api_key=settings.gemini_api_key)
 
 
-async def embed(text: str, db: "AsyncSession | None" = None) -> list[float]:
+async def embed(text: str, db: AsyncSession | None = None) -> list[float]:
     """Embed a single text string.
 
     Returns:
@@ -36,7 +36,7 @@ async def embed(text: str, db: "AsyncSession | None" = None) -> list[float]:
     from app.services.llm_tracer import trace_llm_call
 
     client = _get_client()
-    async with trace_llm_call(db, EMBEDDING_MODEL, "embed") as trace_ctx:
+    async with trace_llm_call(db, EMBEDDING_MODEL, "embed"):  # noqa: F841
         result = await client.aio.models.embed_content(
             model=EMBEDDING_MODEL,
             contents=[text[:MAX_CHARS]],
@@ -48,13 +48,13 @@ async def embed(text: str, db: "AsyncSession | None" = None) -> list[float]:
     return list(result.embeddings[0].values)
 
 
-async def embed_batch(texts: list[str], db: "AsyncSession | None" = None) -> list[list[float]]:
+async def embed_batch(texts: list[str], db: AsyncSession | None = None) -> list[list[float]]:
     """Embed multiple texts efficiently in batch."""
     from app.services.llm_tracer import trace_llm_call
 
     client = _get_client()
     truncated = [t[:MAX_CHARS] for t in texts]
-    async with trace_llm_call(db, EMBEDDING_MODEL, "embed") as trace_ctx:
+    async with trace_llm_call(db, EMBEDDING_MODEL, "embed"):  # noqa: F841
         result = await client.aio.models.embed_content(
             model=EMBEDDING_MODEL,
             contents=truncated,

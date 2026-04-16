@@ -12,7 +12,6 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-
 # ── PII patterns ──────────────────────────────────────────────────────────────
 
 _SSN_RE = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")

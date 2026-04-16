@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import io
 import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 from httpx import AsyncClient
@@ -14,7 +14,6 @@ from app.models.document import Document
 from app.models.job import ExtractionJob
 from app.models.record import ExtractedRecord
 
-
 # ---------------------------------------------------------------------------
 # 1a. embed() is awaited in search_records
 # ---------------------------------------------------------------------------
@@ -23,14 +22,16 @@ from app.models.record import ExtractedRecord
 async def test_search_records_awaits_embed():
     """Verify embed() is properly awaited (not called synchronously)."""
     import inspect
+
     from app.services.embedder import embed
 
     # embed must be a coroutine function (async def)
     assert inspect.iscoroutinefunction(embed), "embed must be async"
 
     # Verify the search_records endpoint code calls `await embed(q)`
-    from app.api.records import search_records
     import ast
+
+    from app.api.records import search_records
     source = inspect.getsource(search_records)
     tree = ast.parse(source)
     # Find any Await node whose value is a Call to 'embed'
@@ -60,7 +61,7 @@ async def test_roi_summary_uses_processing_time(client: AsyncClient, db_session:
         sha256_hash=uuid.uuid4().hex,
     ))
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # Job with known start/end: 10 seconds = 10000ms processing time
     db_session.add(ExtractionJob(
         id=str(uuid.uuid4()),

@@ -17,7 +17,6 @@ import datetime
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Allow running from repo root without installing the package
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -30,7 +29,6 @@ from autoresearch.eval import (
     model_comparison_table,
     run_eval,
 )
-from autoresearch.reporter import compare_runs, generate_report
 
 DATASET_PATH = Path(__file__).parent.parent / "autoresearch" / "eval_dataset.json"
 BASELINE_PATH = Path(__file__).parent.parent / "autoresearch" / "baseline.json"
@@ -43,7 +41,7 @@ REGRESSION_TOLERANCE: float = 0.02
 # Baseline I/O
 # ---------------------------------------------------------------------------
 
-def load_baseline(path: Path = BASELINE_PATH) -> Optional[dict]:
+def load_baseline(path: Path = BASELINE_PATH) -> dict | None:
     """Load baseline JSON. Returns None if file missing or invalid."""
     try:
         with open(path) as f:
@@ -68,7 +66,7 @@ def save_baseline(
     data = {
         "overall_score": round(overall_score, 6),
         "case_count": len(case_results),
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+        "timestamp": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
         "per_doc_type": {
             dt: {
                 "score": round(sum(v["scores"]) / len(v["scores"]), 4),
@@ -87,7 +85,7 @@ def save_baseline(
 
 def check_regression(
     current_score: float,
-    baseline_score: Optional[float],
+    baseline_score: float | None,
 ) -> tuple[bool, float]:
     """Return (passed, delta). Passed when current >= baseline - tolerance."""
     if baseline_score is None:
@@ -104,7 +102,7 @@ def check_regression(
 def build_markdown_summary(
     overall_score: float,
     case_results: list[CaseResult],
-    baseline_score: Optional[float],
+    baseline_score: float | None,
     passed: bool,
 ) -> str:
     """Build a markdown CI summary for stdout / GitHub step summary."""

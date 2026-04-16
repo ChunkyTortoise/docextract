@@ -206,7 +206,7 @@ def summarize(results: list[dict]) -> dict:
         avg_scores[field] = round(sum(vals) / len(vals), 2) if vals else 0.0
 
     return {
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+        "timestamp": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
         "case_count": len(results),
         "pass_count": len(passed),
         "fail_count": len(failed),

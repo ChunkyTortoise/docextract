@@ -190,7 +190,7 @@ def build_pr_comment(
 
     lines += [
         "",
-        f"_Mode: `{mode}` · {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M UTC')}_",
+        f"_Mode: `{mode}` · {datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%dT%H:%M UTC')}_",
     ]
     return "\n".join(lines)
 
@@ -223,7 +223,7 @@ def build_html_report(combined: dict, failures: list[dict]) -> str:
 </head>
 <body>
 <h1>DocExtract Eval Report <span class="badge">{status_text}</span></h1>
-<p>Generated: {datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")}</p>
+<p>Generated: {datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")}</p>
 <h2>Combined Metrics</h2>
 <table><tr><th>Metric</th><th>Value</th></tr>{rows}</table>
 {"<h2>Threshold Failures</h2><table><tr><th>Metric</th><th>Value</th><th>Reason</th></tr>" + fail_rows + "</table>" if failures else ""}
@@ -256,7 +256,7 @@ def main() -> None:
     combined.update(extract_promptfoo_metrics(promptfoo_data))
     combined.update(extract_baseline_metrics(baseline_data))  # extraction_f1 from existing baseline
 
-    combined["timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    combined["timestamp"] = datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
     combined["mode"] = args.mode
 
     if args.accept_baseline:
@@ -264,7 +264,7 @@ def main() -> None:
         new_baseline = dict(baseline_data or {})
         new_baseline.update({
             k: v for k, v in combined.items()
-            if k not in ("timestamp", "mode") and isinstance(v, (int, float))
+            if k not in ("timestamp", "mode") and isinstance(v, int | float)
         })
         new_baseline["timestamp"] = combined["timestamp"]
         args.baseline.write_text(json.dumps(new_baseline, indent=2))

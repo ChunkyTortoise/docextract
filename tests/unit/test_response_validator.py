@@ -1,9 +1,7 @@
 """Tests for response_validator service."""
 from __future__ import annotations
 
-import pytest
-
-from app.services.response_validator import validate_extraction, ValidationOutcome
+from app.services.response_validator import ValidationOutcome, validate_extraction
 
 
 class TestValidateExtractionInvoice:

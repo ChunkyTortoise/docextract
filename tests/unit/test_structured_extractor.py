@@ -19,7 +19,6 @@ from app.schemas.extraction_models import (
 )
 from app.services.structured_extractor import StructuredExtractor, _parse_json_from_text, _try_parse
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 
@@ -85,7 +85,7 @@ DEMO_EXTRACTED = [
 
 
 async def seed_demo() -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     created = 0
     skipped = 0
 

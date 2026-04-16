@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import pytest
-from unittest.mock import MagicMock
 
-from app.services.agent_evaluator import AgentEvaluator, AgentEvalResult
+from app.services.agent_evaluator import AgentEvalResult, AgentEvaluator
 from app.services.agentic_rag import AgenticRAGResult, ReasoningStep
-
 
 # ---------------------------------------------------------------------------
 # Helpers — build mock AgenticRAGResult without touching DB/LLM

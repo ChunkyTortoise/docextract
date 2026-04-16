@@ -17,6 +17,7 @@ class TestListTools:
     @pytest.mark.asyncio
     async def test_list_tools_returns_two_tools(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 
@@ -28,6 +29,7 @@ class TestListTools:
     @pytest.mark.asyncio
     async def test_extract_document_tool_has_required_file_url(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 
@@ -40,6 +42,7 @@ class TestListTools:
     @pytest.mark.asyncio
     async def test_search_records_tool_has_required_query(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 
@@ -51,6 +54,7 @@ class TestListTools:
     @pytest.mark.asyncio
     async def test_server_name_is_docextract(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 
@@ -61,6 +65,7 @@ class TestSearchRecords:
     @pytest.mark.asyncio
     async def test_search_returns_results(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 
@@ -87,6 +92,7 @@ class TestSearchRecords:
     @pytest.mark.asyncio
     async def test_search_caps_limit_at_100(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 
@@ -108,6 +114,7 @@ class TestSearchRecords:
     @pytest.mark.asyncio
     async def test_search_returns_text_content(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 
@@ -130,6 +137,7 @@ class TestExtractDocument:
     @pytest.mark.asyncio
     async def test_extract_polls_until_completed(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 
@@ -177,6 +185,7 @@ class TestExtractDocument:
     @pytest.mark.asyncio
     async def test_extract_raises_on_failed_job(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 
@@ -209,6 +218,7 @@ class TestExtractDocument:
     @pytest.mark.asyncio
     async def test_extract_raises_on_cancelled_job(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 
@@ -237,6 +247,7 @@ class TestExtractDocument:
     @pytest.mark.asyncio
     async def test_call_tool_unknown_raises(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 
@@ -246,6 +257,7 @@ class TestExtractDocument:
     @pytest.mark.asyncio
     async def test_extract_passes_doc_type_hint(self, mock_env):
         import importlib
+
         import mcp_server
         importlib.reload(mcp_server)
 

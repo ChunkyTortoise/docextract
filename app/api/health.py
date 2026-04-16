@@ -4,11 +4,10 @@ from __future__ import annotations
 import asyncio
 import uuid
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-
-import redis.asyncio as aioredis
 
 from app.dependencies import get_db, get_redis, get_storage
 from app.schemas.responses import HealthResponse

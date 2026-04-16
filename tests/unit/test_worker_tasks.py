@@ -3,13 +3,10 @@ from __future__ import annotations
 
 import sys
 import uuid
-from datetime import datetime, timezone
-from types import ModuleType
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-
 
 # ---- Stub out heavy optional dependencies before importing worker.tasks ----
 

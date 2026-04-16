@@ -112,7 +112,7 @@ def main() -> None:
         sys.exit(1)
 
     current = json.loads(args.scores.read_text())
-    current.setdefault("timestamp", datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"))
+    current.setdefault("timestamp", datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"))
 
     # Load history and append current sample
     history = load_history(DRIFT_HISTORY)

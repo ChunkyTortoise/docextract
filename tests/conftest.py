@@ -41,6 +41,8 @@ def _safe_uuid_bind_processor(self, dialect):  # type: ignore[override]
 
 _PG_UUID.bind_processor = _safe_uuid_bind_processor  # type: ignore[method-assign]
 
+from datetime import UTC
+
 from app.dependencies import get_arq_pool, get_db, get_redis, get_storage
 from app.models import APIKey  # noqa: F401
 from app.models.database import Base
@@ -53,7 +55,6 @@ TEST_API_KEY = "test-api-key-12345"
 
 def _patch_pg_types_for_sqlite():
     """Replace PostgreSQL-specific column types with SQLite-compatible ones."""
-    from sqlalchemy import Index
     from sqlalchemy.dialects.postgresql import JSONB
     from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
@@ -266,14 +267,14 @@ async def demo_client(db_session, test_redis, fake_storage, fake_arq_pool):
 async def seed_stale_review_items(db_session):
     """Factory: creates n_stale (>24h old) + n_fresh records with needs_review=True."""
     import uuid
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     from app.models.document import Document
     from app.models.job import ExtractionJob
     from app.models.record import ExtractedRecord
 
     async def _seed(n_stale: int, n_fresh: int) -> list[str]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         record_ids: list[str] = []
 
         for i in range(n_stale + n_fresh):

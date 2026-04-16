@@ -8,7 +8,6 @@ import pytest
 
 from app.services.ragas_evaluator import RAGASEvaluator, RAGASScores, _parse_score_json
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

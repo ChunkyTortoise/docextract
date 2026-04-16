@@ -42,6 +42,7 @@ class TestConfidenceThresholds:
         """Confidence 0.88 should trigger Pass 2 for identity_document (threshold 0.90)
         but NOT for receipt (threshold 0.75)."""
         from unittest.mock import AsyncMock, MagicMock, patch
+
         from app.config import Settings
 
         # Identity doc at 0.88 — below 0.90 threshold
@@ -79,7 +80,7 @@ class TestConfidenceThresholds:
             mock_validate.return_value = MagicMock(schema_valid=True, validation_errors=[])
 
             from app.services import claude_extractor
-            result = await claude_extractor.extract(
+            result = await claude_extractor.extract(  # noqa: F841
                 "John Smith DOB 1990-01-01", "identity_document", db=None
             )
             # corrections_applied may or may not be True depending on correction pass response
@@ -90,6 +91,7 @@ class TestConfidenceThresholds:
     async def test_high_confidence_receipt_skips_correction(self):
         """Confidence 0.78 should NOT trigger Pass 2 for receipt (threshold 0.75)."""
         from unittest.mock import AsyncMock, MagicMock, patch
+
         from app.config import Settings
 
         settings_obj = Settings(

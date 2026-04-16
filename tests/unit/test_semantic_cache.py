@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import time
+
 import numpy as np
 import pytest
 
-from app.services.semantic_cache import CacheResult, CacheStats, SemanticCache
-
+from app.services.semantic_cache import SemanticCache
 
 # ---------------------------------------------------------------------------
 # Helpers

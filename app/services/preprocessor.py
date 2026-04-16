@@ -1,8 +1,8 @@
 """Image preprocessing pipeline using OpenCV.
 No app.* imports - standalone module.
 """
-import numpy as np
 import cv2
+import numpy as np
 
 
 def preprocess_image(image: np.ndarray) -> np.ndarray:
@@ -24,7 +24,7 @@ def preprocess_image(image: np.ndarray) -> np.ndarray:
     deskewed = _deskew(gray)
 
     # Step 3: Adaptive threshold (binarization)
-    binary = cv2.adaptiveThreshold(
+    binary = cv2.adaptiveThreshold(  # noqa: F841
         deskewed,
         255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,

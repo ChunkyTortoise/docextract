@@ -13,12 +13,11 @@ Reuses the golden evaluation fixtures from the existing eval pipeline
 """
 from __future__ import annotations
 
-import os
 import json
+import os
 from pathlib import Path
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Golden dataset fixtures (cached, no API calls)
@@ -77,7 +76,7 @@ class TestSchemaConformance:
     def test_confidence_scores_in_range(self) -> None:
         """All confidence scores must be between 0.0 and 1.0."""
         for case in GOLDEN_CASES:
-            output = case.get("model_output") or case.get("output", {})
+            output = case.get("model_output") or case.get("output", {})  # noqa: F841
             if not output:
                 continue
             if isinstance(output, str):
@@ -100,7 +99,7 @@ class TestExtractionCompleteness:
         """No golden case should produce completely empty extraction."""
         empty_count = 0
         for case in GOLDEN_CASES:
-            output = case.get("model_output") or case.get("output", {})
+            output = case.get("model_output") or case.get("output", {})  # noqa: F841
             if not output:
                 empty_count += 1
         max_empty = max(1, len(GOLDEN_CASES) // 5)
@@ -135,7 +134,7 @@ class TestCitationGrounding:
 
         for case in GOLDEN_CASES:
             source_text = case.get("source_text", case.get("input", ""))
-            output = case.get("model_output") or case.get("output", {})
+            output = case.get("model_output") or case.get("output", {})  # noqa: F841
             expected = case.get("expected", {})
 
             if not source_text or not expected:

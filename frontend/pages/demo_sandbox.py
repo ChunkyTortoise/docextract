@@ -1,15 +1,15 @@
 """Interactive demo sandbox — works without API keys using cached results."""
 from __future__ import annotations
 
-import os
 import streamlit as st
+
 from frontend.demo_mode import (
-    load_demo_extraction,
-    load_demo_search,
-    load_demo_eval,
+    list_demo_doc_types,
     load_demo_agent_trace,
     load_demo_cost,
-    list_demo_doc_types,
+    load_demo_eval,
+    load_demo_extraction,
+    load_demo_search,
 )
 
 
@@ -56,7 +56,7 @@ def show() -> None:
     # --- Search tab ---
     with tab_search:
         st.subheader("Hybrid Semantic Search")
-        query = st.text_input(
+        query = st.text_input(  # noqa: F841
             "Search query",
             value="What is the total amount due on the invoice?",
         )

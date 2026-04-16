@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import json
-import pytest
 
 from autoresearch.eval import CaseResult
-from autoresearch.reporter import generate_report, compare_runs
+from autoresearch.reporter import compare_runs, generate_report
 
 
 def _make_results(n: int = 3) -> list[CaseResult]:

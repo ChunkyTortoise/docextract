@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -144,7 +144,7 @@ async def cancel_job(
         raise HTTPException(409, f"Job is already in terminal state: {job.status}")
 
     job.status = JobStatus.CANCELLED
-    job.completed_at = datetime.now(timezone.utc)
+    job.completed_at = datetime.now(UTC)
     await db.commit()
 
     # Publish cancellation SSE event

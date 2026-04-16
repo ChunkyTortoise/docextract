@@ -8,8 +8,9 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, AsyncIterator, Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel
 
@@ -102,7 +103,7 @@ CONFIDENCE_THRESHOLD = 0.8
 class AgenticRAG:
     """ReAct agent loop that orchestrates RagTools to answer questions."""
 
-    def __init__(self, tools: RagTools, model_router: "ModelRouter") -> None:
+    def __init__(self, tools: RagTools, model_router: ModelRouter) -> None:
         self._tools = tools
         self._router = model_router
 
@@ -262,6 +263,7 @@ class AgenticRAG:
     ) -> str:
         """Route an LLM call through ModelRouter for fallback support."""
         from anthropic import AsyncAnthropic
+
         from app.config import settings
 
         client = AsyncAnthropic(api_key=settings.anthropic_api_key)

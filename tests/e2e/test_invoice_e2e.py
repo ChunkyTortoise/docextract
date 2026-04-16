@@ -102,8 +102,9 @@ async def e2e_client(db_session, test_redis, fake_storage, fake_arq_pool):
     AsyncClient wired to the real FastAPI app with the same overrides used in
     integration tests, plus an e2e-specific API key seeded into the DB.
     """
-    from app.main import create_app
     from sqlalchemy import select
+
+    from app.main import create_app
 
     app = create_app()
 

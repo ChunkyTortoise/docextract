@@ -1,17 +1,13 @@
 """Two-pass Claude document extraction service."""
 from __future__ import annotations
 
-import asyncio
 import json
-import logging
 import re
-import time
-
-import structlog
 from dataclasses import dataclass, field
-from typing import Any, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import anthropic
+import structlog
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel
 
@@ -21,6 +17,7 @@ from app.services.prompt_config import config as prompt_config
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+
     from app.services.model_router import ModelRouter
 
 logger = structlog.get_logger(__name__)
@@ -66,8 +63,8 @@ CORRECTION_TOOL = {
 async def extract(
     text: str,
     doc_type: str,
-    schema_class: Type[BaseModel] | None = None,
-    db: "AsyncSession | None" = None,
+    schema_class: type[BaseModel] | None = None,
+    db: AsyncSession | None = None,
 ) -> ExtractionResult:
     """Two-pass Claude extraction.
 
@@ -198,8 +195,8 @@ async def _apply_corrections_pass(
     doc_type: str,
     original: dict[str, Any],
     confidence: float,
-    db: "AsyncSession | None" = None,
-    router: "ModelRouter | None" = None,
+    db: AsyncSession | None = None,
+    router: ModelRouter | None = None,
 ) -> tuple[dict[str, Any], bool]:
     """Pass 2: Use tool_use to correct low-confidence extractions."""
     from app.services.llm_tracer import trace_llm_call

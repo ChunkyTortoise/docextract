@@ -9,7 +9,7 @@ from app.auth.middleware import get_api_key
 from app.config import settings
 from app.dependencies import get_db
 from app.models.api_key import APIKey
-from app.services.agent_evaluator import AgentEvaluator, AgentEvalResult
+from app.services.agent_evaluator import AgentEvalResult, AgentEvaluator
 from app.services.agentic_rag import AgenticRAG, AgenticRAGResult
 
 router = APIRouter(tags=["agent-eval"])
@@ -44,6 +44,7 @@ async def evaluate_agent(
         )
 
     from anthropic import AsyncAnthropic
+
     from app.services.model_router import ModelRouter
     from app.services.rag_tools import RagTools
 

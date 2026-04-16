@@ -42,7 +42,6 @@ def test_get_best_adapter_empty_registry_returns_none(tmp_path):
 
 def test_get_best_adapter_prefers_all_type(tmp_path):
     import json
-    from datetime import datetime
 
     adapters = [
         {"doc_type": "invoice", "trained_at": "2026-03-01T00:00:00", "adapter_path": "/inv"},

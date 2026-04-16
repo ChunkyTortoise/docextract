@@ -5,10 +5,10 @@ Usage:
 """
 from __future__ import annotations
 
-import os
 import io
-from locust import HttpUser, task, between, events
+import os
 
+from locust import HttpUser, between, task
 
 # Minimal PDF fixture
 SAMPLE_PDF = b"""%PDF-1.4

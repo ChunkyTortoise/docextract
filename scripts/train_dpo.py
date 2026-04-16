@@ -36,7 +36,6 @@ from typing import Any
 from scripts.train_qlora import (
     ADAPTER_BASE,
     MODEL_ID,
-    REGISTRY_PATH,
     _wandb_enabled,
     load_jsonl_file,
     load_jsonl_url,

@@ -1,13 +1,11 @@
 """Tests for ModelRouter — fallback chain with circuit breaker integration."""
 from __future__ import annotations
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from anthropic import APIStatusError, RateLimitError
 
-from app.services.circuit_breaker import AsyncCircuitBreaker, CircuitOpenError
 from app.services.model_router import AllModelsUnavailableError, ModelRouter
 
 

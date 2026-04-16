@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import UTC
 from typing import TYPE_CHECKING, Any
 
 from app.config import settings
@@ -68,7 +69,7 @@ def setup_langsmith() -> None:
         _client = None
 
 
-def emit_rag_trace(ctx: "TraceContext", *, retrieval_scores: list[float] | None = None) -> None:
+def emit_rag_trace(ctx: TraceContext, *, retrieval_scores: list[float] | None = None) -> None:
     """Post a completed RAG step to LangSmith as a Run.
 
     No-op when LangSmith is disabled or the client is not initialized.
@@ -83,10 +84,10 @@ def emit_rag_trace(ctx: "TraceContext", *, retrieval_scores: list[float] | None 
 
     try:
         import uuid
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         run_type = _operation_to_run_type(ctx.operation)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         run_id = str(uuid.uuid4())
 
         inputs: dict[str, Any] = {

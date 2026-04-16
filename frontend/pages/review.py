@@ -2,8 +2,8 @@
 import os
 
 import streamlit as st
-import frontend.api_client as api
 
+import frontend.api_client as api
 
 DOCUMENT_TYPES = ["All", "Invoice", "Purchase Order", "Receipt", "Bank Statement", "Identity Document", "Medical Record"]
 QUEUE_STATUSES = ["All", "pending", "claimed", "approved", "rejected"]
@@ -31,7 +31,7 @@ def _review_record_form(record_id: str, demo_mode: bool) -> None:
 
         corrections = {}
         for key, value in current_data.items():
-            if key.startswith("_") or isinstance(value, (list, dict)):
+            if key.startswith("_") or isinstance(value, list | dict):
                 continue
             new_value = st.text_input(
                 key.replace("_", " ").title(),
@@ -243,7 +243,7 @@ def render() -> None:
                             extracted = item.get("extracted_data") or {}
                             corrections: dict = {}
                             for key, value in extracted.items():
-                                if key.startswith("_") or isinstance(value, (list, dict)):
+                                if key.startswith("_") or isinstance(value, list | dict):
                                     continue
                                 new_val = st.text_input(
                                     key.replace("_", " ").title(),

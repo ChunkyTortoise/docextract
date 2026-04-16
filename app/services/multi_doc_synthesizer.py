@@ -7,14 +7,13 @@ citations (reduce phase). Demonstrates concurrent LLM orchestration patterns.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import time
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-from app.services.rag_tools import RagTools, SearchResult
+from app.services.rag_tools import RagTools
 
 if TYPE_CHECKING:
     from app.services.model_router import ModelRouter
@@ -60,7 +59,7 @@ class MultiDocSynthesizer:
     def __init__(
         self,
         tools: RagTools,
-        model_router: "ModelRouter",
+        model_router: ModelRouter,
         concurrency: int = 3,
     ) -> None:
         self._tools = tools
@@ -158,6 +157,7 @@ class MultiDocSynthesizer:
     async def _call_llm(self, system: str, user: str, operation: str) -> str:
         """Route an LLM call through ModelRouter."""
         from anthropic import AsyncAnthropic
+
         from app.config import settings
 
         client = AsyncAnthropic(api_key=settings.anthropic_api_key)

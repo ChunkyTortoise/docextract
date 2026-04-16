@@ -16,13 +16,11 @@ Usage:
 """
 from __future__ import annotations
 
-import logging
 from collections.abc import Awaitable, Callable
-
-import structlog
-from typing import Any, TypeVar
+from typing import TypeVar
 
 import anthropic
+import structlog
 
 from app.services.circuit_breaker import AsyncCircuitBreaker, CircuitOpenError
 

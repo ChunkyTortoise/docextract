@@ -2,6 +2,7 @@
 import json
 
 import streamlit as st
+
 import frontend.api_client as api
 from frontend.components.json_viewer import display_extraction
 
