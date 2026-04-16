@@ -1,0 +1,53 @@
+# .claudeignore — tells Claude Code not to explore these paths
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+.ruff_cache/
+
+# Dependencies
+.venv/
+venv/
+env/
+
+# Lock files
+poetry.lock
+requirements.lock
+Pipfile.lock
+
+# Frontend (if present)
+node_modules/
+.next/
+
+# Vector store data (large binary blobs)
+*.faiss
+*.pkl
+*.pickle
+chroma_db/
+vector_store/
+
+# Document uploads and test fixtures
+uploads/
+tests/fixtures/
+*.pdf
+*.docx
+*.xlsx
+
+# Environment and secrets
+.env
+.env.*
+
+# Generated outputs
+output/
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/

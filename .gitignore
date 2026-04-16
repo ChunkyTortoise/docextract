@@ -20,3 +20,9 @@ research/
 
 # Streamlit local secrets
 frontend/.streamlit/secrets.toml
+
+# Ephemeral session notes (gitignored so Claude can write freely)
+NOTES.md
+
+# Eval artifacts (generated, not committed)
+eval_artifacts/

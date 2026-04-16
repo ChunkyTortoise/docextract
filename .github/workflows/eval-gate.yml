@@ -1,0 +1,156 @@
+name: eval-gate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "prompts/**"
+      - "app/services/claude_extractor.py"
+      - "app/services/classifier.py"
+      - "app/services/structured_extractor.py"
+      - "evals/**"
+      - "promptfooconfig.yaml"
+      - "scripts/eval_*.py"
+      - ".github/workflows/eval-gate.yml"
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 13 * * *" # 13:23 UTC daily drift check
+concurrency:
+  group: eval-gate-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  eval:
+    name: Eval Gate (Promptfoo + Ragas + LLM-judge)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # push updated baseline on main
+      pull-requests: write # comment PR diffs
+      issues: write # open drift issues from cron
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Python deps
+        run: pip install -r requirements_full.txt
+      - name: Install Promptfoo
+        run: npm install -g promptfoo@latest
+      - name: Create eval_artifacts dir
+        run: mkdir -p eval_artifacts
+      - name: Generate Promptfoo test cases from golden set
+        run: python scripts/generate_promptfoo_tests.py
+      - name: Cache golden fixtures
+        uses: actions/cache@v4
+        with:
+          path: eval_artifacts/cache
+          key: golden-${{ hashFiles('evals/golden_set.jsonl') }}
+      # ── Fast gate: Promptfoo (deterministic, no LLM calls for assertions) ──
+      - name: Run Promptfoo eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          promptfoo eval -c promptfooconfig.yaml \
+            --output eval_artifacts/promptfoo.json \
+            --output-format json || true
+          # 'true' prevents hard fail here — eval_gate.py enforces thresholds
+      # ── Ragas: RAG-specific metrics (faithfulness, relevancy, precision) ──
+      - name: Run Ragas eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_HOST: https://cloud.langfuse.com
+        run: |
+          python scripts/eval_ragas.py \
+            --golden evals/golden_set.jsonl \
+            --out eval_artifacts/ragas.json
+      # ── LLM-as-judge: open-ended quality rubric ──
+      - name: Run LLM-judge
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python scripts/eval_llm_judge.py \
+            --golden evals/golden_set.jsonl \
+            --adv \
+            --out eval_artifacts/llm_judge.json
+      # ── Gate: enforce floors + relative drop vs baseline ──
+      - name: Compare to baseline and enforce thresholds
+        id: gate
+        env:
+          GITHUB_OUTPUT: ${{ env.GITHUB_OUTPUT }}
+        run: |
+          python scripts/eval_gate.py \
+            --promptfoo eval_artifacts/promptfoo.json \
+            --ragas     eval_artifacts/ragas.json \
+            --judge     eval_artifacts/llm_judge.json \
+            --baseline  autoresearch/baseline.json \
+            --out       eval_artifacts/scores.json \
+            --report    eval_artifacts/eval_report.html \
+            --mode      ${{ github.event_name }}
+      - name: Upload eval artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report-${{ github.run_id }}
+          path: eval_artifacts/
+          retention-days: 90
+      - name: Comment PR with metric diff
+        if: github.event_name == 'pull_request' && always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: eval_artifacts/pr_comment.md
+      # ── Auto-bump baseline on main if metrics improved > 1% ──
+      - name: Update baseline on main
+        if: >
+          github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.gate.outputs.improved == 'true'
+
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add autoresearch/baseline.json
+          git commit -m "chore(eval): bump baseline to ${{ steps.gate.outputs.overall_score }} [skip ci]"
+          git push
+      # ── Drift detection (cron only) ──
+      - name: Append drift sample
+        if: github.event_name == 'schedule'
+        run: |
+          python scripts/eval_drift_record.py \
+            --scores eval_artifacts/scores.json \
+            || true  # don't fail CI if drift recorder is missing
+      - name: Open drift issue on anomaly
+        if: >
+          github.event_name == 'schedule' && steps.gate.outputs.drift_detected == 'true'
+
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const bodyPath = 'eval_artifacts/drift_issue.md';
+            const body = fs.existsSync(bodyPath)
+              ? fs.readFileSync(bodyPath, 'utf8')
+              : 'Drift detected — see eval artifacts for details.';
+            await github.rest.issues.create({
+              ...context.repo,
+              title: `Eval drift detected ${new Date().toISOString().slice(0, 10)}`,
+              labels: ['eval-drift', 'quality'],
+              body,
+            });
+      # ── Slack notification on PR eval failure ──
+      - name: Slack notify on failure
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_EVAL_WEBHOOK }}
+        run: |
+          python scripts/notify_slack.py \
+            --webhook  "$SLACK_WEBHOOK_URL" \
+            --author   "${{ github.event.pull_request.user.login }}" \
+            --pr       "${{ github.event.pull_request.html_url }}" \
+            --scores   eval_artifacts/scores.json \
+            || true  # don't fail CI if Slack webhook is not configured
