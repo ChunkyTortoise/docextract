@@ -249,6 +249,11 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     await db.commit()
 
+    # 10% LLM-judge quality sampling — fire-and-forget, non-blocking
+    if hash(job_id) % 10 == 0:
+        await redis.enqueue_job("judge_extraction_sample", job_id=job_id)
+        logger.debug("Enqueued LLM judge sampling for job %s", job_id)
+
     # Publish completion event
     await publish_event(redis, job_id, {
         "job_id": job_id,

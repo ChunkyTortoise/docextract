@@ -26,6 +26,7 @@ for _mod in [
     "sentence_transformers",
     "magic",
     "anthropic",
+    "instructor",
     "pgvector",
     "pgvector.sqlalchemy",
 ]:
