@@ -233,3 +233,11 @@ class BusinessMetricsResponse(BaseModel):
     p95_ms: float
     docs_30d: int
     hitl_escalation_rate: float
+
+
+class QualityTrendResponse(BaseModel):
+    days: int
+    ewma_composite: list[dict]        # [{date: str, score: float}]
+    per_dimension: dict[str, list[dict]]  # {dim: [{date, score}]}
+    escalation_rate: float
+    sample_count: int

@@ -13,6 +13,7 @@ ignore = ["E501"]
 "tests/integration/*" = ["N806"]
 "tests/unit/test_llm_tracer.py" = ["F841"]
 "scripts/eval_ragas.py" = ["F821"]
+"frontend/pages/15_Quality_Monitor.py" = ["N999"]
 
 [tool.mypy]
 python_version = "3.12"

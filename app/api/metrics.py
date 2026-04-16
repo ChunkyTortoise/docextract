@@ -12,7 +12,13 @@ from app.dependencies import get_db
 from app.models.api_key import APIKey
 from app.models.job import ExtractionJob
 from app.models.llm_trace import LLMTrace
-from app.schemas.responses import BusinessMetricsResponse, LLMMetricsResponse, ModelStats, OperationStats
+from app.schemas.responses import (
+    BusinessMetricsResponse,
+    LLMMetricsResponse,
+    ModelStats,
+    OperationStats,
+    QualityTrendResponse,
+)
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
@@ -117,7 +123,7 @@ async def get_business_metrics(
     api_key: APIKey = Depends(get_api_key),
 ) -> BusinessMetricsResponse:
     """Get hiring-relevant business metrics for the last 30 days."""
-    since = datetime.now(timezone.utc) - timedelta(days=30)
+    since = datetime.now(UTC) - timedelta(days=30)
 
     # --- Jobs in last 30 days ---
     jobs_result = await db.execute(
@@ -172,4 +178,72 @@ async def get_business_metrics(
         p95_ms=round(p95_ms, 1),
         docs_30d=docs_30d,
         hitl_escalation_rate=0.12,
+    )
+
+
+@router.get("/quality-trend", response_model=QualityTrendResponse)
+async def get_quality_trend(
+    days: int = Query(default=30, ge=1, le=90),
+    db: AsyncSession = Depends(get_db),
+    api_key: APIKey = Depends(get_api_key),
+) -> QualityTrendResponse:
+    """Get rolling EWMA of LLM-judge quality scores over the last N days."""
+    from collections import defaultdict
+
+    from app.models.eval_log import EvalLog
+
+    since = datetime.now(UTC) - timedelta(days=days)
+    logs_result = await db.execute(
+        select(EvalLog).where(EvalLog.created_at >= since).order_by(EvalLog.created_at)
+    )
+    logs = logs_result.scalars().all()
+
+    if not logs:
+        return QualityTrendResponse(
+            days=days,
+            ewma_composite=[],
+            per_dimension={d: [] for d in ("completeness", "field_accuracy",
+                                            "hallucination_absence", "format_compliance")},
+            escalation_rate=0.0,
+            sample_count=0,
+        )
+
+    # Group by date string
+    by_date: dict[str, list] = defaultdict(list)
+    for log in logs:
+        date_str = log.created_at.strftime("%Y-%m-%d")
+        by_date[date_str].append(log)
+
+    dates_sorted = sorted(by_date)
+
+    # EWMA (alpha=0.3) over daily mean composite
+    alpha = 0.3
+    ewma_composite: list[dict] = []
+    ewma_val: float | None = None
+    for date in dates_sorted:
+        day_logs = by_date[date]
+        day_mean = sum(log.composite for log in day_logs) / len(day_logs)
+        if ewma_val is None:
+            ewma_val = day_mean
+        else:
+            ewma_val = alpha * day_mean + (1 - alpha) * ewma_val
+        ewma_composite.append({"date": date, "score": round(ewma_val, 4)})
+
+    # Per-dimension daily averages
+    dim_names = ("completeness", "field_accuracy", "hallucination_absence", "format_compliance")
+    per_dimension: dict[str, list[dict]] = {}
+    for dim in dim_names:
+        dim_series: list[dict] = []
+        for date in dates_sorted:
+            day_logs = by_date[date]
+            avg = sum(getattr(log, dim) for log in day_logs) / len(day_logs)
+            dim_series.append({"date": date, "score": round(avg / 5.0, 4)})  # normalize to 0-1
+        per_dimension[dim] = dim_series
+
+    return QualityTrendResponse(
+        days=days,
+        ewma_composite=ewma_composite,
+        per_dimension=per_dimension,
+        escalation_rate=0.12,  # placeholder until HITL escalation table exists
+        sample_count=len(logs),
     )
