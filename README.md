@@ -149,9 +149,11 @@ app/
   utils/        -- Hashing, MIME detection, token counting
 worker/         -- ARQ async job processor
 frontend/       -- Streamlit 14-page dashboard
-alembic/        -- Database migrations (001-010)
-scripts/        -- Seed scripts (API keys, sample docs, cleanup)
-tests/          -- Unit + integration tests
+alembic/        -- Database migrations (001-012)
+scripts/        -- CLI tools: eval harness, training, seeding, Langfuse sync
+tests/          -- Unit, integration, frontend, e2e, and load tests
+evals/          -- Golden + adversarial eval corpus (72 cases)
+prompts/        -- Versioned prompt templates with CHANGELOG
 ```
 
 ## Architecture Decisions

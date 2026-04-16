@@ -69,6 +69,47 @@ autoresearch/fixtures/new_doc_001.json
 python -m autoresearch.eval --doc-type new_doc
 ```
 
+## Updating Prompts
+
+Prompts live in `prompts/<family>/vX.Y.Z.txt` and follow semver:
+
+- **Patch** (v1.0.1): wording tweaks, typo fixes, no behavior change
+- **Minor** (v1.1.0): new field handling, structural changes, model instructions
+- **Major** (v2.0.0): breaking schema changes (new required fields, removed fields)
+
+Never edit an existing version file in place. Always create a new version.
+
+### Workflow
+
+1. Create the new version file:
+   ```bash
+   cp prompts/extraction/v1.1.0.txt prompts/extraction/v1.2.0.txt
+   # edit v1.2.0.txt
+   ```
+
+2. Update `prompts/CHANGELOG.md` with the version, date, rationale, and eval delta table (required — the pre-commit hook blocks commits without it).
+
+3. Iterate with the fast eval loop:
+   ```bash
+   make eval-fast   # Promptfoo only, ~20s, no cost
+   make eval        # Full suite (Promptfoo + Ragas + LLM-judge), ~4 min, ~$0.44
+   ```
+
+4. Push and open a PR. The eval gate posts a before/after metric table as a sticky comment.
+
+5. On merge, sync the new prompt to Langfuse (once `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set):
+   ```bash
+   python scripts/sync_langfuse.py --family extraction --version 1.2.0 --label production
+   ```
+
+6. Create the git tag:
+   ```bash
+   git tag prompt/extraction-v1.2.0 -m "extraction v1.2.0: brief description"
+   git push origin prompt/extraction-v1.2.0
+   ```
+
+See `docs/eval-methodology.md` for the full design rationale and runbooks.
+
 ## CI Requirements
 
 All PRs must pass:
