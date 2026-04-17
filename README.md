@@ -33,7 +33,7 @@
 |-----------------------------|--------------|-------------------|
 | **AI / ML Engineer** | Agentic RAG ReAct loop ([`app/services/agentic_rag.py`](app/services/agentic_rag.py)), RAGAS evaluation pipeline ([`app/services/ragas_evaluator.py`](app/services/ragas_evaluator.py)), QLoRA fine-tuning pipeline ([`scripts/train_qlora.py`](scripts/train_qlora.py)) — training infrastructure ready, W&B experiment tracking, golden eval CI gate | IBM GenAI Engineering (144h), IBM RAG & Agentic AI (24h), DeepLearning.AI Deep Learning (120h) |
 | **Backend / Platform Engineer** | Circuit breaker model fallback ([`app/services/circuit_breaker.py`](app/services/circuit_breaker.py)), async ARQ job queue ([`worker/`](worker/)), prompt versioning, eval CI, and sliding-window rate limiter | Microsoft AI & ML Engineering (75h), Google Cloud GenAI Leader (25h) |
-| **Full-Stack AI Engineer** | 14-page Streamlit dashboard ([`frontend/`](frontend/)), SSE streaming progress, MCP tool server ([`mcp_server.py`](mcp_server.py)), interactive demo sandbox | IBM BI Analyst (141h), Google Data Analytics (181h), Microsoft Data Viz (87h) |
+| **Full-Stack AI Engineer** | 15-page Streamlit dashboard ([`frontend/`](frontend/)), SSE streaming progress, MCP tool server ([`mcp_server.py`](mcp_server.py)), interactive demo sandbox | IBM BI Analyst (141h), Google Data Analytics (181h), Microsoft Data Viz (87h) |
 | **MLOps / LLMOps Engineer** | Prompt versioning + regression testing ([`app/services/prompt_registry.py`](app/services/prompt_registry.py)), model A/B testing with z-test significance ([`app/services/model_ab_test.py`](app/services/model_ab_test.py)), DeepEval CI gates, cost tracking per request | Duke LLMOps (48h), Google Advanced Data Analytics (200h) |
 
 → Supporting background map: [`docs/certifications.md`](docs/certifications.md)
@@ -159,7 +159,7 @@ app/
   storage/      -- Pluggable storage backends (local, R2)
   utils/        -- Hashing, MIME detection, token counting
 worker/         -- ARQ async job processor
-frontend/       -- Streamlit 14-page dashboard
+frontend/       -- Streamlit 15-page dashboard
 alembic/        -- Database migrations (001-012)
 scripts/        -- CLI tools: eval harness, training, seeding, Langfuse sync
 tests/          -- Unit, integration, frontend, e2e, and load tests
