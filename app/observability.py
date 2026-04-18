@@ -142,6 +142,14 @@ def setup_telemetry(app: FastAPI) -> None:
             description="Cumulative USD saved by semantic cache",
             unit="USD",
         ),
+        "prompt_cache_read_tokens": _meter.create_counter(
+            "prompt_cache_read_tokens_total",
+            description="Tokens served from Anthropic prompt cache (cache hits)",
+        ),
+        "prompt_cache_creation_tokens": _meter.create_counter(
+            "prompt_cache_creation_tokens_total",
+            description="Tokens written to Anthropic prompt cache (cache creation)",
+        ),
     }
 
     metrics_app = make_asgi_app()
@@ -175,6 +183,17 @@ def emit_llm_metrics(ctx: TraceContext) -> None:
         _instruments["tokens"].add(
             ctx._output_tokens,
             attributes={"model": ctx.model, "direction": "output"},
+        )
+
+    if ctx._cache_read_tokens and "prompt_cache_read_tokens" in _instruments:
+        _instruments["prompt_cache_read_tokens"].add(
+            ctx._cache_read_tokens,
+            attributes={"model": ctx.model},
+        )
+    if ctx._cache_creation_tokens and "prompt_cache_creation_tokens" in _instruments:
+        _instruments["prompt_cache_creation_tokens"].add(
+            ctx._cache_creation_tokens,
+            attributes={"model": ctx.model},
         )
 
 

@@ -27,6 +27,16 @@
 
 > **Best fit** -- AI Engineer, Applied AI Engineer, AI Backend Engineer
 
+## What's New (April 2026)
+
+| Feature | ADR | Impact |
+|---------|-----|--------|
+| **Anthropic Prompt Caching** | [ADR-0015](docs/adr/0015-prompt-caching.md) | ~60% eval cost reduction; cache_creation_tokens tracked in OTel |
+| **Native Citations API** | [ADR-0016](docs/adr/0016-native-citations.md) | Character-level grounding for extracted fields — cite the exact source span |
+| **Independent LLM Judge (Gemini)** | [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Eliminates self-grading bias; Gemini 2.5 Flash primary, Claude Haiku fallback |
+| **TF-IDF Reranker** | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | Replaces no-op stub; combines TF-IDF cosine + retrieval RRF score |
+| **Agentic Self-Reflection** | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | Low-confidence extractions trigger a reflection + revise pass |
+
 ## For Hiring Managers
 
 | If you're evaluating for... | Where to look | Training behind it |
@@ -85,11 +95,11 @@ graph LR
 |-------|----------|---------|-------|
 | `claude-sonnet-4-6` | Anthropic | `ANTHROPIC_API_KEY` | Default extraction model |
 | `claude-haiku-4-5-20251001` | Anthropic | `ANTHROPIC_API_KEY` | Default classification + circuit breaker fallback |
-| `glm-4-plus` | Zhipu AI | `ZHIPUAI_API_KEY` | Chinese AI model, OpenAI-compatible API |
-| `glm-4-flash` | Zhipu AI | `ZHIPUAI_API_KEY` | Fast/cheap GLM variant |
+| `glm-4-plus` | Zhipu AI | `ZHIPUAI_API_KEY` | *(experimental — client adapter not yet shipped)* |
+| `glm-4-flash` | Zhipu AI | `ZHIPUAI_API_KEY` | *(experimental — client adapter not yet shipped)* |
 | Gemini (embedding) | Google | `GEMINI_API_KEY` | Used for pgvector embeddings only |
 
-GLM-4 models use an OpenAI-compatible endpoint (`https://open.bigmodel.cn/api/paas/v4/`). Configure via `EXTRACTION_MODELS` env var.
+GLM-4 client adapter is not yet implemented — remove from `EXTRACTION_MODELS` until the provider module ships.
 
 ## Screenshots
 
@@ -109,7 +119,7 @@ GLM-4 models use an OpenAI-compatible endpoint (`https://open.bigmodel.cn/api/pa
 - **Search & RAG**: pgvector semantic search (768-dim HNSW), hybrid BM25+RRF retrieval, agentic ReAct loop with 5 tools, map-reduce multi-document synthesis, semantic deduplication cache
 - **Reliability**: Circuit breaker (Sonnet to Haiku fallback), dead-letter queue, idempotent retries, HMAC-signed webhooks with 4-attempt retry, SHA-256 upload dedup
 - **Observability**: OpenTelemetry traces (Jaeger/Tempo), Prometheus metrics, Grafana dashboards, per-request cost tracking, structured logging
-- **Developer Experience**: SSE streaming progress, MCP server integration, prompt versioning (semver), model A/B testing (z-test), 12 ADRs, 90%+ test coverage
+- **Developer Experience**: SSE streaming progress, MCP server integration, prompt versioning (semver), model A/B testing (z-test), 19 ADRs, 90%+ test coverage
 
 ## Performance
 
@@ -170,7 +180,7 @@ prompts/        -- Versioned prompt templates with CHANGELOG
 
 ## Architecture Decisions
 
-12 Architecture Decision Records (ADRs) document the key design choices: [docs/adr/](docs/adr/)
+19 Architecture Decision Records (ADRs) document the key design choices: [docs/adr/](docs/adr/)
 
 | ADR | Decision |
 |-----|----------|
@@ -180,6 +190,10 @@ prompts/        -- Versioned prompt templates with CHANGELOG
 | [ADR-0006](docs/adr/0006-circuit-breaker-model-fallback.md) | Circuit breaker model fallback chain |
 | [ADR-0011](docs/adr/0011-api-key-auth-over-oauth-jwt.md) | API key auth over OAuth/JWT |
 | [ADR-0012](docs/adr/0012-pluggable-storage-local-r2.md) | Pluggable storage backend (Local/R2) |
+| [ADR-0015](docs/adr/0015-prompt-caching.md) | Anthropic prompt caching — 60%+ eval cost reduction |
+| [ADR-0016](docs/adr/0016-native-citations.md) | Native Citations API for character-level grounding |
+| [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Gemini 2.5 as independent judge (eliminates self-grading bias) |
+| [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | TF-IDF reranker + agentic self-reflection loop |
 
 ## Production Readiness
 

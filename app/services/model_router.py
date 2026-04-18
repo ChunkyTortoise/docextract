@@ -32,6 +32,7 @@ T = TypeVar("T")
 # 4xx client errors (BadRequestError, AuthenticationError, etc.) are NOT
 # transient — the same bad request will fail on any model, so we don't retry.
 def _is_transient(e: Exception) -> bool:
+    # Anthropic exceptions
     if isinstance(e, anthropic.RateLimitError):
         return True
     if isinstance(e, anthropic.APIConnectionError):
@@ -41,6 +42,17 @@ def _is_transient(e: Exception) -> bool:
     if isinstance(e, anthropic.APIStatusError):
         # Only retry on server errors (5xx), not client errors (4xx)
         return e.status_code >= 500
+    # Google Gemini exceptions (google-api-core)
+    try:
+        from google.api_core.exceptions import (
+            ResourceExhausted,
+            ServiceUnavailable,
+            DeadlineExceeded,
+        )
+        if isinstance(e, (ResourceExhausted, ServiceUnavailable, DeadlineExceeded)):
+            return True
+    except ImportError:
+        pass
     return False
 
 

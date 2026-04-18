@@ -197,7 +197,7 @@ class AgenticRAG:
             action_input["doc_ids"] = doc_ids
 
         # ---- ACT: execute the tool ----
-        tool_results, observation = await self._execute_tool(action, action_input)
+        tool_results, observation = await self._execute_tool(action, action_input, accumulated_results=state.accumulated_results)
 
         if tool_results:
             state.accumulated_results = _merge_results(state.accumulated_results, tool_results)
@@ -292,6 +292,7 @@ class AgenticRAG:
         self,
         action: str,
         action_input: dict,
+        accumulated_results: list[SearchResult] | None = None,
     ) -> tuple[list[SearchResult], str]:
         """Execute a named tool and return (results, observation_summary)."""
         query = str(action_input.get("query", ""))
@@ -312,9 +313,22 @@ class AgenticRAG:
                 observation = f"Metadata for {doc_id}: {json.dumps(meta)}"
                 return [], observation
             elif action == "rerank_results":
-                # Rerank happens on existing accumulated results — caller should pass them
-                # For the agent loop we skip this as a standalone action (no-op here)
-                results = []
+                # Rerank accumulated results using TF-IDF cross-score
+                if accumulated_results:
+                    from app.services.reranker import TFIDFReranker
+                    reranker = TFIDFReranker(alpha=float(action_input.get("alpha", 0.4)))
+                    results = reranker.rerank(
+                        query=query,
+                        results=list(accumulated_results),
+                        top_k=top_k,
+                    )
+                    observation = (
+                        f"Reranked {len(results)} results by TF-IDF cross-score. "
+                        + (f"Top result score: {results[0].score:.3f}" if results else "No results.")
+                    )
+                    return results, observation
+                else:
+                    results = []
             else:
                 logger.warning("Unknown tool action: %s", action)
                 results = []

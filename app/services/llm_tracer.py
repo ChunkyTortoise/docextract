@@ -30,14 +30,18 @@ class TraceContext:
     _retries: int = 0
     _status: str = "success"
     _error_message: str | None = None
+    _cache_creation_tokens: int | None = None
+    _cache_read_tokens: int | None = None
 
     def record_response(self, response: Any) -> None:
-        """Extract token counts from Anthropic/Gemini response."""
+        """Extract token counts and cache stats from Anthropic response."""
         try:
             usage = getattr(response, "usage", None)
             if usage:
                 self._input_tokens = getattr(usage, "input_tokens", None)
                 self._output_tokens = getattr(usage, "output_tokens", None)
+                self._cache_creation_tokens = getattr(usage, "cache_creation_input_tokens", None)
+                self._cache_read_tokens = getattr(usage, "cache_read_input_tokens", None)
         except Exception:
             pass
 
@@ -67,6 +71,8 @@ class TraceContext:
             "retries": self._retries,
             "status": self._status,
             "error_message": self._error_message,
+            "cache_creation_tokens": self._cache_creation_tokens,
+            "cache_read_tokens": self._cache_read_tokens,
         }
 
 
