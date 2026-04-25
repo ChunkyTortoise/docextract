@@ -12,7 +12,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com)
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://docextract-demo.streamlit.app)
 
-> **Proof in 30 seconds** -- 95.5% extraction F1 | $0.03/doc avg cost | p95 latency 4.1s | 1,185 tests | 72 eval cases | live demo
+> **Proof in 30 seconds** -- 95.5% extraction F1 | $0.03/doc avg cost | p95 latency 4.1s | 1,253 tests | 74 eval cases | live demo
 
 | Metric | Value |
 |--------|-------|
@@ -20,7 +20,7 @@
 | Avg cost per document | **$0.03** |
 | p95 end-to-end latency | **4.1s** |
 | Straight-through rate | **88%** |
-| Test suite | **1,185 tests** |
+| Test suite | **1,253 tests** |
 | Eval framework | **LLM-as-judge + promptfoo CI gate** |
 
 **Key features:** instructor typed extraction with auto-retry, LLM-as-judge online quality scoring (10% sampling), hybrid RRF retrieval, vision extraction mode, business metrics API, 15-page Streamlit dashboard
@@ -95,11 +95,7 @@ graph LR
 |-------|----------|---------|-------|
 | `claude-sonnet-4-6` | Anthropic | `ANTHROPIC_API_KEY` | Default extraction model |
 | `claude-haiku-4-5-20251001` | Anthropic | `ANTHROPIC_API_KEY` | Default classification + circuit breaker fallback |
-| `glm-4-plus` | Zhipu AI | `ZHIPUAI_API_KEY` | *(experimental — client adapter not yet shipped)* |
-| `glm-4-flash` | Zhipu AI | `ZHIPUAI_API_KEY` | *(experimental — client adapter not yet shipped)* |
 | Gemini (embedding) | Google | `GEMINI_API_KEY` | Used for pgvector embeddings only |
-
-GLM-4 client adapter is not yet implemented — remove from `EXTRACTION_MODELS` until the provider module ships.
 
 ## Screenshots
 
@@ -115,7 +111,7 @@ GLM-4 client adapter is not yet implemented — remove from `EXTRACTION_MODELS` 
 
 ## Key Capabilities
 
-- **Extraction**: Two-pass Claude pipeline (draft + verify via `tool_use`), 6 document types, 95.5% extraction F1 on 72-case eval corpus (51 golden + 21 adversarial)
+- **Extraction**: Two-pass Claude pipeline (draft + verify via `tool_use`), 6 document types, 95.5% extraction F1 on 74-case eval corpus (52 golden + 22 adversarial)
 - **Search & RAG**: pgvector semantic search (768-dim HNSW), hybrid BM25+RRF retrieval, agentic ReAct loop with 5 tools, map-reduce multi-document synthesis, semantic deduplication cache
 - **Reliability**: Circuit breaker (Sonnet to Haiku fallback), dead-letter queue, idempotent retries, HMAC-signed webhooks with 4-attempt retry, SHA-256 upload dedup
 - **Observability**: OpenTelemetry traces (Jaeger/Tempo), Prometheus metrics, Grafana dashboards, per-request cost tracking, structured logging
@@ -128,13 +124,13 @@ GLM-4 client adapter is not yet implemented — remove from `EXTRACTION_MODELS` 
 | Document extraction (p50) | ~8s (two-pass Claude) |
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
-| Extraction accuracy (eval gate) | **95.5%** F1 across 72 cases, 6 document types |
-| Test suite | ~5s (1,185 tests) |
+| Extraction accuracy (eval gate) | **95.5%** F1 across 74 cases, 6 document types |
+| Test suite | ~5s (1,253 tests) |
 | Coverage | 90%+ (CI-enforced) |
 
 ## Evaluation Results
 
-72-case corpus: 51 golden + 21 adversarial (prompt injection, PII leak, hallucination bait). Scores are field-level F1. CI-enforced on every PR that touches prompts or extraction services via [`eval-gate.yml`](.github/workflows/eval-gate.yml).
+74-case corpus: 52 golden + 22 adversarial (prompt injection, PII leak, hallucination bait). Scores are field-level F1. CI-enforced on every PR that touches prompts or extraction services via [`eval-gate.yml`](.github/workflows/eval-gate.yml).
 
 | Document Type | F1 Score |
 |---|---|
@@ -146,7 +142,7 @@ GLM-4 client adapter is not yet implemented — remove from `EXTRACTION_MODELS` 
 | Identity Document | 81.4% |
 | **Overall** | **95.5%** |
 
-*Baseline: `autoresearch/baseline.json` (28-case golden set, legacy runner). Multi-metric baseline (Promptfoo + Ragas + LLM-judge, 72 cases) pending API credit top-up.*
+*Baseline: `autoresearch/baseline.json` (28-case golden set, legacy runner).*
 
 ```bash
 # Full eval suite (Promptfoo + Ragas + LLM-judge, ~$0.44, ~4 min):
@@ -226,7 +222,7 @@ See [deploy/](deploy/) for full manifests and configuration.
 ## Running Tests
 
 ```bash
-pytest tests/ -v                      # Full suite (1,185 tests, ~5s)
+pytest tests/ -v                      # Full suite (1,253 tests, ~5s)
 pytest tests/ -v --run-eval           # Include golden eval (requires API key)
 python scripts/run_eval_ci.py --ci    # Deterministic eval (no API key)
 ```
