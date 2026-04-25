@@ -183,10 +183,14 @@ def _predict_with_adapter(text: str, adapter_entry: dict[str, Any]) -> Classific
 
         adapter_path = adapter_entry["adapter_path"]
         base_model = adapter_entry.get("base_model", "mistralai/Mistral-7B-Instruct-v0.2")
+        base_revision = adapter_entry.get("base_revision", "main")
 
-        tokenizer = AutoTokenizer.from_pretrained(base_model)
+        tokenizer = AutoTokenizer.from_pretrained(base_model, revision=base_revision)
         model = AutoModelForCausalLM.from_pretrained(
-            base_model, torch_dtype=torch.float16, device_map="auto"
+            base_model,
+            revision=base_revision,
+            torch_dtype=torch.float16,
+            device_map="auto",
         )
         model = PeftModel.from_pretrained(model, adapter_path)
         model.eval()

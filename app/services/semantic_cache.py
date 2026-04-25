@@ -125,7 +125,8 @@ class SemanticCache:
     ) -> str:
         """Store a new cache entry. Returns the cache_id."""
         cache_id = hashlib.md5(
-            json.dumps(embedding[:16], default=str).encode()
+            json.dumps(embedding[:16], default=str).encode(),
+            usedforsecurity=False,
         ).hexdigest()[:12]
 
         entry = CacheEntry(

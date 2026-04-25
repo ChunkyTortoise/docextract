@@ -17,7 +17,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import datetime
-import json
 import os
 import sys
 import time
@@ -87,6 +86,7 @@ def _compute_cost(row: dict, model: str) -> float:
 
 async def run_bench(model: str, iterations: int, doc_type: str) -> list[dict]:
     from anthropic import AsyncAnthropic
+
     from app.services.prompt_config import config as prompt_config
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -135,24 +135,24 @@ def _format_report(results: list[dict], model: str, doc_type: str) -> str:
 
     lines = [
         f"# Prompt Caching Benchmark — {doc_type}",
-        f"",
+        "",
         f"Model: `{model}` | Date: {datetime.date.today()} | Iterations: {len(results)}",
-        f"",
-        f"## Summary",
-        f"",
-        f"| Metric | Value |",
-        f"|--------|-------|",
+        "",
+        "## Summary",
+        "",
+        "| Metric | Value |",
+        "|--------|-------|",
         f"| Cold call cost | ${cold['cost_usd']:.5f} |",
         f"| Avg warm call cost | ${avg_warm_cost:.5f} |",
         f"| Warm cache hit rate | {len(warm)}/{len(results)-1} calls |",
         f"| Total cost (with cache) | ${total_cost_with_cache:.4f} |",
         f"| Total cost (no cache baseline) | ${total_cost_no_cache:.4f} |",
         f"| **Cost reduction** | **{savings_pct:.1f}%** |",
-        f"",
-        f"## Per-Iteration Results",
-        f"",
-        f"| Iter | Input Tokens | Cache Create | Cache Read | Latency ms | Cost USD |",
-        f"|------|-------------|-------------|-----------|-----------|---------|",
+        "",
+        "## Per-Iteration Results",
+        "",
+        "| Iter | Input Tokens | Cache Create | Cache Read | Latency ms | Cost USD |",
+        "|------|-------------|-------------|-----------|-----------|---------|",
     ]
     for r in results:
         lines.append(

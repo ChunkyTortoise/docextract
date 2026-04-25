@@ -45,11 +45,11 @@ def _is_transient(e: Exception) -> bool:
     # Google Gemini exceptions (google-api-core)
     try:
         from google.api_core.exceptions import (
+            DeadlineExceeded,
             ResourceExhausted,
             ServiceUnavailable,
-            DeadlineExceeded,
         )
-        if isinstance(e, (ResourceExhausted, ServiceUnavailable, DeadlineExceeded)):
+        if isinstance(e, ResourceExhausted | ServiceUnavailable | DeadlineExceeded):
             return True
     except ImportError:
         pass

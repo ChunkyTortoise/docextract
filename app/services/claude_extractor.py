@@ -360,7 +360,7 @@ async def _ground_with_citations(
     doc_type: str,
     extracted: dict[str, Any],
     model: str,
-    db: "AsyncSession | None" = None,
+    db: AsyncSession | None = None,
 ) -> CitationGrounding:
     """Run a citation-grounding pass using Anthropic's native Citations API.
 
@@ -370,7 +370,7 @@ async def _ground_with_citations(
     from app.services.llm_tracer import trace_llm_call
 
     # Only ground the top-level string/number fields (skip nested/complex)
-    groundable = {k: v for k, v in extracted.items() if isinstance(v, (str, int, float)) and v}
+    groundable = {k: v for k, v in extracted.items() if isinstance(v, str | int | float) and v}
     if not groundable:
         return CitationGrounding(citations=[], grounded_fields=[], ungrounded_fields=list(extracted.keys()))
 
@@ -481,7 +481,7 @@ async def _reflect_and_revise(
     extracted: dict[str, Any],
     confidence: float,
     model: str,
-    db: "AsyncSession | None" = None,
+    db: AsyncSession | None = None,
 ) -> tuple[dict[str, Any], bool]:
     """Reflection pass: show the model its own low-confidence extraction and ask it to revise.
 

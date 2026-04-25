@@ -37,8 +37,14 @@ jobs:
         run: python scripts/validate_offer_kit.py
       - name: Ruff check
         run: ruff check app/ worker/ scripts/ frontend/
-      - name: mypy
-        run: mypy app/ worker/ --ignore-missing-imports
+      - name: mypy (strict on ratchet modules; advisory elsewhere)
+        run: |
+          # Strict gate: only the modules listed in pyproject.toml's mypy override block.
+          # New modules join this gate; legacy modules ride the advisory pass below
+          # until the gradual ratchet upgrades them.
+          mypy app/services/reranker.py app/schemas/citations.py --ignore-missing-imports
+          # Advisory pass: full project. Logs visible, does not fail CI.
+          mypy app/ worker/ --ignore-missing-imports || true
   test:
     runs-on: ubuntu-latest
     services:

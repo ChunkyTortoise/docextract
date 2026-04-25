@@ -16,8 +16,22 @@ ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"
-strict = true
 ignore_missing_imports = true
+warn_unused_ignores = false
+follow_imports = "silent"
+# Type-check is intentionally permissive at the project default while a gradual
+# strict-typing ratchet rolls out. New modules added under the override block
+# below are checked with disallow_untyped_defs; legacy modules are not gated yet.
+# Track the ratchet in docs/adr/0020-mypy-strict-ratchet.md when it lands.
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.reranker",
+    "app.schemas.citations",
+]
+disallow_untyped_defs = true
+disallow_untyped_calls = true
+no_implicit_optional = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

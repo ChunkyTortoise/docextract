@@ -146,7 +146,7 @@ async def _persist_trace(db: AsyncSession, data: dict) -> None:
 
 def hash_prompt(text: str) -> str:
     """MD5 hash of prompt text, first 16 chars for change detection."""
-    return hashlib.md5(text.encode()).hexdigest()[:16]
+    return hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:16]
 
 
 def get_in_memory_traces() -> list[dict]:

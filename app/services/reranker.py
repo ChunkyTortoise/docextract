@@ -45,9 +45,9 @@ class TFIDFReranker:
     def rerank(
         self,
         query: str,
-        results: "list[SearchResult]",
+        results: list[SearchResult],
         top_k: int | None = None,
-    ) -> "list[SearchResult]":
+    ) -> list[SearchResult]:
         """Return results re-sorted by combined relevance score.
 
         Args:
