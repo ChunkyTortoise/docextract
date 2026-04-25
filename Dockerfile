@@ -1,5 +1,5 @@
 # Multi-stage build for DocExtract AI API
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /build
 
@@ -13,7 +13,7 @@ COPY requirements_full.txt .
 RUN pip install --no-cache-dir --user -r requirements_full.txt
 
 # Runtime stage
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 WORKDIR /app
 
