@@ -4,13 +4,13 @@ No app.* imports — pure Pydantic.
 from __future__ import annotations
 
 from datetime import date, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class CurrencyCode(str, Enum):
+class CurrencyCode(StrEnum):
     USD = "USD"
     EUR = "EUR"
     GBP = "GBP"
@@ -23,7 +23,7 @@ class CurrencyCode(str, Enum):
     MXN = "MXN"
 
 
-class DocumentType(str, Enum):
+class DocumentType(StrEnum):
     INVOICE = "invoice"
     PURCHASE_ORDER = "purchase_order"
     RECEIPT = "receipt"

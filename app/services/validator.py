@@ -5,13 +5,13 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class ErrorSeverity(str, Enum):
+class ErrorSeverity(StrEnum):
     WARNING = "WARNING"
     ERROR = "ERROR"
 
