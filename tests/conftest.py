@@ -4,6 +4,8 @@ from __future__ import annotations
 import sqlite3
 import uuid
 
+import pandas  # noqa: F401 — must import before frontend tests run to prevent sys.modules.setdefault("pandas", MagicMock()) from replacing the real module
+
 import fakeredis.aioredis
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient

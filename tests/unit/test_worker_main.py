@@ -17,7 +17,7 @@ def _ensure_stub(module_name: str) -> None:
 
 for _mod in [
     "fitz", "pdfplumber", "pytesseract", "paddleocr", "cv2",
-    "sentence_transformers", "magic", "anthropic", "pgvector", "pgvector.sqlalchemy",
+    "sentence_transformers", "magic", "pgvector", "pgvector.sqlalchemy",
 ]:
     _ensure_stub(_mod)
 
@@ -49,9 +49,12 @@ if "arq" not in sys.modules:
     sys.modules["arq.connections"] = arq_connections
     sys.modules["arq.cron"] = arq_cron
 
-# Force re-import of worker.main in case it was cached with a bad arq import
+# Force re-import of worker.main in case it was cached with a bad arq import.
+# Only delete worker.main (and the worker package itself), not other worker.*
+# submodules — deleting e.g. worker.judge_tasks invalidates __globals__ refs
+# in functions already imported by other test modules, breaking their patches.
 for _k in list(sys.modules):
-    if _k.startswith("worker."):
+    if _k in ("worker", "worker.main"):
         del sys.modules[_k]
 
 

@@ -81,6 +81,7 @@ async def test_judge_sample_writes_eval_log() -> None:
 
     with (
         patch("worker.judge_tasks.AsyncSessionLocal", return_value=mock_db),
+        patch("app.models.database.AsyncSessionLocal", return_value=mock_db),
         patch("worker.judge_tasks.LLMJudge", return_value=mock_judge),
     ):
         await judge_extraction_sample({}, "job-001")
@@ -117,6 +118,7 @@ async def test_judge_sample_neutral_default_when_judge_returns_none() -> None:
 
     with (
         patch("worker.judge_tasks.AsyncSessionLocal", return_value=mock_db),
+        patch("app.models.database.AsyncSessionLocal", return_value=mock_db),
         patch("worker.judge_tasks.LLMJudge", return_value=mock_judge),
     ):
         await judge_extraction_sample({}, "job-002")
