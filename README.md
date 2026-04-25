@@ -188,6 +188,7 @@ prompts/        -- Versioned prompt templates with CHANGELOG
 | [ADR-0012](docs/adr/0012-pluggable-storage-local-r2.md) | Pluggable storage backend (Local/R2) |
 | [ADR-0015](docs/adr/0015-prompt-caching.md) | Anthropic prompt caching — 60%+ eval cost reduction |
 | [ADR-0016](docs/adr/0016-native-citations.md) | Native Citations API for character-level grounding |
+| [ADR-0017](docs/adr/0017-semantic-cache-l1-l2.md) | Two-layer semantic cache (L1 exact hash + L2 embedding similarity) |
 | [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Gemini 2.5 as independent judge (eliminates self-grading bias) |
 | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | TF-IDF reranker + agentic self-reflection loop |
 
@@ -216,6 +217,8 @@ Runs locally via Docker Compose. Reference Kubernetes and AWS Terraform configs 
 **Kubernetes:** `kubectl apply -k deploy/k8s/` (HPA auto-scaling, nginx ingress, SSE buffering disabled)
 
 **AWS Terraform:** `cd deploy/aws && terraform apply` (EC2 + RDS PostgreSQL 16 + ElastiCache Redis 7, free-tier eligible)
+
+**Fly.io:** `fly deploy` (see `fly.toml` -- auto-stop/start machines, DEMO_MODE enabled, IAD region)
 
 See [deploy/](deploy/) for full manifests and configuration.
 

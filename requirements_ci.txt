@@ -1,3 +1,5 @@
+# CI test job -- lean install, no torch/deepeval (~2 min cold vs ~25 min with requirements_full.txt).
+# Full stack (dev, evals, ML training): requirements_full.txt
 fastapi==0.115.0
 starlette>=0.37.2,<0.39.0
 uvicorn[standard]==0.30.6
