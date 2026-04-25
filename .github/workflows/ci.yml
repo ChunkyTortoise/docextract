@@ -71,7 +71,7 @@ jobs:
       - name: Install system deps
         run: sudo apt-get install -y tesseract-ocr libmagic1
       - name: Install Python deps
-        run: pip install -r requirements_full.txt aiosqlite pytest-cov
+        run: pip install -r requirements_ci.txt aiosqlite pytest-cov
       - name: Dependency check
         run: python -m pip check
       - name: Run tests
