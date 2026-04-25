@@ -123,6 +123,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+      - name: Set lowercase registry owner
+        run: echo "REGISTRY_OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -136,8 +138,8 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/docextract-api:latest
-            ghcr.io/${{ github.repository_owner }}/docextract-api:${{ github.sha }}
+            ghcr.io/${{ env.REGISTRY_OWNER }}/docextract-api:latest
+            ghcr.io/${{ env.REGISTRY_OWNER }}/docextract-api:${{ github.sha }}
       - name: Build and push Worker image
         uses: docker/build-push-action@v5
         with:
@@ -145,8 +147,8 @@ jobs:
           file: Dockerfile.worker
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/docextract-worker:latest
-            ghcr.io/${{ github.repository_owner }}/docextract-worker:${{ github.sha }}
+            ghcr.io/${{ env.REGISTRY_OWNER }}/docextract-worker:latest
+            ghcr.io/${{ env.REGISTRY_OWNER }}/docextract-worker:${{ github.sha }}
       - name: Build and push Frontend image
         uses: docker/build-push-action@v5
         with:
@@ -154,5 +156,5 @@ jobs:
           file: Dockerfile.frontend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/docextract-frontend:latest
-            ghcr.io/${{ github.repository_owner }}/docextract-frontend:${{ github.sha }}
+            ghcr.io/${{ env.REGISTRY_OWNER }}/docextract-frontend:latest
+            ghcr.io/${{ env.REGISTRY_OWNER }}/docextract-frontend:${{ github.sha }}
