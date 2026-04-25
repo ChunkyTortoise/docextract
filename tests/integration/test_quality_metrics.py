@@ -26,7 +26,6 @@ async def _create_eval_log(
     log = EvalLog(
         id=log_id,
         job_id=str(uuid.uuid4()),
-        record_id=str(uuid.uuid4()),
         completeness=completeness,
         field_accuracy=field_accuracy,
         hallucination_absence=hallucination_absence,

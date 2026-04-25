@@ -60,12 +60,14 @@ class TestSetupTelemetryDisabled:
 class TestSetupTelemetryEnabled:
     def test_metrics_route_added_when_enabled(self):
         """/metrics endpoint mounted when otel_enabled=True."""
+        pytest.importorskip("opentelemetry")
         import app.observability as obs
 
         obs._reset_for_testing()
         with patch("app.observability.settings") as mock_settings:
             mock_settings.otel_enabled = True
             mock_settings.otel_service_name = "test-docextract"
+            mock_settings.otel_exporter_otlp_endpoint = None
             app = FastAPI()
             obs.setup_telemetry(app)
 
@@ -74,12 +76,14 @@ class TestSetupTelemetryEnabled:
 
     def test_instruments_initialized_after_setup(self):
         """_instruments dict populated after setup_telemetry."""
+        pytest.importorskip("opentelemetry")
         import app.observability as obs
 
         obs._reset_for_testing()
         with patch("app.observability.settings") as mock_settings:
             mock_settings.otel_enabled = True
             mock_settings.otel_service_name = "test-docextract"
+            mock_settings.otel_exporter_otlp_endpoint = None
             app = FastAPI()
             obs.setup_telemetry(app)
 

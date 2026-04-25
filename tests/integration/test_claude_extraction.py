@@ -15,7 +15,8 @@ async def test_extract_invoice_two_pass():
         '{"invoice_number": "INV-001", "total_amount": 100.0, "_confidence": 0.9}'
     )
 
-    with patch("app.services.claude_extractor.AsyncAnthropic") as MockAnthropic:
+    with patch("app.services.claude_extractor.AsyncAnthropic") as MockAnthropic, \
+         patch("app.services.claude_extractor.instructor.from_anthropic", side_effect=lambda x: x):
         mock_client = MockAnthropic.return_value
         mock_client.messages.create = AsyncMock(return_value=mock_response)
 
@@ -46,7 +47,8 @@ async def test_extract_low_confidence_triggers_pass2():
     pass2_response = MagicMock()
     pass2_response.content = [tool_block]
 
-    with patch("app.services.claude_extractor.AsyncAnthropic") as MockAnthropic:
+    with patch("app.services.claude_extractor.AsyncAnthropic") as MockAnthropic, \
+         patch("app.services.claude_extractor.instructor.from_anthropic", side_effect=lambda x: x):
         mock_client = MockAnthropic.return_value
         mock_client.messages.create = AsyncMock(
             side_effect=[pass1_response, pass2_response]

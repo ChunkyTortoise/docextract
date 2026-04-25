@@ -162,6 +162,7 @@ class TestFewShotInjection:
 
         with (
             patch("app.services.claude_extractor.AsyncAnthropic", return_value=mock_client),
+            patch("app.services.claude_extractor.instructor.from_anthropic", side_effect=lambda x: x),
             patch("app.services.claude_extractor.settings", settings_obj),
             patch("app.services.llm_tracer.trace_llm_call", return_value=mock_ctx),
             patch("app.services.response_validator.validate_extraction") as mock_validate,
@@ -182,4 +183,9 @@ class TestFewShotInjection:
         call_args = mock_client.messages.create.call_args
         messages = call_args.kwargs["messages"]
         user_content = messages[0]["content"]
-        assert "Previous corrections" in user_content
+        # content may be a plain string or a list of structured blocks
+        if isinstance(user_content, list):
+            content_text = " ".join(b.get("text", "") for b in user_content if isinstance(b, dict))
+        else:
+            content_text = user_content
+        assert "Previous corrections" in content_text

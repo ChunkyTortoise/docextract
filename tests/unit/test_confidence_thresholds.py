@@ -72,6 +72,7 @@ class TestConfidenceThresholds:
 
         with (
             patch("app.services.claude_extractor.AsyncAnthropic", return_value=mock_client),
+            patch("app.services.claude_extractor.instructor.from_anthropic", side_effect=lambda x: x),
             patch("app.services.claude_extractor.settings", settings_obj),
             patch("app.services.llm_tracer.trace_llm_call", return_value=mock_ctx),
             patch("app.services.response_validator.validate_extraction") as mock_validate,
@@ -115,6 +116,7 @@ class TestConfidenceThresholds:
 
         with (
             patch("app.services.claude_extractor.AsyncAnthropic", return_value=mock_client),
+            patch("app.services.claude_extractor.instructor.from_anthropic", side_effect=lambda x: x),
             patch("app.services.claude_extractor.settings", settings_obj),
             patch("app.services.llm_tracer.trace_llm_call", return_value=mock_ctx2),
             patch("app.services.response_validator.validate_extraction") as mock_validate,
