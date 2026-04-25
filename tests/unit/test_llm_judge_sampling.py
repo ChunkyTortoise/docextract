@@ -44,10 +44,9 @@ def _make_judge_result(score: float) -> MagicMock:
     return r
 
 
-def _make_mock_db(fake_job: object, fake_record: object) -> MagicMock:
-    mock_db = MagicMock()
-    mock_db.__aenter__ = AsyncMock(return_value=mock_db)
-    mock_db.__aexit__ = AsyncMock(return_value=False)
+def _make_mock_db(fake_job: object, fake_record: object) -> AsyncMock:
+    mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
     mock_db.execute = AsyncMock(
         side_effect=[
             MagicMock(scalar_one_or_none=MagicMock(return_value=fake_job)),
