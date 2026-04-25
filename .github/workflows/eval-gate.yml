@@ -39,7 +39,9 @@ jobs:
         with:
           node-version: "20"
       - name: Install Python deps
-        run: pip install -r requirements_full.txt
+        run: |
+          pip install -r requirements_ci.txt
+          pip install "langfuse==4.2.0" "ragas>=0.4.3,<0.5" "langchain-anthropic>=0.3.0,<0.4" "langchain-core>=0.3.0,<0.4"
       - name: Install Promptfoo
         run: npm install -g promptfoo@latest
       - name: Create eval_artifacts dir
