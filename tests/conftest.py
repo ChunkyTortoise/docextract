@@ -5,6 +5,7 @@ import sqlite3
 import uuid
 
 import pandas  # noqa: F401 — must import before frontend tests run to prevent sys.modules.setdefault("pandas", MagicMock()) from replacing the real module
+import sklearn.utils.fixes  # noqa: F401 — pre-cache sklearn before any test patches sys.modules["pandas"]
 
 import fakeredis.aioredis
 import pytest_asyncio
