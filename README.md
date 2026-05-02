@@ -23,6 +23,18 @@
 | Test suite | **1,253 tests** |
 | Eval framework | **LLM-as-judge + promptfoo CI gate** |
 
+**How the $0.03/doc is achieved (cost attribution):**
+
+| Stage | Model | Avg cost | Notes |
+|-------|-------|----------|-------|
+| Classification | Claude Haiku 4.5 | $0.0003-$0.001 | Haiku routing saves ~67% vs Sonnet; A/B z-test confirmed <2% quality loss |
+| Extraction | Claude Sonnet 4.6 | $0.004-$0.012 | Prompt caching (ADR-0015) cuts repeat-call cost ~60% on runs >5 docs |
+| Self-reflection (12% of docs) | Claude Sonnet 4.6 | +20% base cost | Triggered by low-confidence threshold; 88% of docs skip this pass |
+| LLM judge | Gemini 2.5 Flash | ~$0.001 | 10% sampling; independent grader removes self-grading bias |
+| **Per-document total (avg)** | | **~$0.03** | |
+
+Each request emits OTel spans with `cost_usd`, `cache_read_input_tokens`, and `cache_creation_input_tokens` attributes for per-call cost attribution. Source: [`app/services/cost_tracker.py`](app/services/cost_tracker.py) + [`docs/cost-model.md`](docs/cost-model.md).
+
 **Key features:** instructor typed extraction with auto-retry, LLM-as-judge online quality scoring (10% sampling), hybrid RRF retrieval, vision extraction mode, business metrics API, 15-page Streamlit dashboard
 
 > **Best fit** -- AI Engineer, Applied AI Engineer, AI Backend Engineer
