@@ -1,5 +1,6 @@
 offer-kit.yaml
 .claude/
+.maintenance/
 __pycache__/
 *.pyc
 *.pyo
