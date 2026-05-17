@@ -110,14 +110,14 @@ Default mode (`?mode=vector`) uses semantic search only. Hybrid mode (`?mode=hyb
 GET /api/v1/search?q=indemnification+liability+cap&mode=hybrid&limit=10
 ```
 
-### Claude-Powered Extraction: 94.6% Accuracy
+### Claude-Powered Extraction: 95.5% Accepted F1 Baseline
 
 The two-pass extraction pipeline runs on every document:
 
 1. **Pass 1**: Claude Sonnet produces a structured JSON extraction with per-field confidence scores
 2. **Pass 2**: If any field confidence falls below 0.80, a second `tool_use` call targets those specific fields for correction
 
-Evaluated on a 28-fixture test suite including 12 adversarial cases (4 prompt injection attempts). Accuracy: 94.6% on the golden fixture set.
+Evaluated with an accepted 95.5% F1 baseline in `autoresearch/baseline.json` and a current 72-case corpus (51 golden + 21 adversarial) that includes prompt-injection, OCR-noise, and hallucination-bait cases.
 
 Model fallback chain: Sonnet primary → Haiku fallback (circuit breaker triggers after 5 failures, recovers after 60s).
 
@@ -297,7 +297,7 @@ API key authentication on all endpoints. Admin keys can create and revoke other 
 Low-confidence extractions are routed to the human review queue automatically. Reviewers correct and approve records. All corrections are logged to the audit trail. Correction data can be exported as a DPO training dataset (`finetune_exporter.py`) to improve future extractions.
 
 **What is the extraction accuracy?**
-94.6% on the 28-fixture golden eval suite, including 12 adversarial cases. Accuracy on your specific document types will vary. Phase 1 of the implementation includes tuning and validation against a sample of your own documents.
+95.5% accepted F1 baseline on the committed eval baseline, with a 72-case current corpus including adversarial cases. Accuracy on your specific document types will vary. Phase 1 of the implementation includes tuning and validation against a sample of your own documents.
 
 **How does it handle sensitive documents?**
 The PII detection pipeline scans all extraction output for SSNs, credit cards, phone numbers, and email addresses. Records containing PII are auto-flagged for review. PII is redacted before sending data to external observability services (Langfuse, LangSmith). See `docs/COMPLIANCE.md` for HIPAA and GDPR details.

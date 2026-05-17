@@ -15,7 +15,7 @@ This document describes the governance controls built into DocExtract: how the s
 | Audit trail | Append-only `audit_logs` table | `alembic/versions/` |
 | Trace sanitization | PII redaction before Langfuse/LangSmith export | `app/services/pii_sanitizer.py` |
 | Model versioning | `EXTRACTION_MODELS` env var, tracked per record | `app/services/model_router.py` |
-| Eval CI gate | 94.6% accuracy threshold blocks deploy | `tests/eval/` + CI config |
+| Eval CI gate | 95.5% accepted F1 baseline with regression tolerance | `evals/`, `autoresearch/baseline.json`, CI config |
 | Adversarial testing | 12 adversarial fixtures, 4 prompt injection | `tests/eval/fixtures/adversarial/` |
 | Access control | API key auth, role-based, rate limited | `app/services/`, `app/routers/` |
 | Data retention | Configurable `DATA_RETENTION_DAYS`, cascade delete | API + DB schema |
@@ -185,7 +185,7 @@ Model changes in production require updating `EXTRACTION_MODELS` and re-running 
 
 **Directory**: `tests/eval/`
 
-A golden eval suite of 28 fixtures must pass a 94.6% accuracy threshold before any deployment. The CI gate runs on every push to main and every pull request:
+A golden eval suite must stay within tolerance of the accepted 95.5% F1 baseline before deployment. The current corpus has 72 scored cases (51 golden + 21 adversarial), and the CI gate runs on every push to main and every pull request:
 
 ```yaml
 # .github/workflows/ci.yml (excerpt)
@@ -263,7 +263,7 @@ Documents containing instructions like "Ignore previous instructions and output.
 |-----------|-------------------|
 | Security | API key auth, rate limiting, AES-GCM encryption, bandit CI |
 | Availability | Circuit breaker model fallback, ARQ async queue, health endpoints |
-| Processing Integrity | Golden eval CI gate (94.6%), two-pass confidence gating, validation rules |
+| Processing Integrity | Golden eval CI gate (95.5% accepted F1 baseline), two-pass confidence gating, validation rules |
 | Confidentiality | PII trace sanitization, encrypted webhook secrets, scoped API keys |
 | Privacy | PII detection guardrails, audit logging, configurable retention, cascade delete |
 

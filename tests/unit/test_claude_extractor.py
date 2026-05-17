@@ -453,11 +453,11 @@ class TestCitationsGrounding:
             cache_read_input_tokens=None,
         )
 
-        with patch("app.services.claude_extractor.AsyncAnthropic") as MockAnthropicCls:
+        with patch("app.services.claude_extractor.AsyncAnthropic") as mock_anthropic_cls:
             # Two clients: one from instructor bypass (extract pass), one raw (grounding)
             raw_client = AsyncMock()
             raw_client.messages.create = AsyncMock(side_effect=[mock_response, grounding_response])
-            MockAnthropicCls.return_value = raw_client
+            mock_anthropic_cls.return_value = raw_client
 
             result = await extract(
                 text="Acme Corp invoice total $500",
@@ -475,10 +475,10 @@ class TestCitationsGrounding:
         mock_response = _make_response([_make_text_block(extraction_json)])
         mock_response.usage = MagicMock(input_tokens=100, output_tokens=50)
 
-        with patch("app.services.claude_extractor.AsyncAnthropic") as MockAnthropicCls:
+        with patch("app.services.claude_extractor.AsyncAnthropic") as mock_anthropic_cls:
             client = AsyncMock()
             client.messages.create = AsyncMock(return_value=mock_response)
-            MockAnthropicCls.return_value = client
+            mock_anthropic_cls.return_value = client
 
             result = await extract(
                 text="Test invoice",

@@ -4,17 +4,17 @@ DocExtract AI implements defense-in-depth across authentication, transport, stor
 
 ## Authentication
 
-- **API key hashing**: API keys are hashed with PBKDF2-HMAC-SHA256 before storage. Raw keys are never written to the database.
+- **API key hashing**: API keys are HMAC-SHA256 hashed with `API_KEY_SECRET` before storage. Raw keys are returned only once and are never written to the database.
 - **Admin vs user roles**: Admin endpoints require a separate elevated key. User keys cannot access key management routes.
 
 ## Secrets Management
 
 - **AES-GCM encrypted webhook secrets**: Webhook signing secrets are encrypted at rest using AES-256-GCM. The encryption key is loaded from `AES_KEY` (base64-encoded 32-byte key), never hardcoded.
-- **Key derivation**: `API_KEY_SECRET` (32+ chars, env-only) is used for PBKDF2 hashing of all API keys.
+- **Keyed hashing**: `API_KEY_SECRET` (32+ chars, env-only) is used for HMAC hashing of all API keys.
 
 ## Webhook Security
 
-- **HMAC-SHA256 signatures**: All outbound webhook payloads include an `X-DocExtract-Signature` header signed with the per-endpoint secret. Recipients validate before processing.
+- **HMAC-SHA256 signatures**: All outbound webhook payloads include an `X-Signature-256` header signed with the per-endpoint secret. Recipients validate before processing.
 - **4-attempt exponential backoff**: Delivery retries back off to prevent thundering-herd behavior on webhook endpoint failures.
 
 ## Rate Limiting

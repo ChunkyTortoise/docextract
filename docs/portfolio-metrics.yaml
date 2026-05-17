@@ -1,0 +1,36 @@
+schema_version: 1
+updated: "2026-05-17"
+
+testing:
+  command: "pytest tests/ -m \"not e2e\" --tb=short -q"
+  collected_tests: 1260
+  latest_result: "1253 passed, 5 skipped, 2 deselected"
+  coverage_gate_percent: 80
+  latest_coverage_percent: 81.59
+  source: "Local run on 2026-05-17"
+
+eval_corpus:
+  golden_cases: 51
+  adversarial_cases: 21
+  total_cases: 72
+  promptfoo_cases: 72
+  source: "Non-meta rows in evals/*.jsonl; promptfoo rows in evals/promptfoo_tests.jsonl"
+
+quality_claims:
+  extraction_f1:
+    value_percent: 95.5
+    source: "autoresearch/baseline.json overall_score=0.95546, case_count=28"
+  avg_cost_per_document_usd:
+    value: 0.03
+    source: "docs/cost-model.md"
+  p95_latency_seconds:
+    value: 4.1
+    source: "docs/adr/0001-arq-over-celery.md"
+  straight_through_rate_percent:
+    value: 88
+    source: "README hiring metrics; validate with production traces before treating as an SLA"
+
+notes:
+  - "The current eval corpus has 72 scored cases: 51 golden and 21 adversarial."
+  - "The accepted F1 baseline is 95.5% over the 28-case baseline in autoresearch/baseline.json."
+  - "Use collected test count (1260) separately from the latest pass count (1253 passed)."

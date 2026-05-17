@@ -12,7 +12,17 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com)
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://docextract-demo.streamlit.app)
 
-> **Proof in 30 seconds** -- 95.5% extraction F1 | $0.03/doc avg cost | p95 latency 4.1s | 1,253 tests | 74 eval cases | live demo
+## For Hiring Managers
+
+**30-second pitch:** DocExtract is a production document-extraction RAG system with eval-gated CI, cost-aware routing, citation grounding, and a live demo. It turns messy PDFs into structured data while measuring quality, latency, and per-document cost.
+
+**Key proof:** **95.5% accepted F1 baseline** (`autoresearch/baseline.json`, 28 scored cases), a **72-case eval corpus** (51 golden + 21 adversarial), $0.03/doc average cost, p95 4.1s latency, 88% straight-through rate, 1,260 collected tests, and live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
+
+**Engineering signals:** FastAPI, pgvector RAG, Claude Sonnet/Haiku routing, Gemini Flash LLM-as-judge, promptfoo CI gate, OpenTelemetry cost attribution, prompt caching, and async worker architecture.
+
+**Hiring fit:** AI Engineer, LLM Evaluation Engineer, AI Backend Engineer, LLMOps Engineer.
+
+> **Proof in 30 seconds** -- 95.5% accepted extraction F1 | $0.03/doc avg cost | p95 latency 4.1s | 1,260 collected tests | 72 eval cases | live demo
 
 | Metric | Value |
 |--------|-------|
@@ -20,7 +30,7 @@
 | Avg cost per document | **$0.03** |
 | p95 end-to-end latency | **4.1s** |
 | Straight-through rate | **88%** |
-| Test suite | **1,253 tests** |
+| Test suite | **1,260 collected tests** |
 | Eval framework | **LLM-as-judge + promptfoo CI gate** |
 
 **How the $0.03/doc is achieved (cost attribution):**
@@ -37,7 +47,7 @@ Each request emits OTel spans with `cost_usd`, `cache_read_input_tokens`, and `c
 
 **Key features:** instructor typed extraction with auto-retry, LLM-as-judge online quality scoring (10% sampling), hybrid RRF retrieval, vision extraction mode, business metrics API, 15-page Streamlit dashboard
 
-> **Best fit** -- AI Engineer, Applied AI Engineer, AI Backend Engineer
+> **Best fit** -- AI Engineer, AI Backend Engineer
 
 ## What's New (April 2026)
 
@@ -49,7 +59,7 @@ Each request emits OTel spans with `cost_usd`, `cache_read_input_tokens`, and `c
 | **TF-IDF Reranker** | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | Replaces no-op stub; combines TF-IDF cosine + retrieval RRF score |
 | **Agentic Self-Reflection** | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | Low-confidence extractions trigger a reflection + revise pass |
 
-## For Hiring Managers
+## Detailed Hiring Evidence
 
 | If you're evaluating for... | Where to look | Training behind it |
 |-----------------------------|--------------|-------------------|
@@ -123,11 +133,11 @@ graph LR
 
 ## Key Capabilities
 
-- **Extraction**: Two-pass Claude pipeline (draft + verify via `tool_use`), 6 document types, 95.5% extraction F1 on 74-case eval corpus (52 golden + 22 adversarial)
+- **Extraction**: Two-pass Claude pipeline (draft + verify via `tool_use`), 6 document types, 95.5% accepted extraction F1 baseline with a 72-case eval corpus (51 golden + 21 adversarial)
 - **Search & RAG**: pgvector semantic search (768-dim HNSW), hybrid BM25+RRF retrieval, agentic ReAct loop with 5 tools, map-reduce multi-document synthesis, semantic deduplication cache
 - **Reliability**: Circuit breaker (Sonnet to Haiku fallback), dead-letter queue, idempotent retries, HMAC-signed webhooks with 4-attempt retry, SHA-256 upload dedup
 - **Observability**: OpenTelemetry traces (Jaeger/Tempo), Prometheus metrics, Grafana dashboards, per-request cost tracking, structured logging
-- **Developer Experience**: SSE streaming progress, MCP server integration, prompt versioning (semver), model A/B testing (z-test), 19 ADRs, 90%+ test coverage
+- **Developer Experience**: SSE streaming progress, MCP server integration, prompt versioning (semver), model A/B testing (z-test), 19 ADRs, 81.54% latest local coverage with an 80% CI gate
 
 ## Performance
 
@@ -136,13 +146,14 @@ graph LR
 | Document extraction (p50) | ~8s (two-pass Claude) |
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
-| Extraction accuracy (eval gate) | **95.5%** F1 across 74 cases, 6 document types |
-| Test suite | ~5s (1,253 tests) |
-| Coverage | 90%+ (CI-enforced) |
+| Extraction accuracy (eval gate) | **95.5%** accepted F1 baseline (`autoresearch/baseline.json`, 28 scored cases) |
+| Eval corpus | 72 scored cases: 51 golden + 21 adversarial |
+| Test suite | 1,260 collected tests; latest local run: 1,253 passed, 5 skipped, 2 deselected |
+| Coverage | 81.59% latest local coverage; 80% CI gate |
 
 ## Evaluation Results
 
-74-case corpus: 52 golden + 22 adversarial (prompt injection, PII leak, hallucination bait). Scores are field-level F1. CI-enforced on every PR that touches prompts or extraction services via [`eval-gate.yml`](.github/workflows/eval-gate.yml).
+Current eval corpus: 72 scored cases, 51 golden + 21 adversarial (prompt injection, PII leak, hallucination bait). The accepted F1 baseline is stored in [`autoresearch/baseline.json`](autoresearch/baseline.json), and quality checks are CI-enforced on every PR that touches prompts or extraction services via [`eval-gate.yml`](.github/workflows/eval-gate.yml). Failure modes and next experiments are tracked in [`docs/eval-failure-analysis.md`](docs/eval-failure-analysis.md).
 
 | Document Type | F1 Score |
 |---|---|
@@ -182,7 +193,7 @@ frontend/       -- Streamlit 15-page dashboard
 alembic/        -- Database migrations (001-012)
 scripts/        -- CLI tools: eval harness, training, seeding, Langfuse sync
 tests/          -- Unit, integration, frontend, e2e, and load tests
-evals/          -- Golden + adversarial eval corpus (72 cases)
+evals/          -- Golden + adversarial eval corpus (72 scored cases)
 prompts/        -- Versioned prompt templates with CHANGELOG
 ```
 
@@ -218,6 +229,8 @@ Runs locally via Docker Compose. Reference Kubernetes and AWS Terraform configs 
 | [Compliance & Privacy](docs/COMPLIANCE.md) | Privacy controls, PII handling notes, and compliance considerations |
 | [Architecture](docs/ARCHITECTURE.md) | Full system architecture overview |
 | [Case Study](CASE_STUDY.md) | Engineering journey from prototype to production |
+| [Demo Walkthrough](DEMO.md) | Five-minute live/local demo path for reviewers |
+| [Portfolio Metrics](docs/portfolio-metrics.yaml) | Canonical source for hiring-facing metric claims |
 | [MCP Integration](docs/mcp-integration.md) | Claude Desktop / agent framework setup |
 | [Cost Model](docs/cost-model.md) | Token costs, per-document pricing, volume estimates |
 | [Certifications Applied](docs/certifications.md) | Supporting background mapped to implementation areas |
@@ -237,7 +250,7 @@ See [deploy/](deploy/) for full manifests and configuration.
 ## Running Tests
 
 ```bash
-pytest tests/ -v                      # Full suite (1,253 tests, ~5s)
+pytest tests/ -v                      # Full suite (1,260 collected tests)
 pytest tests/ -v --run-eval           # Include golden eval (requires API key)
 python scripts/run_eval_ci.py --ci    # Deterministic eval (no API key)
 ```
