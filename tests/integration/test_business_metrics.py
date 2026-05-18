@@ -113,8 +113,9 @@ async def test_business_metrics_with_jobs(client: AsyncClient, db_session: Async
     # straight_through_rate: at least 2 completed out of 3+
     assert 0.0 <= data["straight_through_rate"] <= 1.0
 
-    # hitl_escalation_rate is a fixed placeholder
-    assert data["hitl_escalation_rate"] == 0.12
+    # hitl_escalation_rate is computed from ExtractedRecord.needs_review;
+    # no records were created here, so it is 0.0.
+    assert data["hitl_escalation_rate"] == 0.0
 
     # avg_cost_usd defaults to 0.03 (no cost_usd on LLMTrace model yet)
     assert data["avg_cost_usd"] == pytest.approx(0.03, rel=1e-3)
