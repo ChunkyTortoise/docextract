@@ -23,3 +23,4 @@ Architecture Decision Records have moved to [`docs/adr/`](docs/adr/).
 | [0017](docs/adr/0017-semantic-cache-l1-l2.md) | Semantic Cache (L1 Exact + L2 Embedding) |
 | [0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Independent LLM Judge (Gemini) + Multi-Provider Router |
 | [0019](docs/adr/0019-reranker-and-agentic-reflection.md) | TF-IDF Reranker + Agentic Self-Reflection |
+| [0020](docs/adr/0020-indirect-prompt-injection-defense.md) | Heuristic-First Indirect Prompt-Injection Defense |

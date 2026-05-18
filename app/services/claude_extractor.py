@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from app.config import settings
 from app.schemas.citations import CitationGrounding, ExtractionCitation
 from app.schemas.document_types import DOCUMENT_TYPE_MAP
+from app.services import injection_guard
 from app.services.prompt_config import config as prompt_config
 
 if TYPE_CHECKING:
@@ -122,7 +123,7 @@ async def extract(
             system_blocks: list[dict[str, Any]] = [
                 {
                     "type": "text",
-                    "text": prompt_config.extract_system_prompt,
+                    "text": prompt_config.extract_system_prompt + injection_guard.DEFENSE_SYSTEM_CLAUSE,
                     "cache_control": {"type": "ephemeral"},
                 }
             ]
@@ -130,7 +131,7 @@ async def extract(
             # followed by uncached document text (unique per request).
             doc_prompt = prompt_config.extract_prompt.format(
                 doc_type=doc_type,
-                text=text[: prompt_config.params.extract_text_limit],
+                text=injection_guard.wrap_untrusted(text[: prompt_config.params.extract_text_limit]),
             )
             if few_shot_prefix:
                 user_content: list[dict[str, Any]] = [
@@ -199,6 +200,13 @@ async def extract(
                 doc_type,
                 outcome.validation_errors,
             )
+
+    # Indirect prompt-injection defense: strip exfiltration keys regardless of
+    # whether the input scan fired (defense-in-depth).
+    extracted, _exfil_keys = injection_guard.sanitize_output(extracted)
+    if _exfil_keys:
+        logger.warning("injection_guard stripped exfil keys for %s: %s", doc_type, _exfil_keys)
+        validation_errors = [*validation_errors, f"injection_guard removed keys: {_exfil_keys}"]
 
     # Pass 2: Correction if low confidence
     corrections_applied = False
@@ -507,7 +515,7 @@ async def _reflect_and_revise(
                 system=[
                     {
                         "type": "text",
-                        "text": prompt_config.extract_system_prompt,
+                        "text": prompt_config.extract_system_prompt + injection_guard.DEFENSE_SYSTEM_CLAUSE,
                         "cache_control": {"type": "ephemeral"},
                     }
                 ],

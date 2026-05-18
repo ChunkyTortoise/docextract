@@ -18,6 +18,8 @@
 
 **Key proof:** **95.5% accepted extraction F1** over the 28-case golden baseline (`autoresearch/baseline.json`) — replayed deterministically in CI by [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) at **zero API cost**, so the Eval Gate badge reflects a real, reproducible score (combined F1 0.9555). The full **72-case corpus** (51 golden + 21 adversarial) is committed and re-measured end-to-end by [`scripts/benchmark.py`](scripts/benchmark.py). Cost (~$0.03/doc), p95 latency (~4.1s) and straight-through (~88%) are **modeled** from the in-repo pricing table and call distribution ([`docs/cost-model.md`](docs/cost-model.md)) — reproducible as metered numbers via `scripts/benchmark.py` once an API budget is attached. **1,260 collected tests** (1,253 passing, 81% coverage); live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
 
+**Eval rigor:** a documented [failure-mode taxonomy](docs/eval-failure-analysis.md) (what the system is designed to catch, the mitigation, and the next experiment); the offline replay gate ([`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py)) fails CI on a >3-point F1 regression vs the committed baseline.
+
 **Engineering signals:** FastAPI, pgvector RAG, Claude Sonnet/Haiku routing, Gemini Flash LLM-as-judge, promptfoo CI gate, OpenTelemetry cost attribution, prompt caching, and async worker architecture.
 
 **Hiring fit:** AI Engineer, LLM Evaluation Engineer, AI Backend Engineer, LLMOps Engineer.
@@ -67,7 +69,6 @@ Per-call token usage and cache hits are captured by [`app/services/llm_tracer.py
 | **Backend / Platform Engineer** | Circuit breaker model fallback ([`app/services/circuit_breaker.py`](app/services/circuit_breaker.py)), async ARQ job queue ([`worker/`](worker/)), prompt versioning, eval CI, and sliding-window rate limiter | Microsoft AI & ML Engineering (75h), Google Cloud GenAI Leader (25h) |
 | **Full-Stack AI Engineer** | 15-page Streamlit dashboard ([`frontend/`](frontend/)), SSE streaming progress, MCP tool server ([`mcp_server.py`](mcp_server.py)), interactive demo sandbox | IBM BI Analyst (141h), Google Data Analytics (181h), Microsoft Data Viz (87h) |
 | **MLOps / LLMOps Engineer** | Prompt versioning + regression testing ([`app/services/prompt_registry.py`](app/services/prompt_registry.py)), model A/B testing with z-test significance ([`app/services/model_ab_test.py`](app/services/model_ab_test.py)), DeepEval CI gates, cost tracking per request | Duke LLMOps (48h), Google Advanced Data Analytics (200h) |
-| **EdTech / LMS Engineer** | Document extraction maps directly to assignment processing and syllabus parsing, batch pipeline ([`worker/`](worker/)) handles grading document ingestion at scale, PII sanitizer ([`app/services/pii_sanitizer.py`](app/services/pii_sanitizer.py)) enforces FERPA compliance for student records | IBM GenAI Engineering (144h), Google Data Analytics (181h) |
 
 → Supporting background map: [`docs/certifications.md`](docs/certifications.md)
 
