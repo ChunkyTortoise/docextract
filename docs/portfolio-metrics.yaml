@@ -14,23 +14,30 @@ eval_corpus:
   adversarial_cases: 21
   total_cases: 72
   promptfoo_cases: 72
-  source: "Non-meta rows in evals/*.jsonl; promptfoo rows in evals/promptfoo_tests.jsonl"
+  fixtures_recorded: 28
+  fixtures_pending: 44
+  source: "Non-meta rows in evals/*.jsonl; 28 deterministic fixtures recorded in autoresearch/golden_responses/ (CI-replayed); remaining 44 recorded by scripts/benchmark.py when an API budget is attached"
 
 quality_claims:
   extraction_f1:
     value_percent: 95.5
-    source: "autoresearch/baseline.json overall_score=0.95546, case_count=28"
+    basis: measured
+    source: "autoresearch/baseline.json overall_score=0.95546 (28-case golden); reproduced deterministically by scripts/eval_offline_replay.py -> combined F1 0.9555 in the CI offline job at zero API cost"
   avg_cost_per_document_usd:
     value: 0.03
-    source: "docs/cost-model.md"
+    basis: modeled
+    source: "docs/cost-model.md — token pricing x call distribution; metered numbers reproducible via scripts/benchmark.py once an API budget is attached"
   p95_latency_seconds:
     value: 4.1
-    source: "docs/adr/0001-arq-over-celery.md"
+    basis: modeled
+    source: "design target (docs/cost-model.md); not yet measured under load — scripts/benchmark.py emits measured p50/p95 when run with credits"
   straight_through_rate_percent:
     value: 88
-    source: "README hiring metrics; validate with production traces before treating as an SLA"
+    basis: modeled
+    source: "modeled from confidence-threshold distribution; validate with production traces before treating as an SLA — scripts/benchmark.py measures it"
 
 notes:
-  - "The current eval corpus has 72 scored cases: 51 golden and 21 adversarial."
-  - "The accepted F1 baseline is 95.5% over the 28-case baseline in autoresearch/baseline.json."
+  - "The eval corpus is 72 cases (51 golden + 21 adversarial), committed in evals/*.jsonl and autoresearch/eval_dataset_72.json."
+  - "95.5% F1 is the 28-case golden baseline (autoresearch/baseline.json), replayed deterministically in CI by scripts/eval_offline_replay.py at zero API cost (combined 0.9555)."
+  - "Cost, latency and straight-through are modeled, not yet metered; scripts/benchmark.py produces measured values over all 72 cases when an API budget is attached."
   - "Use collected test count (1260) separately from the latest pass count (1253 passed)."

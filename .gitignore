@@ -29,3 +29,12 @@ NOTES.md
 
 # Eval artifacts (generated, not committed)
 eval_artifacts/
+
+# Backups and transient eval-run artifacts (not committed)
+*.bak-*
+autoresearch/golden_responses.bak-*/
+autoresearch/benchmark_*.json
+
+# uv lockfile — this project is requirements*.txt-managed; an empty/partial
+# uv.lock is misleading clutter for a reviewer
+uv.lock

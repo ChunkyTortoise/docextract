@@ -9,31 +9,31 @@
 [![Coverage](https://codecov.io/gh/ChunkyTortoise/docextract/graph/badge.svg)](https://codecov.io/gh/ChunkyTortoise/docextract)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com)
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://docextract-demo.streamlit.app)
 
 ## For Hiring Managers
 
 **30-second pitch:** DocExtract is a production document-extraction RAG system with eval-gated CI, cost-aware routing, citation grounding, and a live demo. It turns messy PDFs into structured data while measuring quality, latency, and per-document cost.
 
-**Key proof:** **95.5% accepted F1 baseline** (`autoresearch/baseline.json`, 28 scored cases), a **72-case eval corpus** (51 golden + 21 adversarial), $0.03/doc average cost, p95 4.1s latency, 88% straight-through rate, 1,260 collected tests, and live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
+**Key proof:** **95.5% accepted extraction F1** over the 28-case golden baseline (`autoresearch/baseline.json`) — replayed deterministically in CI by [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) at **zero API cost**, so the Eval Gate badge reflects a real, reproducible score (combined F1 0.9555). The full **72-case corpus** (51 golden + 21 adversarial) is committed and re-measured end-to-end by [`scripts/benchmark.py`](scripts/benchmark.py). Cost (~$0.03/doc), p95 latency (~4.1s) and straight-through (~88%) are **modeled** from the in-repo pricing table and call distribution ([`docs/cost-model.md`](docs/cost-model.md)) — reproducible as metered numbers via `scripts/benchmark.py` once an API budget is attached. **1,260 collected tests** (1,253 passing, 81% coverage); live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
 
 **Engineering signals:** FastAPI, pgvector RAG, Claude Sonnet/Haiku routing, Gemini Flash LLM-as-judge, promptfoo CI gate, OpenTelemetry cost attribution, prompt caching, and async worker architecture.
 
 **Hiring fit:** AI Engineer, LLM Evaluation Engineer, AI Backend Engineer, LLMOps Engineer.
 
-> **Proof in 30 seconds** -- 95.5% accepted extraction F1 | $0.03/doc avg cost | p95 latency 4.1s | 1,260 collected tests | 72 eval cases | live demo
+> **Proof in 30 seconds** -- 95.5% F1 (CI-replayed, zero-cost) | ~$0.03/doc (modeled) | ~4.1s p95 (modeled) | 1,260 tests, 81% cov | 72-case corpus | live demo
 
-| Metric | Value |
-|--------|-------|
-| Extraction accuracy (F1) | **95.5%** |
-| Avg cost per document | **$0.03** |
-| p95 end-to-end latency | **4.1s** |
-| Straight-through rate | **88%** |
-| Test suite | **1,260 collected tests** |
-| Eval framework | **LLM-as-judge + promptfoo CI gate** |
+| Metric | Value | Basis |
+|--------|-------|-------|
+| Extraction accuracy (F1) | **95.5%** | Measured — CI-replayed from committed fixtures, zero API cost |
+| Avg cost per document | **~$0.03** | Modeled — pricing table x call distribution ([cost-model.md](docs/cost-model.md)) |
+| p95 end-to-end latency | **~4.1s** | Modeled — pending a metered `scripts/benchmark.py` run |
+| Straight-through rate | **~88%** | Modeled — pending production traces |
+| Test suite | **1,260 collected tests** | Measured — 1,253 passing, 81% coverage |
+| Eval framework | **LLM-as-judge + promptfoo CI gate + offline replay** | Code: `scripts/eval_*.py` |
 
-**How the $0.03/doc is achieved (cost attribution):**
+**Modeled cost attribution (~$0.03/doc — token pricing x call distribution; reproduce metered numbers with `scripts/benchmark.py`):**
 
 | Stage | Model | Avg cost | Notes |
 |-------|-------|----------|-------|
@@ -43,13 +43,13 @@
 | LLM judge | Gemini 2.5 Flash | ~$0.001 | 10% sampling; independent grader removes self-grading bias |
 | **Per-document total (avg)** | | **~$0.03** | |
 
-Each request emits OTel spans with `cost_usd`, `cache_read_input_tokens`, and `cache_creation_input_tokens` attributes for per-call cost attribution. Source: [`app/services/cost_tracker.py`](app/services/cost_tracker.py) + [`docs/cost-model.md`](docs/cost-model.md).
+Per-call token usage and cache hits are captured by [`app/services/llm_tracer.py`](app/services/llm_tracer.py) and exported as OpenTelemetry metrics (`prompt_cache_read_tokens_total`, `prompt_cache_creation_tokens_total`, plus LLM latency/token counters) via [`app/observability.py`](app/observability.py). Per-request USD cost is then computed from those token counts by [`app/services/cost_tracker.py`](app/services/cost_tracker.py) against the in-repo pricing table; methodology in [`docs/cost-model.md`](docs/cost-model.md).
 
 **Key features:** instructor typed extraction with auto-retry, LLM-as-judge online quality scoring (10% sampling), hybrid RRF retrieval, vision extraction mode, business metrics API, 15-page Streamlit dashboard
 
 > **Best fit** -- AI Engineer, AI Backend Engineer
 
-## What's New (April 2026)
+## Recent Engineering Decisions
 
 | Feature | ADR | Impact |
 |---------|-----|--------|

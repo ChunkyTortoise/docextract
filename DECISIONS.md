@@ -16,3 +16,10 @@ Architecture Decision Records have moved to [`docs/adr/`](docs/adr/).
 | [0010](docs/adr/0010-regex-first-guardrails.md) | Regex-First Guardrails |
 | [0011](docs/adr/0011-api-key-auth-over-oauth-jwt.md) | API Key Auth over OAuth/JWT |
 | [0012](docs/adr/0012-pluggable-storage-local-r2.md) | Pluggable Storage Backend (Local/R2) |
+| [0013](docs/adr/0013-instructor-over-manual-json.md) | instructor Library over Manual JSON Parsing |
+| [0014](docs/adr/0014-native-eval-over-trulens.md) | Native LLM-as-Judge Eval over TruLens/RAGAS |
+| [0015](docs/adr/0015-prompt-caching.md) | Anthropic Prompt Caching |
+| [0016](docs/adr/0016-native-citations.md) | Anthropic Native Citations API |
+| [0017](docs/adr/0017-semantic-cache-l1-l2.md) | Semantic Cache (L1 Exact + L2 Embedding) |
+| [0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Independent LLM Judge (Gemini) + Multi-Provider Router |
+| [0019](docs/adr/0019-reranker-and-agentic-reflection.md) | TF-IDF Reranker + Agentic Self-Reflection |
