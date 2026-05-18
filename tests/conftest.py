@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import sqlite3
 import uuid
-
-import pandas  # noqa: F401 — must import before frontend tests run to prevent sys.modules.setdefault("pandas", MagicMock()) from replacing the real module
-import sklearn.utils.fixes  # noqa: F401 — pre-cache sklearn before any test patches sys.modules["pandas"]
+from datetime import UTC
 
 import fakeredis.aioredis
+import pandas  # noqa: F401 — must import before frontend tests run to prevent sys.modules.setdefault("pandas", MagicMock()) from replacing the real module
 import pytest_asyncio
+import sklearn.utils.fixes  # noqa: F401 — pre-cache sklearn before any test patches sys.modules["pandas"]
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import JSON, String
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -43,8 +43,6 @@ def _safe_uuid_bind_processor(self, dialect):  # type: ignore[override]
 
 
 _PG_UUID.bind_processor = _safe_uuid_bind_processor  # type: ignore[method-assign]
-
-from datetime import UTC
 
 from app.dependencies import get_arq_pool, get_db, get_redis, get_storage
 from app.models import APIKey  # noqa: F401
