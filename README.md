@@ -16,7 +16,7 @@
 
 **30-second pitch:** DocExtract is a production document-extraction RAG system with eval-gated CI, cost-aware routing, citation grounding, and a live demo. It turns messy PDFs into structured data while measuring quality, latency, and per-document cost.
 
-**Key proof:** **95.5% accepted extraction F1** over the 28-case golden baseline (`autoresearch/baseline.json`) — replayed deterministically in CI by [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) at **zero API cost**, so the Eval Gate badge reflects a real, reproducible score (combined F1 0.9555). The full **72-case corpus** (51 golden + 21 adversarial) is committed and re-measured end-to-end by [`scripts/benchmark.py`](scripts/benchmark.py). Cost (~$0.03/doc), p95 latency (~4.1s) and straight-through (~88%) are **modeled** from the in-repo pricing table and call distribution ([`docs/cost-model.md`](docs/cost-model.md)) — reproducible as metered numbers via `scripts/benchmark.py` once an API budget is attached. **1,260 collected tests** (1,253 passing, 81% coverage); live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
+**Key proof:** **95.5% accepted extraction F1** over the 28-case extraction baseline (`autoresearch/baseline.json`) — replayed deterministically in CI by [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) at **zero API cost**, so the Eval Gate badge reflects a real, reproducible score (combined F1 0.9555). The full **72-case corpus** (51 golden + 21 adversarial) is committed and re-measured end-to-end by [`scripts/benchmark.py`](scripts/benchmark.py). Cost (~$0.03/doc), p95 latency (~4.1s) and straight-through (~88%) are **modeled** from the in-repo pricing table and call distribution ([`docs/cost-model.md`](docs/cost-model.md)) — reproducible as metered numbers via `scripts/benchmark.py` once an API budget is attached. **1,260 collected tests** (1,253 passing, 81% coverage); live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
 
 **Eval rigor:** a documented [failure-mode taxonomy](docs/eval-failure-analysis.md) (what the system is designed to catch, the mitigation, and the next experiment); the offline replay gate ([`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py)) fails CI on a >3-point F1 regression vs the committed baseline.
 
@@ -138,7 +138,7 @@ graph LR
 - **Search & RAG**: pgvector semantic search (768-dim HNSW), hybrid BM25+RRF retrieval, agentic ReAct loop with 5 tools, map-reduce multi-document synthesis, semantic deduplication cache
 - **Reliability**: Circuit breaker (Sonnet to Haiku fallback), dead-letter queue, idempotent retries, HMAC-signed webhooks with 4-attempt retry, SHA-256 upload dedup
 - **Observability**: OpenTelemetry traces (Jaeger/Tempo), Prometheus metrics, Grafana dashboards, per-request cost tracking, structured logging
-- **Developer Experience**: SSE streaming progress, MCP server integration, prompt versioning (semver), model A/B testing (z-test), 19 ADRs, 81.54% latest local coverage with an 80% CI gate
+- **Developer Experience**: SSE streaming progress, MCP server integration, prompt versioning (semver), model A/B testing (z-test), 19 ADRs, 81.59% latest local coverage with an 80% CI gate
 
 ## Performance
 
@@ -166,7 +166,7 @@ Current eval corpus: 72 scored cases, 51 golden + 21 adversarial (prompt injecti
 | Identity Document | 81.4% |
 | **Overall** | **95.5%** |
 
-*Baseline: `autoresearch/baseline.json` (28-case golden set, legacy runner).*
+*Baseline: `autoresearch/baseline.json` (28-case baseline: 16 golden + 12 adversarial, legacy runner).*
 
 ```bash
 # Full eval suite (Promptfoo + Ragas + LLM-judge, ~$0.44, ~4 min):
@@ -238,15 +238,11 @@ Runs locally via Docker Compose. Reference Kubernetes and AWS Terraform configs 
 
 ## Deployment
 
-**Render (one-click):** [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ChunkyTortoise/docextract)
+**Primary (local / self-host):** `docker compose up -d` — full API + worker + Streamlit frontend + Postgres + Redis stack.
 
-**Kubernetes:** `kubectl apply -k deploy/k8s/` (HPA auto-scaling, nginx ingress, SSE buffering disabled)
+**Render (one-click demo):** [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ChunkyTortoise/docextract)
 
-**AWS Terraform:** `cd deploy/aws && terraform apply` (EC2 + RDS PostgreSQL 16 + ElastiCache Redis 7, free-tier eligible)
-
-**Fly.io:** `fly deploy` (see `fly.toml` -- auto-stop/start machines, DEMO_MODE enabled, IAD region)
-
-See [deploy/](deploy/) for full manifests and configuration.
+Reference Kubernetes (`deploy/k8s/`, kustomize), AWS Terraform (`deploy/aws/`), and Fly.io (`fly.toml`) manifests are committed for infrastructure direction — not the production-facing proof here (that is the live demo, observability stack, and CI eval gate). See [deploy/](deploy/) for full manifests.
 
 ## Running Tests
 

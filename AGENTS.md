@@ -8,7 +8,7 @@ FastAPI | SQLAlchemy | pgvector | ARQ (async queue) | Redis | Anthropic | google
 - `app/` — FastAPI routes and services
 - `worker/` — ARQ job processor
 - `frontend/` — Streamlit UI
-- `alembic/` — DB migrations (001-010 applied)
+- `alembic/` — DB migrations (001-012 applied)
 
 ## Deploy
 Self-hosted via `docker compose up`:

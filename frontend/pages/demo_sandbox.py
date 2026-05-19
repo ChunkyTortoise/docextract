@@ -13,6 +13,32 @@ from frontend.demo_mode import (
 )
 
 
+def _proof_snapshot() -> None:
+    """Above-the-fold proof — real pre-cached pipeline numbers, zero interaction."""
+    inv = load_demo_extraction("invoice")
+    eval_r = load_demo_eval()["summary"]
+    cost_r = load_demo_cost()["summary"]
+    trace = load_demo_agent_trace()
+
+    cols = st.columns(4)
+    cols[0].metric("Invoice extraction", f"{inv['confidence']:.0%}", "confidence")
+    cols[1].metric(
+        "RAGAS overall",
+        f"{eval_r['overall']:.0%}",
+        "Pass" if eval_r["passed"] else "Fail",
+    )
+    cols[2].metric(
+        "Cache hit rate",
+        f"{cost_r['cache_hit_rate']:.0%}",
+        f"${cost_r['cache_savings_usd']:.2f} saved",
+    )
+    cols[3].metric(
+        "Agentic RAG",
+        f"{trace['confidence']:.0%}",
+        f"{trace['iterations']} iterations",
+    )
+
+
 def show() -> None:
     st.title("Try DocExtract — Live Demo")
     st.info(
@@ -21,37 +47,42 @@ def show() -> None:
         icon="ℹ️",
     )
 
-    tab_extract, tab_search, tab_eval, tab_agent, tab_cost = st.tabs(
-        ["Document Extraction", "Semantic Search", "Evaluation Scores", "Agent Trace", "Cost Analysis"]
+    _proof_snapshot()
+    st.caption(
+        "Snapshot from a recorded sandbox run (not a live call). Canonical headline "
+        "metrics live in docs/portfolio-metrics.yaml."
+    )
+    st.divider()
+
+    tab_extract, tab_eval, tab_cost, tab_agent, tab_search = st.tabs(
+        ["Document Extraction", "Evaluation Scores", "Cost Analysis", "Agent Trace", "Semantic Search"]
     )
 
     # --- Extraction tab ---
     with tab_extract:
         st.subheader("Document Extraction")
         doc_type = st.selectbox(
-            "Select document type",
+            "Select document type — result updates instantly (cached)",
             list_demo_doc_types(),
             format_func=str.title,
         )
-        if st.button("Extract Document", type="primary"):
-            with st.spinner("Extracting…"):
-                result = load_demo_extraction(doc_type)
-            confidence = result.get("confidence", 0)
-            st.success(f"Extracted **{result['document_type'].title()}** — confidence {confidence:.0%}")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Extracted Fields**")
-                for key, value in result["extracted_data"].items():
-                    if not isinstance(value, list):
-                        st.text(f"{key.replace('_', ' ').title()}: {value}")
-                    else:
-                        st.text(f"{key.replace('_', ' ').title()}: {len(value)} items")
-            with col2:
-                st.markdown("**Field Confidence**")
-                for field, score in result["field_confidence"].items():
-                    color = "🟢" if score >= 0.90 else "🟡" if score >= 0.75 else "🔴"
-                    st.text(f"{color} {field.replace('_', ' ').title()}: {score:.0%}")
-            st.caption(f"Processing time: {result['processing_time_ms']} ms")
+        result = load_demo_extraction(doc_type)
+        confidence = result.get("confidence", 0)
+        st.success(f"Extracted **{result['document_type'].title()}** — confidence {confidence:.0%}")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Extracted Fields**")
+            for key, value in result["extracted_data"].items():
+                if not isinstance(value, list):
+                    st.text(f"{key.replace('_', ' ').title()}: {value}")
+                else:
+                    st.text(f"{key.replace('_', ' ').title()}: {len(value)} items")
+        with col2:
+            st.markdown("**Field Confidence**")
+            for field, score in result["field_confidence"].items():
+                color = "🟢" if score >= 0.90 else "🟡" if score >= 0.75 else "🔴"
+                st.text(f"{color} {field.replace('_', ' ').title()}: {score:.0%}")
+        st.caption(f"Processing time: {result['processing_time_ms']} ms · pre-cached sample")
 
     # --- Search tab ---
     with tab_search:

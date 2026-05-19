@@ -1,6 +1,5 @@
 schema_version: 1
 updated: "2026-05-17"
-
 testing:
   command: "pytest tests/ -m \"not e2e\" --tb=short -q"
   collected_tests: 1260
@@ -8,7 +7,6 @@ testing:
   coverage_gate_percent: 80
   latest_coverage_percent: 81.59
   source: "Local run on 2026-05-17"
-
 eval_corpus:
   golden_cases: 51
   adversarial_cases: 21
@@ -17,7 +15,6 @@ eval_corpus:
   fixtures_recorded: 28
   fixtures_pending: 44
   source: "Non-meta rows in evals/*.jsonl; 28 deterministic fixtures recorded in autoresearch/golden_responses/ (CI-replayed); remaining 44 recorded by scripts/benchmark.py when an API budget is attached"
-
 quality_claims:
   extraction_f1:
     value_percent: 95.5
@@ -35,9 +32,9 @@ quality_claims:
     value: 88
     basis: modeled
     source: "modeled from confidence-threshold distribution; validate with production traces before treating as an SLA — scripts/benchmark.py measures it"
-
 notes:
   - "The eval corpus is 72 cases (51 golden + 21 adversarial), committed in evals/*.jsonl and autoresearch/eval_dataset_72.json."
   - "95.5% F1 is the 28-case golden baseline (autoresearch/baseline.json), replayed deterministically in CI by scripts/eval_offline_replay.py at zero API cost (combined 0.9555)."
   - "Cost, latency and straight-through are modeled, not yet metered; scripts/benchmark.py produces measured values over all 72 cases when an API budget is attached."
+  - "To flip modeled -> measured: follow docs/metering-runbook.md (one command + the three surfaces to update). Harness verified billing-blocked only."
   - "Use collected test count (1260) separately from the latest pass count (1253 passed)."

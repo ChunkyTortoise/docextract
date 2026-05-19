@@ -76,6 +76,16 @@ _CSS = f"""
         background-size: 24px 24px;
         background-attachment: fixed;
     }}
+
+    /* Tab affordance — make the demo's proof tabs read as tabs, not links */
+    [data-testid="stTabs"] button[role="tab"] {{
+        font-family: 'Space Mono', monospace;
+        font-weight: 700;
+    }}
+    [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{
+        color: #06B6D4;
+        border-bottom-color: #06B6D4;
+    }}
 </style>
 """
 

@@ -8,7 +8,7 @@ FastAPI | SQLAlchemy | pgvector | ARQ (async queue) | Redis | Anthropic | google
 - `app/` — FastAPI routes and services
 - `worker/` — ARQ job processor
 - `frontend/` — Streamlit UI
-- `alembic/` — DB migrations (001-010 applied)
+- `alembic/` — DB migrations (001-012 applied)
 
 ## Deploy
 Self-hosted via `docker compose up`:
@@ -18,7 +18,7 @@ Self-hosted via `docker compose up`:
 Also supports: Render Blueprint, K8s/Kustomize, AWS Terraform (RDS+ElastiCache)
 
 ## Test
-```pytest tests/  # 1,185 tests```
+```pytest tests/  # 1,260 tests```
 
 ## Key Env
 ANTHROPIC_API_KEY, DATABASE_URL, REDIS_URL, SECRET_KEY
