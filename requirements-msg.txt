@@ -1,0 +1,13 @@
+# Optional: Outlook .msg email extraction.
+#
+# Not part of the default install because extract-msg pulls
+# red-black-tree-mod, which ships no prebuilt wheel and needs a C build
+# toolchain (fails `pip install` on minimal/macOS/Windows environments).
+#
+# .eml extraction works without this (stdlib email + eml-parser). Only
+# proprietary Outlook .msg files require it. Without it, submitting a .msg
+# raises a clear RuntimeError rather than failing at import
+# (see app/services/email_extractor.py).
+#
+#   pip install -r requirements-msg.txt
+extract-msg==0.52.0

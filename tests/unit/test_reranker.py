@@ -1,16 +1,12 @@
 """Unit tests for TFIDFReranker."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
+from app.services.rag_tools import SearchResult
 from app.services.reranker import TFIDFReranker
 
 
-def _make_result(content: str, score: float = 0.5) -> MagicMock:
-    r = MagicMock()
-    r.content = content
-    r.score = score
-    return r
+def _make_result(content: str, score: float = 0.5) -> SearchResult:
+    return SearchResult(doc_id=f"doc-{content[:24]}", content=content, score=score)
 
 
 class TestTFIDFReranker:
