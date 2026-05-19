@@ -2,11 +2,11 @@ schema_version: 1
 updated: "2026-05-17"
 testing:
   command: "pytest tests/ -m \"not e2e\" --tb=short -q"
-  collected_tests: 1260
-  latest_result: "1253 passed, 5 skipped, 2 deselected"
+  collected_tests: 1280
+  latest_result: "1273 passed, 5 skipped, 2 deselected"
   coverage_gate_percent: 80
-  latest_coverage_percent: 81.59
-  source: "Local run on 2026-05-17"
+  latest_coverage_percent: 81.00
+  source: "Local run on 2026-05-18"
 eval_corpus:
   golden_cases: 51
   adversarial_cases: 21
@@ -37,4 +37,4 @@ notes:
   - "95.5% F1 is the 28-case golden baseline (autoresearch/baseline.json), replayed deterministically in CI by scripts/eval_offline_replay.py at zero API cost (combined 0.9555)."
   - "Cost, latency and straight-through are modeled, not yet metered; scripts/benchmark.py produces measured values over all 72 cases when an API budget is attached."
   - "To flip modeled -> measured: follow docs/metering-runbook.md (one command + the three surfaces to update). Harness verified billing-blocked only."
-  - "Use collected test count (1260) separately from the latest pass count (1253 passed)."
+  - "Use collected test count (1280) separately from the latest pass count (1273 passed)."

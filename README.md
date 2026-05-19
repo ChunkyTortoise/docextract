@@ -16,7 +16,7 @@
 
 **30-second pitch:** DocExtract is a production document-extraction RAG system with eval-gated CI, cost-aware routing, citation grounding, and a live demo. It turns messy PDFs into structured data while measuring quality, latency, and per-document cost.
 
-**Key proof:** **95.5% accepted extraction F1** over the 28-case extraction baseline (`autoresearch/baseline.json`) — replayed deterministically in CI by [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) at **zero API cost**, so the Eval Gate badge reflects a real, reproducible score (combined F1 0.9555). The full **72-case corpus** (51 golden + 21 adversarial) is committed and re-measured end-to-end by [`scripts/benchmark.py`](scripts/benchmark.py). Cost (~$0.03/doc), p95 latency (~4.1s) and straight-through (~88%) are **modeled** from the in-repo pricing table and call distribution ([`docs/cost-model.md`](docs/cost-model.md)) — reproducible as metered numbers via `scripts/benchmark.py` once an API budget is attached. **1,260 collected tests** (1,253 passing, 81% coverage); live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
+**Key proof:** **95.5% accepted extraction F1** over the 28-case extraction baseline (`autoresearch/baseline.json`) — replayed deterministically in CI by [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) at **zero API cost**, so the Eval Gate badge reflects a real, reproducible score (combined F1 0.9555). The full **72-case corpus** (51 golden + 21 adversarial) is committed and re-measured end-to-end by [`scripts/benchmark.py`](scripts/benchmark.py). Cost (~$0.03/doc), p95 latency (~4.1s) and straight-through (~88%) are **modeled** from the in-repo pricing table and call distribution ([`docs/cost-model.md`](docs/cost-model.md)) — reproducible as metered numbers via `scripts/benchmark.py` once an API budget is attached. **1,280 collected tests** (1,273 passing, 81% coverage); live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
 
 **Eval rigor:** a documented [failure-mode taxonomy](docs/eval-failure-analysis.md) (what the system is designed to catch, the mitigation, and the next experiment); the offline replay gate ([`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py)) fails CI on a >3-point F1 regression vs the committed baseline.
 
@@ -24,7 +24,7 @@
 
 **Hiring fit:** AI Engineer, LLM Evaluation Engineer, AI Backend Engineer, LLMOps Engineer.
 
-> **Proof in 30 seconds** -- 95.5% F1 (CI-replayed, zero-cost) | ~$0.03/doc (modeled) | ~4.1s p95 (modeled) | 1,260 tests, 81% cov | 72-case corpus | live demo
+> **Proof in 30 seconds** -- 95.5% F1 (CI-replayed, zero-cost) | ~$0.03/doc (modeled) | ~4.1s p95 (modeled) | 1,280 tests, 81% cov | 72-case corpus | live demo
 
 | Metric | Value | Basis |
 |--------|-------|-------|
@@ -32,7 +32,7 @@
 | Avg cost per document | **~$0.03** | Modeled — pricing table x call distribution ([cost-model.md](docs/cost-model.md)) |
 | p95 end-to-end latency | **~4.1s** | Modeled — pending a metered `scripts/benchmark.py` run |
 | Straight-through rate | **~88%** | Modeled — pending production traces |
-| Test suite | **1,260 collected tests** | Measured — 1,253 passing, 81% coverage |
+| Test suite | **1,280 collected tests** | Measured — 1,273 passing, 81% coverage |
 | Eval framework | **LLM-as-judge + promptfoo CI gate + offline replay** | Code: `scripts/eval_*.py` |
 
 **Modeled cost attribution (~$0.03/doc — token pricing x call distribution; reproduce metered numbers with `scripts/benchmark.py`):**
@@ -149,7 +149,7 @@ graph LR
 | Semantic search (p95) | <100ms |
 | Extraction accuracy (eval gate) | **95.5%** accepted F1 baseline (`autoresearch/baseline.json`, 28 scored cases) |
 | Eval corpus | 72 scored cases: 51 golden + 21 adversarial |
-| Test suite | 1,260 collected tests; latest local run: 1,253 passed, 5 skipped, 2 deselected |
+| Test suite | 1,280 collected tests; latest local run: 1,273 passed, 5 skipped, 2 deselected |
 | Coverage | 81.59% latest local coverage; 80% CI gate |
 
 ## Evaluation Results
@@ -247,7 +247,7 @@ Reference Kubernetes (`deploy/k8s/`, kustomize), AWS Terraform (`deploy/aws/`), 
 ## Running Tests
 
 ```bash
-pytest tests/ -v                      # Full suite (1,260 collected tests)
+pytest tests/ -v                      # Full suite (1,280 collected tests)
 pytest tests/ -v --run-eval           # Include golden eval (requires API key)
 python scripts/run_eval_ci.py --ci    # Deterministic eval (no API key)
 ```
