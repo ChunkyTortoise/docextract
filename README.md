@@ -16,7 +16,7 @@
 
 **30-second pitch:** DocExtract is a production document-extraction RAG system with eval-gated CI, cost-aware routing, citation grounding, and a live demo. It turns messy PDFs into structured data while measuring quality, latency, and per-document cost.
 
-**Key proof:** **95.5% accepted extraction F1** over the 28-case extraction baseline (`autoresearch/baseline.json`) — replayed deterministically in CI by [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) at **zero API cost**, so the Eval Gate badge reflects a real, reproducible score (combined F1 0.9555). The full **72-case corpus** (51 golden + 21 adversarial) is committed and re-measured end-to-end by [`scripts/benchmark.py`](scripts/benchmark.py). Cost (~$0.03/doc), p95 latency (~4.1s) and straight-through (~88%) are **modeled** from the in-repo pricing table and call distribution ([`docs/cost-model.md`](docs/cost-model.md)) — reproducible as metered numbers via `scripts/benchmark.py` once an API budget is attached. **1,280 collected tests** (1,273 passing, 81% coverage); live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
+**Key proof:** **95.5% accepted extraction F1** over the 28-case extraction baseline (`autoresearch/baseline.json`) - replayed deterministically in CI by [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) at **zero API cost**, so the Eval Gate badge reflects a real, reproducible score (combined F1 0.9555). The full **72-case corpus** (51 golden + 21 adversarial) is committed and re-measured end-to-end by [`scripts/benchmark.py`](scripts/benchmark.py). Cost (~$0.03/doc), p95 latency (~4.1s) and straight-through (~88%) are **modeled** from the in-repo pricing table and call distribution ([`docs/cost-model.md`](docs/cost-model.md)) - reproducible as metered numbers via `scripts/benchmark.py` once an API budget is attached. **1,280 collected tests** (1,273 passing, 81% coverage); live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
 
 **Eval rigor:** a documented [failure-mode taxonomy](docs/eval-failure-analysis.md) (what the system is designed to catch, the mitigation, and the next experiment); the offline replay gate ([`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py)) fails CI on a >3-point F1 regression vs the committed baseline.
 
@@ -28,14 +28,14 @@
 
 | Metric | Value | Basis |
 |--------|-------|-------|
-| Extraction accuracy (F1) | **95.5%** | Measured — CI-replayed from committed fixtures, zero API cost |
-| Avg cost per document | **~$0.03** | Modeled — pricing table x call distribution ([cost-model.md](docs/cost-model.md)) |
-| p95 end-to-end latency | **~4.1s** | Modeled — pending a metered `scripts/benchmark.py` run |
-| Straight-through rate | **~88%** | Modeled — pending production traces |
-| Test suite | **1,280 collected tests** | Measured — 1,273 passing, 81% coverage |
+| Extraction accuracy (F1) | **95.5%** | Measured - CI-replayed from committed fixtures, zero API cost |
+| Avg cost per document | **~$0.03** | Modeled - pricing table x call distribution ([cost-model.md](docs/cost-model.md)) |
+| p95 end-to-end latency | **~4.1s** | Modeled - pending a metered `scripts/benchmark.py` run |
+| Straight-through rate | **~88%** | Modeled - pending production traces |
+| Test suite | **1,280 collected tests** | Measured - 1,273 passing, 81% coverage |
 | Eval framework | **LLM-as-judge + promptfoo CI gate + offline replay** | Code: `scripts/eval_*.py` |
 
-**Modeled cost attribution (~$0.03/doc — token pricing x call distribution; reproduce metered numbers with `scripts/benchmark.py`):**
+**Modeled cost attribution (~$0.03/doc - token pricing x call distribution; reproduce metered numbers with `scripts/benchmark.py`):**
 
 | Stage | Model | Avg cost | Notes |
 |-------|-------|----------|-------|
@@ -56,7 +56,7 @@ Per-call token usage and cache hits are captured by [`app/services/llm_tracer.py
 | Feature | ADR | Impact |
 |---------|-----|--------|
 | **Anthropic Prompt Caching** | [ADR-0015](docs/adr/0015-prompt-caching.md) | ~60% eval cost reduction; cache_creation_tokens tracked in OTel |
-| **Native Citations API** | [ADR-0016](docs/adr/0016-native-citations.md) | Character-level grounding for extracted fields — cite the exact source span |
+| **Native Citations API** | [ADR-0016](docs/adr/0016-native-citations.md) | Character-level grounding for extracted fields - cite the exact source span |
 | **Independent LLM Judge (Gemini)** | [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Eliminates self-grading bias; Gemini 2.5 Flash primary, Claude Haiku fallback |
 | **TF-IDF Reranker** | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | Replaces no-op stub; combines TF-IDF cosine + retrieval RRF score |
 | **Agentic Self-Reflection** | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | Low-confidence extractions trigger a reflection + revise pass |
@@ -65,7 +65,7 @@ Per-call token usage and cache hits are captured by [`app/services/llm_tracer.py
 
 | If you're evaluating for... | Where to look | Training behind it |
 |-----------------------------|--------------|-------------------|
-| **AI / ML Engineer** | Agentic RAG ReAct loop ([`app/services/agentic_rag.py`](app/services/agentic_rag.py)), RAGAS evaluation pipeline ([`app/services/ragas_evaluator.py`](app/services/ragas_evaluator.py)), QLoRA fine-tuning pipeline ([`scripts/train_qlora.py`](scripts/train_qlora.py)) — training infrastructure ready, W&B experiment tracking, golden eval CI gate | IBM GenAI Engineering (144h), IBM RAG & Agentic AI (24h), DeepLearning.AI Deep Learning (120h) |
+| **AI / ML Engineer** | Agentic RAG ReAct loop ([`app/services/agentic_rag.py`](app/services/agentic_rag.py)), RAGAS evaluation pipeline ([`app/services/ragas_evaluator.py`](app/services/ragas_evaluator.py)), QLoRA fine-tuning pipeline ([`scripts/train_qlora.py`](scripts/train_qlora.py)) - training infrastructure ready, W&B experiment tracking, golden eval CI gate | IBM GenAI Engineering (144h), IBM RAG & Agentic AI (24h), DeepLearning.AI Deep Learning (120h) |
 | **Backend / Platform Engineer** | Circuit breaker model fallback ([`app/services/circuit_breaker.py`](app/services/circuit_breaker.py)), async ARQ job queue ([`worker/`](worker/)), prompt versioning, eval CI, and sliding-window rate limiter | Microsoft AI & ML Engineering (75h), Google Cloud GenAI Leader (25h) |
 | **Full-Stack AI Engineer** | 15-page Streamlit dashboard ([`frontend/`](frontend/)), SSE streaming progress, MCP tool server ([`mcp_server.py`](mcp_server.py)), interactive demo sandbox | IBM BI Analyst (141h), Google Data Analytics (181h), Microsoft Data Viz (87h) |
 | **MLOps / LLMOps Engineer** | Prompt versioning + regression testing ([`app/services/prompt_registry.py`](app/services/prompt_registry.py)), model A/B testing with z-test significance ([`app/services/model_ab_test.py`](app/services/model_ab_test.py)), DeepEval CI gates, cost tracking per request | Duke LLMOps (48h), Google Advanced Data Analytics (200h) |
@@ -210,7 +210,7 @@ prompts/        -- Versioned prompt templates with CHANGELOG
 | [ADR-0006](docs/adr/0006-circuit-breaker-model-fallback.md) | Circuit breaker model fallback chain |
 | [ADR-0011](docs/adr/0011-api-key-auth-over-oauth-jwt.md) | API key auth over OAuth/JWT |
 | [ADR-0012](docs/adr/0012-pluggable-storage-local-r2.md) | Pluggable storage backend (Local/R2) |
-| [ADR-0015](docs/adr/0015-prompt-caching.md) | Anthropic prompt caching — 60%+ eval cost reduction |
+| [ADR-0015](docs/adr/0015-prompt-caching.md) | Anthropic prompt caching - 60%+ eval cost reduction |
 | [ADR-0016](docs/adr/0016-native-citations.md) | Native Citations API for character-level grounding |
 | [ADR-0017](docs/adr/0017-semantic-cache-l1-l2.md) | Two-layer semantic cache (L1 exact hash + L2 embedding similarity) |
 | [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Gemini 2.5 as independent judge (eliminates self-grading bias) |
@@ -238,11 +238,11 @@ Runs locally via Docker Compose. Reference Kubernetes and AWS Terraform configs 
 
 ## Deployment
 
-**Primary (local / self-host):** `docker compose up -d` — full API + worker + Streamlit frontend + Postgres + Redis stack.
+**Primary (local / self-host):** `docker compose up -d` - full API + worker + Streamlit frontend + Postgres + Redis stack.
 
 **Render (one-click demo):** [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ChunkyTortoise/docextract)
 
-Reference Kubernetes (`deploy/k8s/`, kustomize), AWS Terraform (`deploy/aws/`), and Fly.io (`fly.toml`) manifests are committed for infrastructure direction — not the production-facing proof here (that is the live demo, observability stack, and CI eval gate). See [deploy/](deploy/) for full manifests.
+Reference Kubernetes (`deploy/k8s/`, kustomize), AWS Terraform (`deploy/aws/`), and Fly.io (`fly.toml`) manifests are committed for infrastructure direction - not the production-facing proof here (that is the live demo, observability stack, and CI eval gate). See [deploy/](deploy/) for full manifests.
 
 ## Running Tests
 
