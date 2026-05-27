@@ -1,0 +1,12 @@
+title = "docextract gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = """
+The .gitleaksignore file documents test API key placeholders used in conftest, k8s manifests, and example docs. Gitleaks scans the .gitleaksignore file itself and trips on the documented values (recursive false-positive). Suppressing this path keeps the suppression list self-documenting without re-flagging itself.
+"""
+paths = [
+  '''\.gitleaksignore''',
+]
