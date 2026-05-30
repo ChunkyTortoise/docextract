@@ -144,7 +144,7 @@ graph LR
 
 | Metric | Value |
 |--------|-------|
-| Document extraction (p50) | ~8s (two-pass Claude) |
+| Document extraction (p95) | ~4.1s modeled end-to-end latency; pending metered `scripts/benchmark.py` run |
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
 | Extraction accuracy (eval gate) | **95.5%** accepted F1 baseline (`autoresearch/baseline.json`, 28 scored cases) |
