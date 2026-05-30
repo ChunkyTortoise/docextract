@@ -16,7 +16,7 @@
 
 **30-second pitch:** DocExtract is a production document-extraction RAG system with eval-gated CI, cost-aware routing, citation grounding, and a live demo. It turns messy PDFs into structured data while measuring quality, latency, and per-document cost.
 
-**Key proof:** **95.5% accepted extraction F1** (combined F1 0.9555) over a 28-case deterministic baseline (`autoresearch/baseline.json`, 16 golden + 12 adversarial) - replayed in CI by [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) at **zero API cost**, which is the score the Eval Gate badge enforces. A larger **72-case stress corpus** (51 golden + 21 adversarial) is also committed and re-measured end-to-end by [`scripts/benchmark.py`](scripts/benchmark.py); it is not the source of the headline number. Cost (~$0.03/doc), p95 latency (~4.1s) and straight-through (~88%) are **modeled** from the in-repo pricing table and call distribution ([`docs/cost-model.md`](docs/cost-model.md)) - reproducible as metered numbers via `scripts/benchmark.py` once an API budget is attached. **1,280 collected tests** (1,273 passing, 81% coverage); live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
+**Key proof:** **95.5% accepted extraction F1** (combined F1 0.9555) over a 28-case deterministic baseline (`autoresearch/baseline.json`, 16 golden + 12 adversarial) - replayed in CI by [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) at **zero API cost**, which is the score the Eval Gate badge enforces. A larger **72-case stress corpus** (51 golden + 21 adversarial) is also committed and re-measured end-to-end by [`scripts/benchmark.py`](scripts/benchmark.py); it is not the source of the headline number. Cost (~$0.03/doc), p95 latency (~4.1s) and straight-through (~88%) are **modeled** from the in-repo pricing table and call distribution ([`docs/cost-model.md`](docs/cost-model.md)) - reproducible as metered numbers via `scripts/benchmark.py` once an API budget is attached. **1,280 tests, 81% coverage**; live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
 
 **Eval rigor:** a documented [failure-mode taxonomy](docs/eval-failure-analysis.md) (what the system is designed to catch, the mitigation, and the next experiment); the offline replay gate ([`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py)) fails CI on a >3-point F1 regression vs the committed baseline.
 
@@ -63,12 +63,12 @@ Per-call token usage and cache hits are captured by [`app/services/llm_tracer.py
 
 ## Detailed Hiring Evidence
 
-| If you're evaluating for... | Where to look | Training behind it |
-|-----------------------------|--------------|-------------------|
-| **AI / ML Engineer** | Agentic RAG ReAct loop ([`app/services/agentic_rag.py`](app/services/agentic_rag.py)), RAGAS evaluation pipeline ([`app/services/ragas_evaluator.py`](app/services/ragas_evaluator.py)), QLoRA fine-tuning pipeline ([`scripts/train_qlora.py`](scripts/train_qlora.py)) - training infrastructure ready, W&B experiment tracking, golden eval CI gate | IBM GenAI Engineering (144h), IBM RAG & Agentic AI (24h), DeepLearning.AI Deep Learning (120h) |
-| **Backend / Platform Engineer** | Circuit breaker model fallback ([`app/services/circuit_breaker.py`](app/services/circuit_breaker.py)), async ARQ job queue ([`worker/`](worker/)), prompt versioning, eval CI, and sliding-window rate limiter | Microsoft AI & ML Engineering (75h), Google Cloud GenAI Leader (25h) |
-| **Full-Stack AI Engineer** | 15-page Streamlit dashboard ([`frontend/`](frontend/)), SSE streaming progress, MCP tool server ([`mcp_server.py`](mcp_server.py)), interactive demo sandbox | IBM BI Analyst (141h), Google Data Analytics (181h), Microsoft Data Viz (87h) |
-| **MLOps / LLMOps Engineer** | Prompt versioning + regression testing ([`app/services/prompt_registry.py`](app/services/prompt_registry.py)), model A/B testing with z-test significance ([`app/services/model_ab_test.py`](app/services/model_ab_test.py)), DeepEval CI gates, cost tracking per request | Duke LLMOps (48h), Google Advanced Data Analytics (200h) |
+| If you're evaluating for... | Where to look |
+|-----------------------------|--------------|
+| **AI / ML Engineer** | Agentic RAG ReAct loop ([`app/services/agentic_rag.py`](app/services/agentic_rag.py)), RAGAS evaluation pipeline ([`app/services/ragas_evaluator.py`](app/services/ragas_evaluator.py)), QLoRA fine-tuning pipeline ([`scripts/train_qlora.py`](scripts/train_qlora.py)) - training infrastructure ready, W&B experiment tracking, golden eval CI gate |
+| **Backend / Platform Engineer** | Circuit breaker model fallback ([`app/services/circuit_breaker.py`](app/services/circuit_breaker.py)), async ARQ job queue ([`worker/`](worker/)), prompt versioning, eval CI, and sliding-window rate limiter |
+| **Full-Stack AI Engineer** | 15-page Streamlit dashboard ([`frontend/`](frontend/)), SSE streaming progress, MCP tool server ([`mcp_server.py`](mcp_server.py)), interactive demo sandbox |
+| **MLOps / LLMOps Engineer** | Prompt versioning + regression testing ([`app/services/prompt_registry.py`](app/services/prompt_registry.py)), model A/B testing with z-test significance ([`app/services/model_ab_test.py`](app/services/model_ab_test.py)), DeepEval CI gates, cost tracking per request |
 
 → Supporting background map: [`docs/certifications.md`](docs/certifications.md)
 
@@ -147,10 +147,8 @@ graph LR
 | Document extraction (p95) | ~4.1s modeled end-to-end latency; pending metered `scripts/benchmark.py` run |
 | SSE first token (p50) | <500ms |
 | Semantic search (p95) | <100ms |
-| Extraction accuracy (eval gate) | **95.5%** accepted F1 baseline (`autoresearch/baseline.json`, 28 scored cases) |
-| Eval corpus | 72 scored cases: 51 golden + 21 adversarial |
-| Test suite | 1,280 collected tests; latest local run: 1,273 passed, 5 skipped, 2 deselected |
-| Coverage | 81.59% latest local coverage; 80% CI gate |
+
+Accuracy, eval-corpus, test, and coverage numbers are in the metrics table near the top of this README.
 
 ## Evaluation Results
 
@@ -192,7 +190,7 @@ app/
 worker/         -- ARQ async job processor
 frontend/       -- Streamlit 15-page dashboard
 alembic/        -- Database migrations (001-012)
-scripts/        -- CLI tools: eval harness, training, seeding, Langfuse sync
+scripts/        -- CLI tools: eval runner, training, seeding, Langfuse sync
 tests/          -- Unit, integration, frontend, e2e, and load tests
 evals/          -- Golden + adversarial eval corpus (72 scored cases)
 prompts/        -- Versioned prompt templates with CHANGELOG
