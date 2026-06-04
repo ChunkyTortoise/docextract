@@ -12,11 +12,10 @@
 
 | Metric | Value | Basis |
 |--------|-------|-------|
-| Extraction accuracy (F1) | **95.5%** | CI-replayed from committed fixtures, zero API cost |
-| Avg cost per document | **~$0.03** | Modeled -- pricing table x call distribution ([cost-model.md](docs/cost-model.md)) |
-| p95 end-to-end latency | **~4.1s** | Modeled -- pending metered benchmark run |
+| Extraction accuracy (F1) | **95.5%** | CI-replayed, 28-case deterministic baseline; independent Gemini judge eliminates self-grading bias ([ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md)) |
 | Test suite | **1,280 tests, 81% coverage** | 80% CI gate enforced |
-| Eval corpus | **72 cases** (51 golden + 21 adversarial) | Prompt injection, PII leak, hallucination bait |
+| Eval corpus | **72 cases** (51 golden + 21 adversarial) | 28 deterministic-replay in CI + 44 live-metered when API budget attached; adversarial set covers injection, PII leak, hallucination bait |
+| Modeled estimates | cost **~$0.03**/doc · latency **~4.1s** p95 | Pricing table x call distribution; reproduce metered numbers with `scripts/benchmark.py` ([cost-model.md](docs/cost-model.md)) |
 
 ## What this does
 
