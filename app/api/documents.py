@@ -134,16 +134,20 @@ async def batch_upload(
     """Upload multiple documents for processing."""
     job_ids: list[str] = []
     duplicates: list[str] = []
+    errors: list[dict] = []
 
     for uploaded_file in files:
         file_bytes = await uploaded_file.read()
+        filename = uploaded_file.filename or "unknown"
 
         if len(file_bytes) > settings.max_file_size_mb * 1024 * 1024:
-            continue  # skip oversized files silently
+            errors.append({"filename": filename, "reason": "file_too_large"})
+            continue
 
         mime_type = detect_mime_type(file_bytes)
         if not is_allowed_mime_type(mime_type):
-            continue  # skip unsupported types
+            errors.append({"filename": filename, "reason": "unsupported_type", "mime_type": mime_type})
+            continue
 
         sha256 = hash_file(file_bytes)
 
@@ -193,7 +197,7 @@ async def batch_upload(
         job_ids.append(str(job_id))
 
     await db.commit()
-    return {"job_ids": job_ids, "duplicates": duplicates}
+    return {"job_ids": job_ids, "duplicates": duplicates, "errors": errors}
 
 
 @router.delete("/{document_id}")
