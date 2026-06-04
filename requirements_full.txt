@@ -1,7 +1,7 @@
 # Full development stack -- includes ML training (deepeval, ragas, langchain) and all optional deps.
 # CI uses requirements_ci.txt (excludes torch). Streamlit Cloud uses requirements.txt.
-fastapi==0.115.4
-starlette>=0.40.0,<0.42.0
+fastapi>=0.115.8
+starlette>=0.40.0
 uvicorn[standard]==0.30.6
 sqlalchemy[asyncio]==2.0.35
 asyncpg==0.29.0
