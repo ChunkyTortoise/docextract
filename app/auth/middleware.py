@@ -87,7 +87,9 @@ def require_roles(*roles: str):
     async def _require(
         api_key: APIKey = Depends(get_api_key),
     ) -> APIKey:
-        current_role = getattr(api_key, "role", "admin") or "admin"
+        current_role = getattr(api_key, "role", None) or None
+        if current_role is None:
+            raise HTTPException(status_code=403, detail="Missing role on API key")
         if current_role not in ROLE_RANK:
             raise HTTPException(status_code=403, detail="Unknown API key role")
         if current_role in allowed:

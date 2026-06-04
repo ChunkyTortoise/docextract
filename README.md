@@ -2,99 +2,32 @@
 
 # DocExtract AI
 
-**Extract structured data from unstructured documents in seconds -- not hours.**
+> Production document-extraction RAG system: turns messy PDFs into structured data with eval-gated CI, cost-aware model routing, citation grounding, and a live demo.
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
 [![Coverage](https://codecov.io/gh/ChunkyTortoise/docextract/graph/badge.svg)](https://codecov.io/gh/ChunkyTortoise/docextract)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com)
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://docextract-demo.streamlit.app)
-
-## For Hiring Managers
-
-**30-second pitch:** DocExtract is a production document-extraction RAG system with eval-gated CI, cost-aware routing, citation grounding, and a live demo. It turns messy PDFs into structured data while measuring quality, latency, and per-document cost.
-
-**Key proof:** **95.5% accepted extraction F1** (combined F1 0.9555) over a 28-case deterministic baseline (`autoresearch/baseline.json`, 16 golden + 12 adversarial) - replayed in CI by [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) at **zero API cost**, which is the score the Eval Gate badge enforces. A larger **72-case stress corpus** (51 golden + 21 adversarial) is also committed and re-measured end-to-end by [`scripts/benchmark.py`](scripts/benchmark.py); it is not the source of the headline number. Cost (~$0.03/doc), p95 latency (~4.1s) and straight-through (~88%) are **modeled** from the in-repo pricing table and call distribution ([`docs/cost-model.md`](docs/cost-model.md)) - reproducible as metered numbers via `scripts/benchmark.py` once an API budget is attached. **1,280 tests, 81% coverage**; live demo at [docextract-demo.streamlit.app](https://docextract-demo.streamlit.app).
-
-**Eval rigor:** a documented [failure-mode taxonomy](docs/eval-failure-analysis.md) (what the system is designed to catch, the mitigation, and the next experiment); the offline replay gate ([`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py)) fails CI on a >3-point F1 regression vs the committed baseline.
-
-**Engineering signals:** FastAPI, pgvector RAG, Claude Sonnet/Haiku routing, Gemini Flash LLM-as-judge, promptfoo CI gate, OpenTelemetry cost attribution, prompt caching, and async worker architecture.
-
-**Hiring fit:** AI Engineer, LLM Evaluation Engineer, AI Backend Engineer, LLMOps Engineer.
-
-> **Proof in 30 seconds** -- 95.5% F1 (CI-replayed, zero-cost) | ~$0.03/doc (modeled) | ~4.1s p95 (modeled) | 1,280 tests, 81% cov | 72-case corpus | live demo
 
 | Metric | Value | Basis |
 |--------|-------|-------|
-| Extraction accuracy (F1) | **95.5%** | Measured - CI-replayed from committed fixtures, zero API cost |
-| Avg cost per document | **~$0.03** | Modeled - pricing table x call distribution ([cost-model.md](docs/cost-model.md)) |
-| p95 end-to-end latency | **~4.1s** | Modeled - pending a metered `scripts/benchmark.py` run |
-| Straight-through rate | **~88%** | Modeled - pending production traces |
-| Test suite | **1,280 collected tests** | Measured - 1,273 passing, 81% coverage |
-| Eval framework | **LLM-as-judge + promptfoo CI gate + offline replay** | Code: `scripts/eval_*.py` |
+| Extraction accuracy (F1) | **95.5%** | CI-replayed, 28-case deterministic baseline; independent Gemini judge eliminates self-grading bias ([ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md)) |
+| Test suite | **1,280 tests, 81% coverage** | 80% CI gate enforced |
+| Eval corpus | **72 cases** (51 golden + 21 adversarial) | 28 deterministic-replay in CI + 44 live-metered when API budget attached; adversarial set covers injection, PII leak, hallucination bait |
+| Modeled estimates | cost **~$0.03**/doc · latency **~4.1s** p95 | Pricing table x call distribution; reproduce metered numbers with `scripts/benchmark.py` ([cost-model.md](docs/cost-model.md)) |
 
-**Modeled cost attribution (~$0.03/doc - token pricing x call distribution; reproduce metered numbers with `scripts/benchmark.py`):**
+## What this does
 
-| Stage | Model | Avg cost | Notes |
-|-------|-------|----------|-------|
-| Classification | Claude Haiku 4.5 | $0.0003-$0.001 | Haiku routing saves ~67% vs Sonnet; A/B z-test confirmed <2% quality loss |
-| Extraction | Claude Sonnet 4.6 | $0.004-$0.012 | Prompt caching (ADR-0015) cuts repeat-call cost ~60% on runs >5 docs |
-| Self-reflection (12% of docs) | Claude Sonnet 4.6 | +20% base cost | Triggered by low-confidence threshold; 88% of docs skip this pass |
-| LLM judge | Gemini 2.5 Flash | ~$0.001 | 10% sampling; independent grader removes self-grading bias |
-| **Per-document total (avg)** | | **~$0.03** | |
+FastAPI service that extracts structured data from PDFs and other documents via a two-pass Claude pipeline (draft + verify). Extracted records are embedded in pgvector for semantic search. Quality is measured continuously by an LLM-as-judge (Gemini 2.5 Flash, 10% sampling) and enforced in CI via an eval gate that fails on >3-point F1 regression.
 
-Per-call token usage and cache hits are captured by [`app/services/llm_tracer.py`](app/services/llm_tracer.py) and exported as OpenTelemetry metrics (`prompt_cache_read_tokens_total`, `prompt_cache_creation_tokens_total`, plus LLM latency/token counters) via [`app/observability.py`](app/observability.py). Per-request USD cost is then computed from those token counts by [`app/services/cost_tracker.py`](app/services/cost_tracker.py) against the in-repo pricing table; methodology in [`docs/cost-model.md`](docs/cost-model.md).
+## Why this is interesting (engineering)
 
-**Key features:** instructor typed extraction with auto-retry, LLM-as-judge online quality scoring (10% sampling), hybrid RRF retrieval, vision extraction mode, business metrics API, 15-page Streamlit dashboard
-
-> **Best fit** -- AI Engineer, AI Backend Engineer
-
-## Recent Engineering Decisions
-
-| Feature | ADR | Impact |
-|---------|-----|--------|
-| **Anthropic Prompt Caching** | [ADR-0015](docs/adr/0015-prompt-caching.md) | ~60% eval cost reduction; cache_creation_tokens tracked in OTel |
-| **Native Citations API** | [ADR-0016](docs/adr/0016-native-citations.md) | Character-level grounding for extracted fields - cite the exact source span |
-| **Independent LLM Judge (Gemini)** | [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Eliminates self-grading bias; Gemini 2.5 Flash primary, Claude Haiku fallback |
-| **TF-IDF Reranker** | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | Replaces no-op stub; combines TF-IDF cosine + retrieval RRF score |
-| **Agentic Self-Reflection** | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | Low-confidence extractions trigger a reflection + revise pass |
-
-## Detailed Hiring Evidence
-
-| If you're evaluating for... | Where to look |
-|-----------------------------|--------------|
-| **AI / ML Engineer** | Agentic RAG ReAct loop ([`app/services/agentic_rag.py`](app/services/agentic_rag.py)), RAGAS evaluation pipeline ([`app/services/ragas_evaluator.py`](app/services/ragas_evaluator.py)), QLoRA fine-tuning pipeline ([`scripts/train_qlora.py`](scripts/train_qlora.py)) - training infrastructure ready, W&B experiment tracking, golden eval CI gate |
-| **Backend / Platform Engineer** | Circuit breaker model fallback ([`app/services/circuit_breaker.py`](app/services/circuit_breaker.py)), async ARQ job queue ([`worker/`](worker/)), prompt versioning, eval CI, and sliding-window rate limiter |
-| **Full-Stack AI Engineer** | 15-page Streamlit dashboard ([`frontend/`](frontend/)), SSE streaming progress, MCP tool server ([`mcp_server.py`](mcp_server.py)), interactive demo sandbox |
-| **MLOps / LLMOps Engineer** | Prompt versioning + regression testing ([`app/services/prompt_registry.py`](app/services/prompt_registry.py)), model A/B testing with z-test significance ([`app/services/model_ab_test.py`](app/services/model_ab_test.py)), DeepEval CI gates, cost tracking per request |
-
-→ Supporting background map: [`docs/certifications.md`](docs/certifications.md)
-
-## Quickstart
-
-```bash
-git clone https://github.com/ChunkyTortoise/docextract.git
-cd docextract
-cp .env.example .env  # Add ANTHROPIC_API_KEY + GEMINI_API_KEY
-docker compose up -d
-open http://localhost:8501  # Streamlit UI
-```
-
-Services: API at `:8000` (`/docs` for Swagger) | Frontend at `:8501` | PostgreSQL `:5432` | Redis `:6379`
-
-## Demo
-
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://docextract-demo.streamlit.app)
-
-> First visit may take 30 seconds to wake up. Pre-cached results for invoice, contract, and receipt extraction.
-
-Local demo (no API key needed):
-
-```bash
-DEMO_MODE=true streamlit run frontend/app.py
-```
+- **Eval-gated CI**: `eval-gate.yml` replays 28-case deterministic baseline at zero API cost via `scripts/eval_offline_replay.py`; PRs touching prompts or extraction services must pass before merge
+- **Cost-aware model routing**: Claude Haiku for classification (saves ~67% vs Sonnet, <2% quality loss confirmed by A/B z-test), Sonnet for extraction; prompt caching cuts repeat-call cost ~60%
+- **Independent judge**: Gemini 2.5 Flash grades extractions to eliminate self-grading bias; documented in [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md)
+- **Circuit breaker fallback**: Sonnet → Haiku with dead-letter queue, idempotent retries, and HMAC-signed webhooks
+- **OpenTelemetry cost attribution**: per-request USD cost computed from token counts via `app/services/cost_tracker.py`; exported as OTel metrics to Grafana
 
 ## Architecture
 
@@ -112,152 +45,48 @@ graph LR
   D --- I[Circuit Breaker]
 ```
 
-## Supported Models
+## Demo
 
-| Model | Provider | Env Var | Notes |
-|-------|----------|---------|-------|
-| `claude-sonnet-4-6` | Anthropic | `ANTHROPIC_API_KEY` | Default extraction model |
-| `claude-haiku-4-5-20251001` | Anthropic | `ANTHROPIC_API_KEY` | Default classification + circuit breaker fallback |
-| Gemini (embedding) | Google | `GEMINI_API_KEY` | Used for pgvector embeddings only |
-
-## Screenshots
-
-| Upload & Extraction | Extracted Records & ROI |
-|---------------------|------------------------|
-| ![Upload](docs/screenshots/upload.png) | ![Dashboard](docs/screenshots/dashboard.png) |
-
-### SSE Streaming Demo
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://docextract-demo.streamlit.app)
 
 ![SSE streaming extraction flow](docs/screenshots/sse-streaming-demo.gif)
 
-*Real-time progress: PREPROCESSING > EXTRACTING > CLASSIFYING > VALIDATING > EMBEDDING > COMPLETED*
+Local demo (no API key needed): `DEMO_MODE=true streamlit run frontend/app.py`
 
-## Key Capabilities
-
-- **Extraction**: Two-pass Claude pipeline (draft + verify via `tool_use`), 6 document types, 95.5% accepted extraction F1 baseline with a 72-case eval corpus (51 golden + 21 adversarial)
-- **Search & RAG**: pgvector semantic search (768-dim HNSW), hybrid BM25+RRF retrieval, agentic ReAct loop with 5 tools, map-reduce multi-document synthesis, semantic deduplication cache
-- **Reliability**: Circuit breaker (Sonnet to Haiku fallback), dead-letter queue, idempotent retries, HMAC-signed webhooks with 4-attempt retry, SHA-256 upload dedup
-- **Observability**: OpenTelemetry traces (Jaeger/Tempo), Prometheus metrics, Grafana dashboards, per-request cost tracking, structured logging
-- **Developer Experience**: SSE streaming progress, MCP server integration, prompt versioning (semver), model A/B testing (z-test), 19 ADRs, 81.59% latest local coverage with an 80% CI gate
-
-## Performance
-
-| Metric | Value |
-|--------|-------|
-| Document extraction (p95) | ~4.1s modeled end-to-end latency; pending metered `scripts/benchmark.py` run |
-| SSE first token (p50) | <500ms |
-| Semantic search (p95) | <100ms |
-
-Accuracy, eval-corpus, test, and coverage numbers are in the metrics table near the top of this README.
-
-## Evaluation Results
-
-Current eval corpus: 72 scored cases, 51 golden + 21 adversarial (prompt injection, PII leak, hallucination bait). The accepted F1 baseline is stored in [`autoresearch/baseline.json`](autoresearch/baseline.json), and quality checks are CI-enforced on every PR that touches prompts or extraction services via [`eval-gate.yml`](.github/workflows/eval-gate.yml). Failure modes and next experiments are tracked in [`docs/eval-failure-analysis.md`](docs/eval-failure-analysis.md).
-
-| Document Type | F1 Score |
-|---|---|
-| Invoice | 97.3% |
-| Purchase Order | 97.6% |
-| Bank Statement | 95.8% |
-| Medical Record | 99.2% |
-| Receipt | 91.1% |
-| Identity Document | 81.4% |
-| **Overall** | **95.5%** |
-
-*Baseline: `autoresearch/baseline.json` (28-case baseline: 16 golden + 12 adversarial, legacy runner).*
+## Install
 
 ```bash
-# Full eval suite (Promptfoo + Ragas + LLM-judge, ~$0.44, ~4 min):
-make eval
-
-# Fast eval (Promptfoo only, ~$0.02, ~20s):
-make eval-fast
+git clone https://github.com/ChunkyTortoise/docextract.git
+cd docextract
+cp .env.example .env  # Add ANTHROPIC_API_KEY + GEMINI_API_KEY
+docker compose up -d
+open http://localhost:8501  # Streamlit UI
 ```
 
-For methodology details see [`docs/eval-methodology.md`](docs/eval-methodology.md).
+Services: API `:8000` (`/docs` for Swagger) | Frontend `:8501` | PostgreSQL `:5432` | Redis `:6379`
 
-## Project Structure
+## Tests
 
-```
-app/
-  api/          -- FastAPI route modules (10 routers)
-  auth/         -- API key auth + rate limiting middleware
-  models/       -- SQLAlchemy models (8 tables)
-  schemas/      -- Pydantic request/response schemas
-  services/     -- Extraction, classification, embedding, validation
-  storage/      -- Pluggable storage backends (local, R2)
-  utils/        -- Hashing, MIME detection, token counting
-worker/         -- ARQ async job processor
-frontend/       -- Streamlit 15-page dashboard
-alembic/        -- Database migrations (001-012)
-scripts/        -- CLI tools: eval runner, training, seeding, Langfuse sync
-tests/          -- Unit, integration, frontend, e2e, and load tests
-evals/          -- Golden + adversarial eval corpus (72 scored cases)
-prompts/        -- Versioned prompt templates with CHANGELOG
+```bash
+pytest tests/ -v                      # 1,280 collected tests
+python scripts/run_eval_ci.py --ci    # Deterministic eval (no API key)
+make eval                             # Full eval suite (~$0.44, ~4 min)
 ```
 
 ## Architecture Decisions
 
-19 Architecture Decision Records (ADRs) document the key design choices: [docs/adr/](docs/adr/)
+19 ADRs at [docs/adr/](docs/adr/). Key decisions:
 
 | ADR | Decision |
 |-----|----------|
-| [ADR-0001](docs/adr/0001-arq-over-celery.md) | ARQ over Celery for async job queue |
-| [ADR-0002](docs/adr/0002-pgvector-over-dedicated-vector-db.md) | pgvector over Pinecone/Weaviate |
 | [ADR-0003](docs/adr/0003-two-pass-extraction.md) | Two-pass Claude extraction with confidence gating |
 | [ADR-0006](docs/adr/0006-circuit-breaker-model-fallback.md) | Circuit breaker model fallback chain |
-| [ADR-0011](docs/adr/0011-api-key-auth-over-oauth-jwt.md) | API key auth over OAuth/JWT |
-| [ADR-0012](docs/adr/0012-pluggable-storage-local-r2.md) | Pluggable storage backend (Local/R2) |
-| [ADR-0015](docs/adr/0015-prompt-caching.md) | Anthropic prompt caching - 60%+ eval cost reduction |
-| [ADR-0016](docs/adr/0016-native-citations.md) | Native Citations API for character-level grounding |
+| [ADR-0015](docs/adr/0015-prompt-caching.md) | Anthropic prompt caching -- 60%+ eval cost reduction |
 | [ADR-0017](docs/adr/0017-semantic-cache-l1-l2.md) | Two-layer semantic cache (L1 exact hash + L2 embedding similarity) |
 | [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Gemini 2.5 as independent judge (eliminates self-grading bias) |
 | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | TF-IDF reranker + agentic self-reflection loop |
 
-## Production Readiness
-
-Runs locally via Docker Compose. Reference Kubernetes and AWS Terraform configs are included for future deployment work, but the clearest production-facing proof here is the live demo, observability stack, and CI-enforced eval gate.
-
-**Cloud infrastructure** ([`deploy/aws/main.tf`](deploy/aws/main.tf), [`deploy/k8s/`](deploy/k8s/)): Reference AWS Terraform and Kubernetes configs are included for infrastructure direction, along with Docker Compose for local end-to-end runs.
-
-| Document | Purpose |
-|----------|---------|
-| [SLO Targets](docs/slo.md) | Latency, availability, quality, cost targets |
-| [Common Failure Runbook](docs/runbooks/common-failures.md) | Circuit breaker, Redis, DB, queue, vector index recovery |
-| [Security Guide](docs/SECURITY.md) | API keys, webhooks, CORS, data handling |
-| [Compliance & Privacy](docs/COMPLIANCE.md) | Privacy controls, PII handling notes, and compliance considerations |
-| [Architecture](docs/ARCHITECTURE.md) | Full system architecture overview |
-| [Case Study](CASE_STUDY.md) | Engineering journey from prototype to production |
-| [Demo Walkthrough](DEMO.md) | Five-minute live/local demo path for reviewers |
-| [Portfolio Metrics](docs/portfolio-metrics.yaml) | Canonical source for hiring-facing metric claims |
-| [MCP Integration](docs/mcp-integration.md) | Claude Desktop / agent framework setup |
-| [Cost Model](docs/cost-model.md) | Token costs, per-document pricing, volume estimates |
-| [Certifications Applied](docs/certifications.md) | Supporting background mapped to implementation areas |
-
-## Deployment
-
-**Primary (local / self-host):** `docker compose up -d` - full API + worker + Streamlit frontend + Postgres + Redis stack.
-
-**Render (one-click demo):** [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ChunkyTortoise/docextract)
-
-Reference Kubernetes (`deploy/k8s/`, kustomize), AWS Terraform (`deploy/aws/`), and Fly.io (`fly.toml`) manifests are committed for infrastructure direction - not the production-facing proof here (that is the live demo, observability stack, and CI eval gate). See [deploy/](deploy/) for full manifests.
-
-## Running Tests
-
-```bash
-pytest tests/ -v                      # Full suite (1,280 collected tests)
-pytest tests/ -v --run-eval           # Include golden eval (requires API key)
-python scripts/run_eval_ci.py --ci    # Deterministic eval (no API key)
-```
-
-## Known Limitations
-
-- **Tesseract degradation on handwriting**: OCR accuracy drops significantly on handwritten documents. Set `OCR_ENGINE=vision` to route through Claude's vision API instead.
-- **English-only extraction prompts**: Non-English documents may extract with lower accuracy.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and PR guidelines.
+More: [CASE_STUDY.md](CASE_STUDY.md) | [DEMO.md](DEMO.md) | [docs/eval-methodology.md](docs/eval-methodology.md) | [docs/cost-model.md](docs/cost-model.md)
 
 ## License
 

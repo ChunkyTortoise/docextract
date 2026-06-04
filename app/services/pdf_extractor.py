@@ -78,6 +78,7 @@ def extract_pdf(data: bytes) -> ExtractedContent:
 
         page_texts.append(page_text)
 
+    actual_page_count = doc.page_count
     doc.close()
 
     # Extract tables via pdfplumber
@@ -115,9 +116,9 @@ def extract_pdf(data: bytes) -> ExtractedContent:
         text=combined_text,
         metadata={
             "page_count": total_pages,
-            "total_pages_in_pdf": doc.page_count if not doc.is_closed else total_pages,
+            "total_pages_in_pdf": actual_page_count,
             "has_tables": has_tables,
-            "truncated": doc.page_count > max_pages if not doc.is_closed else False,
+            "truncated": actual_page_count > max_pages,
         },
         page_count=total_pages,
         tables=structured_tables,
