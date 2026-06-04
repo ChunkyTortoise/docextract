@@ -100,11 +100,31 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     raise ValueError(f"Unknown tool: {name}")
 
 
+def _validate_fetch_url(url: str) -> None:
+    """Reject non-https schemes and RFC-1918 / loopback hosts."""
+    import ipaddress
+    import urllib.parse
+
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https":
+        raise ValueError(f"Only https URLs are allowed; got scheme '{parsed.scheme}'")
+    hostname = parsed.hostname or ""
+    try:
+        addr = ipaddress.ip_address(hostname)
+        if addr.is_private or addr.is_loopback or addr.is_link_local:
+            raise ValueError(f"Requests to private/loopback addresses are not allowed: {hostname}")
+    except ValueError as exc:
+        if "not allowed" in str(exc):
+            raise
+        # hostname is a domain name, not an IP -- allow it
+
+
 async def _extract_document(
     file_url: str,
     doc_type_hint: str | None = None,
 ) -> list[TextContent]:
     """Download file from URL, upload to DocExtract, poll until complete."""
+    _validate_fetch_url(file_url)
     async with httpx.AsyncClient(timeout=60.0) as client:
         # Download file from URL
         dl_response = await client.get(file_url)
