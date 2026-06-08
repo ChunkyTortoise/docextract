@@ -93,5 +93,4 @@ The same `mcp_server.py` works with any MCP-compatible host. For Cursor or other
 
 ## Related Projects
 
-- **[mcp-server-toolkit](https://github.com/ChunkyTortoise/mcp-server-toolkit)** — 9 pre-built MCP servers and a framework for building new ones. Published to PyPI (`pip install mcp-server-toolkit==0.2.0`). Provides production boilerplate for building MCP servers with caching, rate limiting, and OpenTelemetry instrumentation — the same patterns used in this server.
-- **[EnterpriseHub](https://github.com/ChunkyTortoise/EnterpriseHub)** — Multi-agent orchestration platform that uses MCP for tool dispatch across 22 specialized agents.
+- **[mcp-server-toolkit](https://github.com/ChunkyTortoise/mcp-server-toolkit)**: 9 pre-built MCP servers and a framework for building new ones. Published to PyPI (`pip install mcp-server-toolkit==0.2.0`). Provides boilerplate for building MCP servers with caching, rate limiting, and OpenTelemetry instrumentation, the same patterns used in this server.
