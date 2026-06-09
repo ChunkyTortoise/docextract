@@ -207,7 +207,7 @@ A 6-step multi-model research pipeline (Perplexity + Gemini + Grok + ChatGPT + C
 | AI Engineer | DeepLearning.AI DL Spec | IBM GenAI Engineering | IBM RAG & Agentic AI | AWS GenAI Dev Pro* | Anthropic Claude Code | docextract |
 | Python Developer | Python for Everybody | Google Advanced Analytics | DeepLearning.AI DL Spec | Linux Foundation OSS | Duke LLMOps | finance-analytics |
 | Data Analyst | Google Data Analytics | Google Advanced Analytics | IBM BI Analyst | Microsoft Data Viz | MS AI-Enhanced Analysis | finance-analytics |
-| Solutions Engineer | IBM GenAI Engineering | Vanderbilt GenAI Leader | Google Cloud GenAI | Anthropic Claude Code | AWS GenAI Dev Pro* | EnterpriseHub |
+| Solutions Engineer | IBM GenAI Engineering | Vanderbilt GenAI Leader | Google Cloud GenAI | Anthropic Claude Code | AWS GenAI Dev Pro* | (private platform) |
 | Software Engineer | DeepLearning.AI DL Spec | Linux Foundation OSS | Duke LLMOps | IBM GenAI Engineering | Python for Everybody | docextract |
 
 *pending — register and study as separate Tier 2 action

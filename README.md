@@ -1,13 +1,11 @@
-![DocExtract AI](docs/screenshots/banner.png)
+![DocExtract AI live demo: document extraction with evaluation scores, agent trace, and cost analysis](docs/screenshots/demo-hero.png)
 
 # DocExtract AI
 
-> Production document-extraction RAG system: turns messy PDFs into structured data with eval-gated CI, cost-aware model routing, citation grounding, and a live demo.
+> Document-extraction RAG system: turns messy PDFs into structured data with eval-gated CI, cost-aware model routing, citation grounding, and a live demo.
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
-[![Coverage](https://codecov.io/gh/ChunkyTortoise/docextract/graph/badge.svg)](https://codecov.io/gh/ChunkyTortoise/docextract)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 
 | Metric | Value | Basis |
@@ -47,11 +45,13 @@ graph LR
 
 ## Demo
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://docextract-demo.streamlit.app)
+[Live demo](https://docextract-demo.streamlit.app) on Streamlit Cloud (allow ~60s cold start). Or run it locally with no API key:
 
-![SSE streaming extraction flow](docs/screenshots/sse-streaming-demo.gif)
+```bash
+DEMO_MODE=true streamlit run frontend/app.py
+```
 
-Local demo (no API key needed): `DEMO_MODE=true streamlit run frontend/app.py`
+Progress streams over two real Server-Sent Events endpoints: `/jobs/{id}/events` (extraction stages) and `/agent-search/stream` (agentic retrieval reasoning).
 
 ## Install
 
@@ -81,7 +81,7 @@ make eval                             # Full eval suite (~$0.44, ~4 min)
 |-----|----------|
 | [ADR-0003](docs/adr/0003-two-pass-extraction.md) | Two-pass Claude extraction with confidence gating |
 | [ADR-0006](docs/adr/0006-circuit-breaker-model-fallback.md) | Circuit breaker model fallback chain |
-| [ADR-0015](docs/adr/0015-prompt-caching.md) | Anthropic prompt caching -- 60%+ eval cost reduction |
+| [ADR-0015](docs/adr/0015-prompt-caching.md) | Anthropic prompt caching, 60%+ eval cost reduction |
 | [ADR-0017](docs/adr/0017-semantic-cache-l1-l2.md) | Two-layer semantic cache (L1 exact hash + L2 embedding similarity) |
 | [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Gemini 2.5 as independent judge (eliminates self-grading bias) |
 | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | TF-IDF reranker + agentic self-reflection loop |
