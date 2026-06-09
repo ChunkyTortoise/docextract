@@ -175,7 +175,7 @@ class TestExtractDocument:
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            result = await mcp_server._extract_document("http://example.com/inv.pdf")
+            result = await mcp_server._extract_document("https://example.com/inv.pdf")
 
         assert len(result) == 1
         data = json.loads(result[0].text)
@@ -213,7 +213,7 @@ class TestExtractDocument:
 
         with patch("httpx.AsyncClient", return_value=mock_client):
             with pytest.raises(RuntimeError, match="Claude API error"):
-                await mcp_server._extract_document("http://example.com/doc.pdf")
+                await mcp_server._extract_document("https://example.com/doc.pdf")
 
     @pytest.mark.asyncio
     async def test_extract_raises_on_cancelled_job(self, mock_env):
@@ -242,7 +242,7 @@ class TestExtractDocument:
 
         with patch("httpx.AsyncClient", return_value=mock_client):
             with pytest.raises(RuntimeError, match="cancelled"):
-                await mcp_server._extract_document("http://example.com/doc.pdf")
+                await mcp_server._extract_document("https://example.com/doc.pdf")
 
     @pytest.mark.asyncio
     async def test_call_tool_unknown_raises(self, mock_env):
@@ -285,7 +285,7 @@ class TestExtractDocument:
 
         with patch("httpx.AsyncClient", return_value=mock_client):
             await mcp_server._extract_document(
-                "http://example.com/inv.pdf",
+                "https://example.com/inv.pdf",
                 doc_type_hint="invoice",
             )
 
