@@ -17,10 +17,14 @@ from app.utils.hashing import hash_api_key
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 ROLE_RANK = {"viewer": 1, "operator": 2, "admin": 3}
 
-# Sentinel object returned for demo-mode auth bypass
+# Sentinel object returned for demo-mode auth bypass. role="viewer" grants
+# read-only access (the lowest role); writes are still rejected above by the
+# GET/HEAD/OPTIONS check. The model's "admin" default only applies on DB flush,
+# which this in-memory sentinel never undergoes, so the role is set explicitly.
 _DEMO_KEY = APIKey(
     id=uuid.UUID("00000000-0000-0000-0000-000000000000"),
     name="demo",
+    role="viewer",
     key_hash="demo",
     is_active=True,
     rate_limit_per_minute=30,
