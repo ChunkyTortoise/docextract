@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+import app.observability as obs
 from app.services.llm_tracer import (
     TraceContext,
+    _emit_langfuse,
     clear_in_memory_traces,
     get_in_memory_traces,
     hash_prompt,
@@ -209,6 +211,73 @@ class TestInMemoryHelpers:
     def test_initially_empty_after_clear(self):
         clear_in_memory_traces()
         assert get_in_memory_traces() == []
+
+
+class TestRecordResponseOutputText:
+    def test_captures_text_from_content_blocks(self):
+        ctx = TraceContext(model="m", operation="op", request_id=None, prompt_hash=None)
+        block = MagicMock()
+        block.type = "text"
+        block.text = "extracted output"
+        response = MagicMock()
+        response.usage = None
+        response.content = [block]
+        ctx.record_response(response)
+        assert ctx._output_text == "extracted output"
+
+    def test_output_text_none_when_no_content(self):
+        ctx = TraceContext(model="m", operation="op", request_id=None, prompt_hash=None)
+        response = MagicMock(spec=["usage"])
+        response.usage = None
+        ctx.record_response(response)
+        assert ctx._output_text is None
+
+
+class TestEmitLangfuse:
+    def test_noop_when_disabled(self):
+        with patch.object(obs, "get_langfuse", return_value=None):
+            ctx = TraceContext(model="m", operation="op", request_id="r", prompt_hash=None)
+            _emit_langfuse(ctx, "op", "prompt")  # must not raise
+
+    def test_noop_when_trace_none(self):
+        with (
+            patch.object(obs, "get_langfuse", return_value=MagicMock()),
+            patch.object(obs, "langfuse_trace", return_value=None),
+            patch.object(obs, "langfuse_generation") as mg,
+        ):
+            ctx = TraceContext(model="m", operation="op", request_id="r", prompt_hash=None)
+            _emit_langfuse(ctx, "op", "p")
+            mg.assert_not_called()
+
+    def test_emits_generation_when_client_present(self):
+        fake_trace = object()
+        with (
+            patch.object(obs, "get_langfuse", return_value=MagicMock()),
+            patch.object(obs, "langfuse_trace", return_value=fake_trace) as mt,
+            patch.object(obs, "langfuse_generation") as mg,
+        ):
+            ctx = TraceContext(
+                model="claude-x", operation="extract", request_id="r1", prompt_hash=None
+            )
+            ctx._input_tokens = 10
+            ctx._output_tokens = 5
+            ctx._output_text = "out"
+            _emit_langfuse(ctx, "extract", "the prompt")
+            mt.assert_called_once()
+            mg.assert_called_once()
+            kwargs = mg.call_args.kwargs
+            assert kwargs["model"] == "claude-x"
+            assert kwargs["input"] == "the prompt"
+            assert kwargs["output"] == "out"
+            assert kwargs["usage"] == {"input": 10, "output": 5}
+
+    def test_never_raises_on_helper_failure(self):
+        with (
+            patch.object(obs, "get_langfuse", return_value=MagicMock()),
+            patch.object(obs, "langfuse_trace", side_effect=RuntimeError("boom")),
+        ):
+            ctx = TraceContext(model="m", operation="op", request_id="r", prompt_hash=None)
+            _emit_langfuse(ctx, "op", "p")  # swallowed, must not raise
 
 
 async def _add_trace():

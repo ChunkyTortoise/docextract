@@ -1,4 +1,4 @@
-.PHONY: test lint quickstart-client aws-build aws-push aws-deploy k8s-apply k8s-delete k8s-logs eval eval-fast eval-judge eval-baseline eval-clean
+.PHONY: test lint quickstart-client aws-build aws-push aws-deploy k8s-apply k8s-delete k8s-logs eval eval-fast eval-judge eval-baseline eval-clean eval-braintrust eval-braintrust-dry
 
 # ── Eval targets ──────────────────────────────────────────────────────────────
 # Full suite (~$0.40, ~4 min). Run before opening a PR.
@@ -34,6 +34,15 @@ eval-baseline:
 # Wipe eval_artifacts/.
 eval-clean:
 	@rm -rf $(EVAL_OUT) && mkdir -p $(EVAL_OUT)
+
+# Log the offline golden corpus to Braintrust (needs BRAINTRUST_API_KEY).
+# Add --judge to also run the LLMJudge scorer (API calls).
+eval-braintrust:
+	python scripts/eval_braintrust.py
+
+# Score the corpus locally with the same field-F1 scorer, no upload / no API key.
+eval-braintrust-dry:
+	python scripts/eval_braintrust.py --dry-run
 
 # ── AWS deployment helpers ───────────────────────────────────────────────────
 # Prerequisites: AWS CLI configured, Terraform installed, ECR repos created

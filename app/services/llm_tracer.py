@@ -32,9 +32,10 @@ class TraceContext:
     _error_message: str | None = None
     _cache_creation_tokens: int | None = None
     _cache_read_tokens: int | None = None
+    _output_text: str | None = None
 
     def record_response(self, response: Any) -> None:
-        """Extract token counts and cache stats from Anthropic response."""
+        """Extract token counts, cache stats, and output text from Anthropic response."""
         try:
             usage = getattr(response, "usage", None)
             if usage:
@@ -42,6 +43,18 @@ class TraceContext:
                 self._output_tokens = getattr(usage, "output_tokens", None)
                 self._cache_creation_tokens = getattr(usage, "cache_creation_input_tokens", None)
                 self._cache_read_tokens = getattr(usage, "cache_read_input_tokens", None)
+        except Exception:
+            pass
+        # Capture text output for Langfuse generations (sanitized at emit time).
+        try:
+            content = getattr(response, "content", None)
+            if content:
+                parts = [
+                    getattr(block, "text", "")
+                    for block in content
+                    if getattr(block, "type", None) == "text"
+                ]
+                self._output_text = "".join(parts) or None
         except Exception:
             pass
 
@@ -109,11 +122,64 @@ async def trace_llm_call(
     finally:
         emit_llm_metrics(ctx)
         emit_rag_trace(ctx)
+        _emit_langfuse(ctx, operation, prompt_text)
         trace_data = ctx.to_dict()
         if db is not None:
             await _persist_trace(db, trace_data)
         else:
             _in_memory_traces.append(trace_data)
+
+
+def _emit_langfuse(ctx: TraceContext, operation: str, prompt_text: str | None) -> None:
+    """Emit a Langfuse trace + generation for this call.
+
+    No-op when Langfuse is disabled (LANGFUSE_ENABLED=false / no client). The
+    lazy import mirrors emit_llm_metrics to stay circular-safe. Never raises:
+    tracing must not break the main flow. Input/output are sanitized inside the
+    langfuse_* helpers via sanitize_for_trace.
+    """
+    try:
+        from app.observability import (
+            get_langfuse,
+            langfuse_generation,
+            langfuse_trace,
+        )
+
+        if get_langfuse() is None:
+            return
+
+        trace = langfuse_trace(
+            operation,
+            session_id=ctx.request_id,
+            metadata={"request_id": ctx.request_id, "status": ctx._status},
+        )
+        if trace is None:
+            return
+
+        usage = None
+        if ctx._input_tokens is not None or ctx._output_tokens is not None:
+            usage = {
+                "input": ctx._input_tokens or 0,
+                "output": ctx._output_tokens or 0,
+            }
+
+        langfuse_generation(
+            trace,
+            operation,
+            model=ctx.model,
+            input=prompt_text,
+            output=ctx._output_text,
+            usage=usage,
+            metadata={
+                "latency_ms": ctx.latency_ms,
+                "status": ctx._status,
+                "confidence": ctx._confidence,
+                "cache_read_tokens": ctx._cache_read_tokens,
+                "cache_creation_tokens": ctx._cache_creation_tokens,
+            },
+        )
+    except Exception:
+        pass  # Tracing must never break the main flow
 
 
 async def _persist_trace(db: AsyncSession, data: dict) -> None:

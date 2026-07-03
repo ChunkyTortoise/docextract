@@ -260,6 +260,9 @@ def setup_langfuse() -> None:
             secret_key=settings.langfuse_secret_key.get_secret_value(),
             host=settings.langfuse_host,
         )
+        import atexit
+
+        atexit.register(langfuse_flush)
         logger.info("Langfuse tracing enabled — host '%s'", settings.langfuse_host)
     except ImportError:
         logger.warning("langfuse package not installed, skipping Langfuse setup")
