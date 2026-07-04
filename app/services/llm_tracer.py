@@ -141,6 +141,7 @@ def _emit_langfuse(ctx: TraceContext, operation: str, prompt_text: str | None) -
     try:
         from app.observability import (
             get_langfuse,
+            langfuse_end,
             langfuse_generation,
             langfuse_trace,
         )
@@ -163,21 +164,24 @@ def _emit_langfuse(ctx: TraceContext, operation: str, prompt_text: str | None) -
                 "output": ctx._output_tokens or 0,
             }
 
-        langfuse_generation(
-            trace,
-            operation,
-            model=ctx.model,
-            input=prompt_text,
-            output=ctx._output_text,
-            usage=usage,
-            metadata={
-                "latency_ms": ctx.latency_ms,
-                "status": ctx._status,
-                "confidence": ctx._confidence,
-                "cache_read_tokens": ctx._cache_read_tokens,
-                "cache_creation_tokens": ctx._cache_creation_tokens,
-            },
-        )
+        try:
+            langfuse_generation(
+                trace,
+                operation,
+                model=ctx.model,
+                input=prompt_text,
+                output=ctx._output_text,
+                usage=usage,
+                metadata={
+                    "latency_ms": ctx.latency_ms,
+                    "status": ctx._status,
+                    "confidence": ctx._confidence,
+                    "cache_read_tokens": ctx._cache_read_tokens,
+                    "cache_creation_tokens": ctx._cache_creation_tokens,
+                },
+            )
+        finally:
+            langfuse_end(trace)
     except Exception:
         pass  # Tracing must never break the main flow
 
