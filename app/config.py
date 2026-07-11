@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -12,20 +12,28 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # Auth
-    anthropic_api_key: str = ""
-    gemini_api_key: str = ""
-    api_key_secret: str = "change-me-32-chars-minimum-secret"
+    # anthropic_api_key is consumed as a plain str by call sites outside this
+    # fix's scope (e.g. app/services/claude_extractor.py), so it stays str
+    # and is only hidden from repr/str via Field(repr=False).
+    anthropic_api_key: str = Field(default="", repr=False)
+    gemini_api_key: SecretStr = SecretStr("")
+    api_key_secret: SecretStr = SecretStr("change-me-32-chars-minimum-secret")
 
     # Storage
     storage_backend: str = "local"  # "local" or "r2"
     storage_local_path: str = "./storage/local"
     r2_account_id: str = ""
-    r2_access_key_id: str = ""
-    r2_secret_access_key: str = ""
+    # r2_access_key_id/r2_secret_access_key are consumed as plain str by
+    # app/storage/r2.py and mocked as plain str in tests/unit/test_storage.py
+    # (out of scope for this fix), so they stay str with repr hidden.
+    r2_access_key_id: str = Field(default="", repr=False)
+    r2_secret_access_key: str = Field(default="", repr=False)
     r2_bucket_name: str = "docextract"
 
     # Encryption
-    aes_key: str = ""  # base64-encoded 32-byte key for AES-GCM
+    # aes_key is consumed as a plain str by app/api/documents.py (out of
+    # scope for this fix), so it stays str with repr hidden.
+    aes_key: str = Field(default="", repr=False)  # base64-encoded 32-byte key for AES-GCM
 
     # API
     cors_origins: list[str] = ["http://localhost:8501"]
@@ -59,7 +67,7 @@ class Settings(BaseSettings):
 
     # Demo mode
     demo_mode: bool = False
-    demo_api_key: str = "demo-key-docextract-2026"
+    demo_api_key: SecretStr = SecretStr("demo-key-docextract-2026")
 
     # Active learning
     active_learning_enabled: bool = False
@@ -96,13 +104,13 @@ class Settings(BaseSettings):
 
     # LangSmith tracing
     langsmith_enabled: bool = False
-    langsmith_api_key: str = ""
+    langsmith_api_key: SecretStr = SecretStr("")
     langsmith_project: str = "docextract"
 
     # Langfuse cloud tracing
     langfuse_enabled: bool = False
-    langfuse_public_key: str = ""
-    langfuse_secret_key: str = ""
+    langfuse_public_key: SecretStr = SecretStr("")
+    langfuse_secret_key: SecretStr = SecretStr("")
     langfuse_host: str = "https://cloud.langfuse.com"
 
     # Local LoRA adapter — feature-flagged, falls back to Claude when disabled/unavailable
@@ -143,7 +151,7 @@ class Settings(BaseSettings):
     @model_validator(mode='after')
     def validate_production_secrets(self) -> Settings:
         if self.environment != "development":
-            if self.api_key_secret == "change-me-32-chars-minimum-secret":
+            if self.api_key_secret.get_secret_value() == "change-me-32-chars-minimum-secret":
                 raise ValueError(
                     "api_key_secret must be changed from the default value in non-development environments"
                 )

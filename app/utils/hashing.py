@@ -14,7 +14,7 @@ def hash_file(data: bytes) -> str:
 def hash_api_key(raw_key: str) -> str:
     """HMAC-SHA256 hash of API key using server secret."""
     return hmac.new(
-        settings.api_key_secret.encode("utf-8"),
+        settings.api_key_secret.get_secret_value().encode("utf-8"),
         raw_key.encode("utf-8"),
         hashlib.sha256,
     ).hexdigest()

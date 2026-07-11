@@ -99,7 +99,8 @@ class LLMJudge:
             gemini_key = getattr(settings, "gemini_api_key", None) or getattr(settings, "google_api_key", None)
             if not gemini_key:
                 return None
-            self._gemini_client = GeminiJudgeClient(api_key=gemini_key)
+            key_value = gemini_key.get_secret_value() if hasattr(gemini_key, "get_secret_value") else gemini_key
+            self._gemini_client = GeminiJudgeClient(api_key=key_value)
         return self._gemini_client
 
     async def evaluate(
