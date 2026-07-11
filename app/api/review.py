@@ -228,6 +228,13 @@ async def correct_review_item(
 
     original_extracted = dict(item.extracted_data or {})
 
+    from app.config import settings as _settings
+    if _settings.pii_redaction_enabled:
+        from app.services.pii_sanitizer import redact_pii
+
+        corrections = redact_pii(corrections)
+        notes = redact_pii(notes)
+
     item.corrected_data = corrections
     item.reviewer_notes = notes
     item.validation_status = "corrected"

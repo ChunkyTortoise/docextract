@@ -76,6 +76,11 @@ class Settings(BaseSettings):
     # Guardrails — PII detection and hallucination boundary checking
     guardrails_enabled: bool = False
 
+    # PII redaction at persistence and response boundaries. guardrails_enabled
+    # only detects and flags; this flag actually replaces PII values with
+    # redaction tokens before records are stored or returned.
+    pii_redaction_enabled: bool = False
+
     # Semantic cache — cache LLM responses by embedding similarity
     semantic_cache_enabled: bool = False
     semantic_cache_similarity_threshold: float = 0.95

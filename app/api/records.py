@@ -8,12 +8,14 @@ from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.middleware import get_api_key
+from app.config import settings
 from app.dependencies import get_db
 from app.models.api_key import APIKey
 from app.models.embedding import DocumentEmbedding
 from app.models.record import ExtractedRecord
 from app.schemas.requests import ReviewRequest
 from app.schemas.responses import PaginatedRecords, record_item_from_db
+from app.services.pii_sanitizer import redact_pii
 
 router = APIRouter(prefix="/records", tags=["records"])
 
@@ -167,6 +169,27 @@ async def get_record(
     record = result.scalar_one_or_none()
     if not record:
         raise HTTPException(404, "Record not found")
+    if settings.pii_redaction_enabled:
+        # Build a redacted copy; never mutate the ORM row or the response
+        # would get flushed back to the database.
+        return {
+            "id": str(record.id),
+            "job_id": str(record.job_id),
+            "document_id": str(record.document_id),
+            "document_type": record.document_type,
+            "extracted_data": redact_pii(record.extracted_data),
+            "raw_text": redact_pii(record.raw_text),
+            "confidence_score": record.confidence_score,
+            "validation_status": record.validation_status,
+            "needs_review": record.needs_review,
+            "review_reason": record.review_reason,
+            "reviewed_by": record.reviewed_by,
+            "reviewed_at": record.reviewed_at,
+            "corrected_data": redact_pii(record.corrected_data),
+            "reviewer_notes": redact_pii(record.reviewer_notes),
+            "created_at": record.created_at,
+            "updated_at": record.updated_at,
+        }
     return record
 
 
@@ -185,15 +208,25 @@ async def review_record(
     if not record:
         raise HTTPException(404, "Record not found")
 
-    record.validation_status = review.decision
+    # Map API decision to the validation_status CHECK-constraint domain;
+    # storing the raw decision ("approve") violates the constraint.
+    record.validation_status = "approved" if review.decision == "approve" else "failed"
     record.reviewed_at = datetime.now(UTC)
     record.reviewed_by = str(api_key.id)
     record.needs_review = False
 
     if review.corrections:
-        record.corrected_data = review.corrections
+        record.corrected_data = (
+            redact_pii(review.corrections)
+            if settings.pii_redaction_enabled
+            else review.corrections
+        )
     if review.reviewer_notes:
-        record.reviewer_notes = review.reviewer_notes
+        record.reviewer_notes = (
+            redact_pii(review.reviewer_notes)
+            if settings.pii_redaction_enabled
+            else review.reviewer_notes
+        )
 
     await db.commit()
     return {"status": "ok", "record_id": record_id, "decision": review.decision}

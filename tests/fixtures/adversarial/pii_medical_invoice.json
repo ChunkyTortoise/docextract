@@ -1,0 +1,18 @@
+{
+  "document_type": "medical_invoice",
+  "invoice_number": "INV-2001",
+  "patient_name": "Jane Doe",
+  "patient_ssn": "123-45-6789",
+  "payment_card": "4111 1111 1111 1111",
+  "contact": {
+    "email": "jane.doe@example.com",
+    "phone": "555-867-5309"
+  },
+  "line_items": [
+    {
+      "description": "Consultation for patient SSN 123-45-6789",
+      "amount": 250.0
+    }
+  ],
+  "total_amount": 250.0
+}
