@@ -155,7 +155,7 @@ DocExtract's `audit_logs` table satisfies Article 30 (records of processing acti
 |----------------|-------------------|
 | **Security** | API key auth, rate limiting, AES-GCM encryption, bandit static analysis in CI |
 | **Availability** | Circuit breaker model fallback, async queue (ARQ), health endpoints, SLO targets |
-| **Processing Integrity** | Golden eval CI gate (95.5% accepted F1 baseline), validation rules, two-pass confidence gating |
+| **Processing Integrity** | Golden eval CI gate (95.5% accepted accuracy baseline), validation rules, two-pass confidence gating |
 | **Confidentiality** | PII sanitization for traces, encrypted webhook secrets, scoped API keys |
 | **Privacy** | PII detection guardrails, audit logging, configurable data retention, document deletion cascade |
 

@@ -1,6 +1,6 @@
 # Performance Baselines
 
-Baseline measurements for DocExtract extraction pipeline. Updated 2026-03-24.
+Baseline figures for DocExtract extraction pipeline. Updated 2026-03-24.
 
 ## Token Usage by Document Type
 
@@ -19,11 +19,11 @@ Average tokens per extraction (Sonnet primary model, single-page documents):
 
 ## Latency Distribution
 
-Measured under typical load (< 10 concurrent extractions):
+Modeled (pricing-table × call-distribution / design targets; not reproduced by a committed load run):
 
 | Operation | p50 | p95 | p99 | Conditions |
 |-----------|-----|-----|-----|------------|
-| Single-page extraction | 2.1s | 6.8s | 13.2s | Sonnet primary, includes Pass 2 probability |
+| Single-page extraction | 2.1s | 4.1s | 13.2s | Sonnet primary, includes Pass 2 probability (modeled) |
 | Multi-page extraction (10 pages) | 18s | 38s | 52s | Page-by-page streaming via SSE |
 | Document classification | 0.8s | 1.6s | 2.4s | Haiku primary |
 | Semantic search | 45ms | 120ms | 180ms | pgvector HNSW, 768-dim, ~10K documents |
@@ -54,7 +54,7 @@ Based on Anthropic pricing (as of 2026-03):
 
 | Metric | Sonnet 4.6 | Haiku 4.5 | Delta |
 |--------|-----------|-----------|-------|
-| Field-level accuracy | 95.5% accepted F1 baseline | ~78% | +17.5% |
+| Field-level accuracy | 95.5% accepted baseline (weighted) | ~78% | +17.5% |
 | Completeness | 0.95 | 0.82 | +0.13 |
 | Hallucination rate | ~2% | ~8% | -6% |
 | Avg latency (p50) | 2.1s | 0.9s | +1.2s |
@@ -91,6 +91,6 @@ Based on SLO targets (see `docs/slo.md`):
 |-----|--------|---------|-----------------|
 | Accuracy | >= 92% | 95.5% | 3.5% before breach |
 | API uptime | 99.5% | N/A | ~3.6 hrs/month |
-| Extraction p95 | < 8s | 6.8s | 1.2s headroom |
+| Extraction p95 | < 8s | 4.1s (modeled) | see portfolio-metrics.yaml |
 | Search p95 | < 200ms | 120ms | 80ms headroom |
 | Brier score | < 0.15 | ~0.05 | 0.10 headroom |

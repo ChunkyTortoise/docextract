@@ -74,9 +74,9 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 
 ## The Results
 
-**1,260 collected tests** — latest local verification: 1,253 passed, 5 skipped, 2 deselected, with unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, and load tests via Locust.
+**1,280 collected tests** (`pytest tests/ --collect-only`) — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, and load tests via Locust.
 
-**95.5% accepted extraction F1 baseline** stored in `autoresearch/baseline.json` (28 scored baseline cases), with a current 72-case eval corpus (51 golden + 21 adversarial) across 6 document types. Enforced in CI with regression tolerance.
+**95.5% accepted extraction accuracy baseline (field-level, weighted)** stored in `autoresearch/baseline.json` (28 scored baseline cases), with a current 72-case eval corpus (51 golden + 21 adversarial) across 6 document types. Enforced in CI with regression tolerance.
 
 **12-step processing pipeline** with per-step progress tracking and real-time SSE streaming to connected clients.
 
@@ -86,14 +86,14 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 
 **Zero-downtime deployment** on Render with three independent services (API, Worker, Frontend) each deployable independently.
 
-**176 Python files** across API, worker, services, frontend, tests, migrations, and scripts — full production codebase, not a prototype.
+**277 Python files** (`fd -e py . app worker frontend tests scripts alembic`) across API, worker, services, frontend, tests, migrations, and scripts — full production codebase, not a prototype.
 
 ### Performance Profile
 
 | Metric | Value |
 |--------|-------|
-| Test suite | 1,260 collected tests; latest local run 1,253 passed, 5 skipped, 2 deselected |
-| Extraction accuracy | 95.5% accepted F1 baseline (28 scored baseline cases, 6 doc types) |
+| Test suite | 1,280 collected tests (`pytest tests/ --collect-only`) |
+| Extraction accuracy | 95.5% accepted field-level accuracy baseline (28 scored baseline cases, 6 doc types) |
 | Eval corpus | 72 scored cases: 51 golden + 21 adversarial |
 | Embedding model | gemini-embedding-2-preview, 768-dim, HNSW index |
 | Extraction confidence threshold | 0.80 global; per-type overrides (0.75–0.90) |
@@ -178,7 +178,7 @@ The three features that turned docextract from a demo into a system you'd trust 
 
 **Circuit breaker model fallback** (`app/services/circuit_breaker.py`, `app/services/model_router.py`). Each model in the fallback chain has its own `AsyncCircuitBreaker` — a CLOSED/OPEN/HALF_OPEN state machine behind an `asyncio.Lock`. When a model trips (5 consecutive failures: rate limits, 5xx), its circuit opens and calls route to the next model in the chain. After a 60-second recovery window it enters HALF_OPEN and probes with a single call. Extraction chains Sonnet→Haiku; classification chains Haiku→Sonnet (inverted by intent: classification is simpler, so Haiku-first is the preferred path not the degraded one).
 
-**Golden eval CI gate** (`scripts/run_eval_ci.py`, `autoresearch/baseline.json`). The current eval corpus has 72 scored cases (51 golden + 21 adversarial), while the accepted committed baseline records 95.5% F1 over 28 scored baseline cases. The gate loads the committed baseline and fails the build if the current run drops beyond tolerance. The `--update-baseline` flag accepts an intentional regression. This makes extraction quality a first-class CI signal — the same way coverage thresholds gate code quality.
+**Golden eval CI gate** (`scripts/run_eval_ci.py`, `autoresearch/baseline.json`). The current eval corpus has 72 scored cases (51 golden + 21 adversarial), while the accepted committed baseline records 95.5% field-level accuracy over 28 scored baseline cases. The gate loads the committed baseline and fails the build if the current run drops beyond tolerance. The `--update-baseline` flag accepts an intentional regression. This makes extraction quality a first-class CI signal, the same way coverage thresholds gate code quality.
 
 **OpenTelemetry + Prometheus** (`app/observability.py`). Feature-flagged behind `OTEL_ENABLED=false` so existing CI is unaffected. When enabled, `setup_telemetry(app)` creates a `PrometheusMetricReader`, mounts `/metrics`, and wires up three instruments: `llm_call_duration_ms` (Histogram), `llm_calls_total` (Counter), and `llm_tokens_total` (Counter). The bridge pattern augments the existing `llm_tracer.py` DB tracing rather than replacing it — the DB traces power the `/stats` endpoint and ROI features; OTel powers ops dashboards.
 
@@ -237,12 +237,12 @@ Just shipped DocExtract AI: a production document intelligence API that turns PD
 
 Four things I'm proud of in this build:
 
-- **95.5% accepted extraction F1 baseline** in `autoresearch/baseline.json`, with a 72-case current eval corpus and CI regression tolerance. Extraction quality is a first-class CI signal.
+- **95.5% accepted extraction accuracy baseline (field-level, weighted)** in `autoresearch/baseline.json`, with a 72-case current eval corpus and CI regression tolerance. Extraction quality is a first-class CI signal.
 - **Circuit breaker model fallback**: Per-model CLOSED/OPEN/HALF_OPEN state machines route around provider outages automatically. Sonnet → Haiku on extraction, Haiku → Sonnet on classification. No downtime during rate limit spikes.
 - **Two-pass Claude extraction**: Pass 1 extracts structured JSON with a confidence score. If confidence < 80%, Pass 2 fires a tool_use correction call — Claude returns field-level fixes as structured data, not free text.
 - **Agentic RAG (ReAct)**: autonomous retrieval agent selects from 5 tools per query — vector, BM25, hybrid, metadata, rerank. Confidence-gated at 0.8 with max 3 iterations.
 - **RAGAS evaluation pipeline**: context recall, faithfulness, and answer relevancy scored by LLM-as-judge with structured rubric. CI gate blocks regressions.
-- **1,260 collected tests**: Full unit + integration coverage including eval regression gate, circuit breaker state machine tests, and OTel bridge tests. Latest local run: 1,253 passed, 5 skipped, 2 deselected.
+- **1,280 collected tests**: Full unit + integration coverage including eval regression gate, circuit breaker state machine tests, and OTel bridge tests (`pytest tests/ --collect-only`).
 
 Stack: FastAPI + ARQ + pgvector HNSW + Claude Sonnet/Haiku + OpenTelemetry + Prometheus + Streamlit
 Self-hosted: `docker compose up` (API http://localhost:8000, Frontend http://localhost:8501)
