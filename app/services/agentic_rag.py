@@ -213,6 +213,7 @@ class AgenticRAG:
             models=settings.classification_models,
             operation="rag_think",
             state=state,
+            db=db,
         )
         think_data = _parse_json(think_response)
         thought = str(think_data.get("thought", ""))
@@ -244,6 +245,7 @@ class AgenticRAG:
             models=settings.classification_models,
             operation="rag_evaluate",
             state=state,
+            db=db,
         )
         eval_data, eval_parse_ok = _parse_json_safe(evaluate_response)
         if eval_parse_ok:
@@ -278,7 +280,7 @@ class AgenticRAG:
                     self._apply_degradation(state, reason)
                 else:
                     state.final_answer = await self._generate_answer(
-                        question, state.accumulated_results, models=settings.extraction_models, state=state
+                        question, state.accumulated_results, models=settings.extraction_models, state=state, db=db
                     )
             state.should_stop = True
 
@@ -365,6 +367,7 @@ class AgenticRAG:
         models: list[str],
         operation: str,
         state: _IterationState | None = None,
+        db: AsyncSession | None = None,
     ) -> str:
         """Route an LLM call through ModelRouter for fallback support."""
         from anthropic import AsyncAnthropic
@@ -375,12 +378,25 @@ class AgenticRAG:
 
         async def _call(model: str) -> str:
             start = time.monotonic()
-            response = await client.messages.create(
-                model=model,
-                max_tokens=1024,
-                system=system,
-                messages=[{"role": "user", "content": user}],
-            )
+            persist_trace = state is not None and settings.spend_ceiling_enabled and db is not None
+            if persist_trace:
+                from app.services.llm_tracer import trace_llm_call
+
+                async with trace_llm_call(db, model, operation) as trace_ctx:
+                    response = await client.messages.create(
+                        model=model,
+                        max_tokens=1024,
+                        system=system,
+                        messages=[{"role": "user", "content": user}],
+                    )
+                    trace_ctx.record_response(response)
+            else:
+                response = await client.messages.create(
+                    model=model,
+                    max_tokens=1024,
+                    system=system,
+                    messages=[{"role": "user", "content": user}],
+                )
             if state is not None and settings.spend_ceiling_enabled:
                 self._record_cost(state, model, response, operation, (time.monotonic() - start) * 1000)
             return response.content[0].text
@@ -487,6 +503,7 @@ class AgenticRAG:
         results: list[SearchResult],
         models: list[str],
         state: _IterationState | None = None,
+        db: AsyncSession | None = None,
     ) -> str:
         """Generate a final answer given question + context passages."""
         context = "\n\n".join(
@@ -503,6 +520,7 @@ class AgenticRAG:
             models=models,
             operation="rag_answer",
             state=state,
+            db=db,
         )
 
     @staticmethod

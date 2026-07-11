@@ -6,6 +6,7 @@ flag-off no-op path (must be byte-identical to pre-ceiling behavior).
 """
 from __future__ import annotations
 
+import contextlib
 import json
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
@@ -273,3 +274,180 @@ class TestSpendCeilingEnforcementInLoop:
         assert result.iterations == 0
         assert isinstance(result.answer, str)
         assert len(result.answer) > 0
+
+
+# ---------------------------------------------------------------------------
+# Endpoint-level wiring: the per-day branch is dead in production unless the
+# FastAPI endpoints actually thread their request-scoped db session into
+# agent.search / agent.search_stream. These tests exercise the real endpoint
+# functions in app/api/agent_search.py (no HTTP layer needed) and assert the
+# db session that FastAPI's Depends(get_db) would have injected is the same
+# object AgenticRAG.search / search_stream receives.
+# ---------------------------------------------------------------------------
+
+class TestEndpointThreadsDbSession:
+    @pytest.mark.asyncio
+    async def test_agent_search_endpoint_passes_request_db_into_agent_search(self, monkeypatch):
+        import app.api.agent_search as agent_search_module
+
+        fake_agent = MagicMock()
+        fake_result = MagicMock()
+        fake_agent.search = AsyncMock(return_value=fake_result)
+        monkeypatch.setattr(agent_search_module, "_build_agent", MagicMock(return_value=fake_agent))
+
+        fake_db = MagicMock(name="request-scoped-db-session")
+        request = agent_search_module.AgentSearchRequest(question="q?", max_iterations=2)
+
+        result = await agent_search_module.agent_search(request, db=fake_db, api_key=MagicMock())
+
+        fake_agent.search.assert_awaited_once()
+        _, kwargs = fake_agent.search.call_args
+        assert kwargs.get("db") is fake_db, (
+            "agent_search endpoint must pass its request-scoped db session into "
+            "agent.search(db=...) or the per-day spend ceiling branch never runs"
+        )
+        assert result is fake_result
+
+    @pytest.mark.asyncio
+    async def test_agent_search_stream_endpoint_passes_request_db_into_agent_search_stream(self, monkeypatch):
+        import app.api.agent_search as agent_search_module
+
+        async def _fake_stream(*args, **kwargs):
+            yield MagicMock(event_type="step", model_dump=lambda **_: {})
+
+        fake_agent = MagicMock()
+        fake_agent.search_stream = MagicMock(side_effect=_fake_stream)
+        monkeypatch.setattr(agent_search_module, "_build_agent", MagicMock(return_value=fake_agent))
+
+        fake_db = MagicMock(name="request-scoped-db-session")
+        request = agent_search_module.AgentSearchRequest(question="q?", max_iterations=2)
+
+        response = await agent_search_module.agent_search_stream(request, db=fake_db, api_key=MagicMock())
+        async for _ in response.body_iterator:
+            pass
+
+        fake_agent.search_stream.assert_called_once()
+        _, kwargs = fake_agent.search_stream.call_args
+        assert kwargs.get("db") is fake_db, (
+            "agent_search_stream endpoint must pass its request-scoped db session into "
+            "agent.search_stream(db=...) or the per-day spend ceiling branch never runs"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Cost persistence: _record_cost only accumulates in-memory on _IterationState,
+# so the per-day ceiling's DB query (get_cost_summary reads llm_traces) never
+# sees agentic-RAG spend. These tests verify _call_llm persists a trace row
+# via the existing trace_llm_call pathway (app/services/llm_tracer.py) when a
+# db session is available and the spend-ceiling flag is on, and skips it
+# otherwise (flag off, or no db session).
+# ---------------------------------------------------------------------------
+
+class TestCostPersistence:
+    @pytest.mark.asyncio
+    async def test_call_llm_persists_trace_when_db_present_and_flag_on(self, monkeypatch):
+        from app.config import settings
+        from app.services import llm_tracer
+
+        settings.spend_ceiling_enabled = True
+        settings.spend_ceiling_per_request_usd = 999.0
+        settings.spend_ceiling_per_day_usd = 999.0
+
+        client = _mock_anthropic_client(_think_json(), input_tokens=100, output_tokens=50)
+        monkeypatch.setattr(anthropic, "AsyncAnthropic", MagicMock(return_value=client))
+
+        trace_calls: list[tuple] = []
+
+        @contextlib.asynccontextmanager
+        async def _fake_trace_llm_call(db, model, operation, *args, **kwargs):
+            trace_calls.append((db, model, operation))
+            ctx = MagicMock()
+            yield ctx
+
+        monkeypatch.setattr(llm_tracer, "trace_llm_call", _fake_trace_llm_call)
+
+        router = _make_passthrough_router()
+        agent = AgenticRAG(tools=_make_tools(), model_router=router)
+        db = MagicMock()
+
+        await agent._call_llm(
+            system="sys",
+            user="usr",
+            models=["claude-sonnet-4-6"],
+            operation="rag_think",
+            state=_IterationState(),
+            db=db,
+        )
+
+        assert trace_calls == [(db, "claude-sonnet-4-6", "rag_think")]
+
+    @pytest.mark.asyncio
+    async def test_call_llm_skips_trace_persistence_without_db(self, monkeypatch):
+        from app.config import settings
+        from app.services import llm_tracer
+
+        settings.spend_ceiling_enabled = True
+        settings.spend_ceiling_per_request_usd = 999.0
+        settings.spend_ceiling_per_day_usd = 999.0
+
+        client = _mock_anthropic_client(_think_json(), input_tokens=100, output_tokens=50)
+        monkeypatch.setattr(anthropic, "AsyncAnthropic", MagicMock(return_value=client))
+
+        trace_calls: list[tuple] = []
+
+        @contextlib.asynccontextmanager
+        async def _fake_trace_llm_call(db, model, operation, *args, **kwargs):
+            trace_calls.append((db, model, operation))
+            ctx = MagicMock()
+            yield ctx
+
+        monkeypatch.setattr(llm_tracer, "trace_llm_call", _fake_trace_llm_call)
+
+        router = _make_passthrough_router()
+        agent = AgenticRAG(tools=_make_tools(), model_router=router)
+
+        await agent._call_llm(
+            system="sys",
+            user="usr",
+            models=["claude-sonnet-4-6"],
+            operation="rag_think",
+            state=_IterationState(),
+            db=None,
+        )
+
+        assert trace_calls == []
+
+    @pytest.mark.asyncio
+    async def test_call_llm_skips_trace_persistence_when_flag_off(self, monkeypatch):
+        from app.config import settings
+        from app.services import llm_tracer
+
+        settings.spend_ceiling_enabled = False
+
+        client = _mock_anthropic_client(_think_json(), input_tokens=100, output_tokens=50)
+        monkeypatch.setattr(anthropic, "AsyncAnthropic", MagicMock(return_value=client))
+
+        trace_calls: list[tuple] = []
+
+        @contextlib.asynccontextmanager
+        async def _fake_trace_llm_call(db, model, operation, *args, **kwargs):
+            trace_calls.append((db, model, operation))
+            ctx = MagicMock()
+            yield ctx
+
+        monkeypatch.setattr(llm_tracer, "trace_llm_call", _fake_trace_llm_call)
+
+        router = _make_passthrough_router()
+        agent = AgenticRAG(tools=_make_tools(), model_router=router)
+        db = MagicMock()
+
+        await agent._call_llm(
+            system="sys",
+            user="usr",
+            models=["claude-sonnet-4-6"],
+            operation="rag_think",
+            state=_IterationState(),
+            db=db,
+        )
+
+        assert trace_calls == []
