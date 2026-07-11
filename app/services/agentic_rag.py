@@ -38,6 +38,7 @@ class ReasoningStep(BaseModel):
     action_input: dict
     observation: str
     confidence: float
+    parse_failed: bool = False
 
 
 class AgenticRAGResult(BaseModel):
@@ -244,9 +245,13 @@ class AgenticRAG:
             operation="rag_evaluate",
             state=state,
         )
-        eval_data = _parse_json(evaluate_response)
-        confidence = float(eval_data.get("confidence", 0.0))
-        candidate_answer = str(eval_data.get("final_answer", ""))
+        eval_data, eval_parse_ok = _parse_json_safe(evaluate_response)
+        if eval_parse_ok:
+            confidence = float(eval_data.get("confidence", 0.0))
+            candidate_answer = str(eval_data.get("final_answer", ""))
+        else:
+            confidence = 0.0
+            candidate_answer = ""
 
         state.reasoning_trace.append(
             ReasoningStep(
@@ -256,12 +261,16 @@ class AgenticRAG:
                 action_input=action_input,
                 observation=observation,
                 confidence=confidence,
+                parse_failed=not eval_parse_ok,
             )
         )
         state.final_confidence = confidence
 
-        if confidence >= CONFIDENCE_THRESHOLD or iteration == max_iterations:
-            if candidate_answer:
+        has_results = bool(state.accumulated_results)
+        if (confidence >= CONFIDENCE_THRESHOLD and has_results) or iteration == max_iterations:
+            if not has_results:
+                self._apply_degradation(state, "empty_retrieval")
+            elif candidate_answer:
                 state.final_answer = candidate_answer
             else:
                 reason = await self._check_spend_ceiling(state, db)
@@ -275,7 +284,7 @@ class AgenticRAG:
 
     @staticmethod
     def _degraded_answer(state: _IterationState) -> str:
-        """Best-effort answer to return when the spend ceiling stops the loop early."""
+        """Best-effort answer to return when the loop stops early degraded."""
         if state.final_answer:
             return state.final_answer
         if state.accumulated_results:
@@ -284,6 +293,8 @@ class AgenticRAG:
                 "Spend ceiling reached before a confident answer could be generated. "
                 f"Best-effort context: {top.content[:300]}"
             )
+        if state.degradation_reason == "empty_retrieval":
+            return "No relevant passages were retrieved; unable to produce a grounded answer."
         return "Spend ceiling reached before any relevant information could be retrieved."
 
     def _apply_degradation(self, state: _IterationState, reason: str) -> None:
@@ -534,20 +545,31 @@ class AgenticRAG:
 # Utility functions
 # ---------------------------------------------------------------------------
 
-def _parse_json(text: str) -> dict:
-    """Extract the first JSON object from a string."""
+def _parse_json_safe(text: str) -> tuple[dict, bool]:
+    """Extract the first JSON object from a string.
+
+    Returns (data, ok) where ok is False if no valid JSON object could be
+    parsed, so callers can distinguish a genuine parse failure from a
+    legitimately empty response.
+    """
     text = text.strip()
     try:
-        return json.loads(text)
+        return json.loads(text), True
     except json.JSONDecodeError:
         pass
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if match:
         try:
-            return json.loads(match.group(0))
+            return json.loads(match.group(0)), True
         except json.JSONDecodeError:
             pass
-    return {}
+    return {}, False
+
+
+def _parse_json(text: str) -> dict:
+    """Extract the first JSON object from a string."""
+    data, _ = _parse_json_safe(text)
+    return data
 
 
 def _merge_results(
