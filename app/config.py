@@ -124,6 +124,12 @@ class Settings(BaseSettings):
     circuit_breaker_failure_threshold: int = 5
     circuit_breaker_recovery_seconds: float = 60.0
 
+    # Spend ceiling — enforced before each model call in the agentic RAG loop.
+    # Disabled by default; inert while off (deploy decision belongs to the operator).
+    spend_ceiling_enabled: bool = False
+    spend_ceiling_per_request_usd: float = 0.50
+    spend_ceiling_per_day_usd: float = 25.0
+
     @field_validator("database_url", mode="before")
     @classmethod
     def fix_database_url(cls, v: str) -> str:
