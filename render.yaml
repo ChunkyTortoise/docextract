@@ -31,7 +31,14 @@ services:
         value: /tmp/docextract-storage
       - key: DEMO_MODE
         value: "true"
-
+      - key: LANGFUSE_ENABLED
+        value: "true"
+      - key: LANGFUSE_PUBLIC_KEY
+        sync: false
+      - key: LANGFUSE_SECRET_KEY
+        sync: false
+      - key: LANGFUSE_HOST
+        value: https://cloud.langfuse.com
   - type: worker
     name: docextract-worker
     plan: standard
@@ -66,7 +73,20 @@ services:
         value: local
       - key: STORAGE_LOCAL_PATH
         value: /tmp/docextract-storage
-
+      - key: LANGFUSE_ENABLED
+        value: "true"
+      - key: LANGFUSE_PUBLIC_KEY
+        fromService:
+          type: web
+          name: docextract-api
+          envVarKey: LANGFUSE_PUBLIC_KEY
+      - key: LANGFUSE_SECRET_KEY
+        fromService:
+          type: web
+          name: docextract-api
+          envVarKey: LANGFUSE_SECRET_KEY
+      - key: LANGFUSE_HOST
+        value: https://cloud.langfuse.com
   - type: web
     name: docextract-frontend
     plan: starter
@@ -79,14 +99,12 @@ services:
           type: web
           name: docextract-api
           property: host
-
   - type: keyvalue
     name: docextract-redis
     plan: standard
     ipAllowList:
       - source: 0.0.0.0/0
         description: allow all (internal only via Render private network)
-
 databases:
   - name: docextract-db
     plan: basic-1gb

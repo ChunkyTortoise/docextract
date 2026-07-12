@@ -260,6 +260,9 @@ def setup_langfuse() -> None:
             secret_key=settings.langfuse_secret_key.get_secret_value(),
             host=settings.langfuse_host,
         )
+        import atexit
+
+        atexit.register(langfuse_flush)
         logger.info("Langfuse tracing enabled — host '%s'", settings.langfuse_host)
     except ImportError:
         logger.warning("langfuse package not installed, skipping Langfuse setup")
@@ -275,26 +278,34 @@ def langfuse_trace(
     metadata: dict[str, Any] | None = None,
     input: Any = None,
 ) -> Any:
-    """Create a Langfuse trace. Returns a trace object or None when disabled.
+    """Create a Langfuse root span (the trace). Returns it, or None when disabled.
 
-    Usage with BackgroundTasks (Sync Sidecar pattern):
-        trace = langfuse_trace("extraction", session_id=request_id)
-        # ... do work ...
-        background_tasks.add_task(langfuse_flush)
+    Langfuse Python SDK v3+ replaced the v2 client.trace()/.generation() API with
+    observation objects (start_observation) that must be .end()ed to be sent. Call
+    langfuse_end() on the returned span once its generations are logged.
     """
     if _langfuse is None:
         return None
 
     from app.services.pii_sanitizer import sanitize_for_trace
 
-    sanitized_input = sanitize_for_trace(input) if input else input
-    return _langfuse.trace(
+    meta = dict(metadata or {})
+    if session_id:
+        meta.setdefault("session_id", session_id)
+    if user_id:
+        meta.setdefault("user_id", user_id)
+    span = _langfuse.start_observation(
+        as_type="span",
         name=name,
-        session_id=session_id,
-        user_id=user_id,
-        metadata=metadata,
-        input=sanitized_input,
+        input=sanitize_for_trace(input) if input else input,
+        metadata=meta,
     )
+    # Propagate session/user to trace-level attributes where the SDK supports it.
+    try:
+        span.update_trace(session_id=session_id, user_id=user_id)
+    except Exception:
+        pass
+    return span
 
 
 def langfuse_generation(
@@ -313,14 +324,26 @@ def langfuse_generation(
 
     from app.services.pii_sanitizer import sanitize_for_trace
 
-    return trace.generation(
+    gen = trace.start_observation(
+        as_type="generation",
         name=name,
         model=model,
         input=sanitize_for_trace(input) if input else input,
         output=sanitize_for_trace(output) if output else output,
-        usage=usage,
+        usage_details=usage,
         metadata=metadata,
     )
+    gen.end()
+    return gen
+
+
+def langfuse_end(observation: Any) -> None:
+    """End a Langfuse observation (span/generation) so it is flushed. No-op on None."""
+    if observation is not None:
+        try:
+            observation.end()
+        except Exception:
+            pass
 
 
 def langfuse_flush() -> None:
