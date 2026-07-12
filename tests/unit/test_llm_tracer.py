@@ -283,3 +283,30 @@ class TestEmitLangfuse:
 async def _add_trace():
     async with trace_llm_call(None, "m", "op"):
         pass
+
+
+class TestCallCostUsd:
+    def test_known_model_computes_cost(self):
+        from app.services.llm_tracer import _call_cost_usd
+
+        ctx = TraceContext(
+            model="claude-sonnet-4-6", operation="extract", request_id=None, prompt_hash=None
+        )
+        ctx._input_tokens = 1000
+        ctx._output_tokens = 1000
+        cost = _call_cost_usd(ctx)
+        assert cost is not None and cost > 0
+
+    def test_unknown_model_returns_none(self):
+        from app.services.llm_tracer import _call_cost_usd
+
+        ctx = TraceContext(model="no-such-model", operation="op", request_id=None, prompt_hash=None)
+        ctx._input_tokens = 10
+        ctx._output_tokens = 10
+        assert _call_cost_usd(ctx) is None
+
+    def test_no_tokens_returns_none(self):
+        from app.services.llm_tracer import _call_cost_usd
+
+        ctx = TraceContext(model="claude-sonnet-4-6", operation="op", request_id=None, prompt_hash=None)
+        assert _call_cost_usd(ctx) is None

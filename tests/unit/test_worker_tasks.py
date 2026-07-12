@@ -390,3 +390,113 @@ class TestFailJob:
         assert mock_job.error_message == "Something broke"
         mock_db.commit.assert_called_once()
         mock_publish.assert_called_once()
+
+
+class TestTaskSpan:
+    """Langfuse task-level span around process_document."""
+
+    def _session_patch(self):
+        p = patch("worker.tasks.AsyncSessionLocal")
+        mock_session_cls = p.start()
+        mock_db = AsyncMock()
+        mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        return p
+
+    @pytest.mark.asyncio
+    async def test_span_records_success(self, job_id, mock_redis):
+        from worker.tasks import process_document
+
+        span = MagicMock()
+        session_p = self._session_patch()
+        try:
+            with (
+                patch("app.observability.get_langfuse", return_value=MagicMock()),
+                patch("app.observability.langfuse_trace", return_value=span) as mock_trace,
+                patch("app.observability.langfuse_end") as mock_end,
+                patch("app.observability.langfuse_flush") as mock_flush,
+                patch(
+                    "worker.tasks._process",
+                    new_callable=AsyncMock,
+                    return_value={"status": "completed", "record_id": "r1", "document_type": "invoice"},
+                ),
+            ):
+                result = await process_document({"redis": mock_redis}, job_id)
+
+            assert result["status"] == "completed"
+            mock_trace.assert_called_once()
+            assert mock_trace.call_args.kwargs["session_id"] == job_id
+            output = span.update.call_args.kwargs["output"]
+            assert output["status"] == "completed"
+            assert output["record_id"] == "r1"
+            assert "latency_ms" in output
+            mock_end.assert_called_once_with(span)
+            mock_flush.assert_called_once()
+        finally:
+            session_p.stop()
+
+    @pytest.mark.asyncio
+    async def test_span_records_permanent_failure(self, job_id, mock_redis):
+        from worker.tasks import process_document
+
+        span = MagicMock()
+        session_p = self._session_patch()
+        try:
+            with (
+                patch("app.observability.get_langfuse", return_value=MagicMock()),
+                patch("app.observability.langfuse_trace", return_value=span),
+                patch("app.observability.langfuse_end"),
+                patch("app.observability.langfuse_flush"),
+                patch("worker.tasks._process", side_effect=ValueError("bad document")),
+                patch("worker.tasks._fail_job", new_callable=AsyncMock),
+            ):
+                result = await process_document({"redis": mock_redis}, job_id)
+
+            assert result["status"] == "failed"
+            output = span.update.call_args.kwargs["output"]
+            assert output["status"] == "failed"
+            assert "bad document" in output["error"]
+        finally:
+            session_p.stop()
+
+    @pytest.mark.asyncio
+    async def test_no_span_when_langfuse_disabled(self, job_id, mock_redis):
+        from worker.tasks import process_document
+
+        session_p = self._session_patch()
+        try:
+            with (
+                patch("app.observability.get_langfuse", return_value=None),
+                patch("app.observability.langfuse_trace") as mock_trace,
+                patch(
+                    "worker.tasks._process",
+                    new_callable=AsyncMock,
+                    return_value={"status": "completed", "record_id": "r1"},
+                ),
+            ):
+                result = await process_document({"redis": mock_redis}, job_id)
+
+            assert result["status"] == "completed"
+            mock_trace.assert_not_called()
+        finally:
+            session_p.stop()
+
+    @pytest.mark.asyncio
+    async def test_tracing_failure_never_breaks_task(self, job_id, mock_redis):
+        from worker.tasks import process_document
+
+        session_p = self._session_patch()
+        try:
+            with (
+                patch("app.observability.get_langfuse", side_effect=RuntimeError("boom")),
+                patch(
+                    "worker.tasks._process",
+                    new_callable=AsyncMock,
+                    return_value={"status": "completed", "record_id": "r1"},
+                ),
+            ):
+                result = await process_document({"redis": mock_redis}, job_id)
+
+            assert result["status"] == "completed"
+        finally:
+            session_p.stop()

@@ -1,6 +1,7 @@
 """ARQ worker task: orchestrates the full document processing pipeline."""
 from __future__ import annotations
 
+import time
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -41,18 +42,73 @@ async def process_document(ctx: dict[str, Any], job_id: str) -> dict[str, Any]:
     Returns dict with status and record_id on success.
     """
     redis: aioredis.Redis = ctx["redis"]
+    span = _start_task_span(job_id)
+    start = time.monotonic()
 
     async with AsyncSessionLocal() as db:
         try:
-            return await _process(db, redis, job_id)
+            result = await _process(db, redis, job_id)
+            _finish_task_span(span, start, status=result.get("status", "completed"), result=result)
+            return result
         except tuple(TRANSIENT_ERRORS) as e:
             logger.warning("Transient error processing job %s: %s", job_id, e)
             await _fail_job(db, redis, job_id, str(e))
+            _finish_task_span(span, start, status="transient_error", error=str(e))
             raise  # ARQ will retry
         except Exception as e:
             logger.error("Permanent error processing job %s: %s", job_id, e, exc_info=True)
             await _fail_job(db, redis, job_id, str(e))
+            _finish_task_span(span, start, status="failed", error=str(e))
             return {"status": "failed", "error": str(e)}
+
+
+def _start_task_span(job_id: str) -> Any:
+    """Open a Langfuse span for the whole pipeline run. None when disabled; never raises."""
+    try:
+        from app.observability import get_langfuse, langfuse_trace
+
+        if get_langfuse() is None:
+            return None
+        return langfuse_trace(
+            "process_document",
+            session_id=job_id,
+            input={"job_id": job_id},
+        )
+    except Exception:
+        return None
+
+
+def _finish_task_span(
+    span: Any,
+    start: float,
+    *,
+    status: str,
+    result: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> None:
+    """Record task outcome + latency on the span, end it, and flush. Never raises."""
+    if span is None:
+        return
+    try:
+        from app.observability import langfuse_end, langfuse_flush
+
+        output: dict[str, Any] = {
+            "status": status,
+            "latency_ms": int((time.monotonic() - start) * 1000),
+        }
+        if result:
+            output["record_id"] = result.get("record_id")
+            output["document_type"] = result.get("document_type")
+        if error:
+            output["error"] = error[:500]
+        try:
+            span.update(output=output)
+        except Exception:
+            pass
+        langfuse_end(span)
+        langfuse_flush()
+    except Exception:
+        pass  # Tracing must never break the main flow
 
 
 async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict[str, Any]:

@@ -178,12 +178,32 @@ def _emit_langfuse(ctx: TraceContext, operation: str, prompt_text: str | None) -
                     "confidence": ctx._confidence,
                     "cache_read_tokens": ctx._cache_read_tokens,
                     "cache_creation_tokens": ctx._cache_creation_tokens,
+                    "cost_usd": _call_cost_usd(ctx),
                 },
             )
         finally:
             langfuse_end(trace)
     except Exception:
         pass  # Tracing must never break the main flow
+
+
+def _call_cost_usd(ctx: TraceContext) -> float | None:
+    """USD cost of this call from the pricing table; None when unknown/untokenized."""
+    if ctx._input_tokens is None and ctx._output_tokens is None:
+        return None
+    try:
+        from app.services.cost_tracker import CostTracker
+
+        cost = CostTracker().compute_cost(
+            model=ctx.model,
+            input_tokens=ctx._input_tokens or 0,
+            output_tokens=ctx._output_tokens or 0,
+            operation=ctx.operation,
+            latency_ms=float(ctx.latency_ms),
+        )
+        return float(cost.total_cost_usd)
+    except Exception:
+        return None  # Unknown model or pricing gap must not break tracing
 
 
 async def _persist_trace(db: AsyncSession, data: dict) -> None:
