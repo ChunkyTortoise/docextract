@@ -38,3 +38,11 @@ autoresearch/benchmark_*.json
 # uv lockfile — this project is requirements*.txt-managed; an empty/partial
 # uv.lock is misleading clutter for a reviewer
 uv.lock
+
+# Locust/load-test output
+results/
+
+# Terraform local state/providers
+.terraform/
+*.tfstate
+*.tfstate.*
