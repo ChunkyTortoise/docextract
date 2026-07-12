@@ -53,3 +53,13 @@ def sanitize_for_trace(data: Any) -> Any:
     if isinstance(data, list):
         return [sanitize_for_trace(item) for item in data]
     return data
+
+
+def redact_pii(data: Any) -> Any:
+    """Redact PII at persistence and response boundaries.
+
+    Same recursion and patterns as sanitize_for_trace; returns new
+    containers and never mutates the input. Call sites gate on
+    settings.pii_redaction_enabled.
+    """
+    return sanitize_for_trace(data)

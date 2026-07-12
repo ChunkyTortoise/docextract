@@ -71,6 +71,7 @@ async def agent_search(
         question=request.question,
         doc_ids=request.doc_ids,
         max_iterations=request.max_iterations,
+        db=db,
     )
 
 
@@ -93,6 +94,7 @@ async def agent_search_stream(
             question=request.question,
             doc_ids=request.doc_ids,
             max_iterations=request.max_iterations,
+            db=db,
         ):
             yield {
                 "event": stream_event.event_type,

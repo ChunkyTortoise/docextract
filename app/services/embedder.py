@@ -24,7 +24,7 @@ MAX_CHARS = 2048
 def _get_client() -> genai.Client:
     """Create and cache a Gemini client."""
     logger.info("Initialising Gemini embedding client (model: %s)", EMBEDDING_MODEL)
-    return genai.Client(api_key=settings.gemini_api_key)
+    return genai.Client(api_key=settings.gemini_api_key.get_secret_value())
 
 
 async def embed(text: str, db: AsyncSession | None = None) -> list[float]:

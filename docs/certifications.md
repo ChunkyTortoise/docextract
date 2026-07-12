@@ -7,7 +7,7 @@ Each entry maps methodology learned to production implementation. References are
 ## IBM Generative AI Engineering — IBM (144h)
 **Methodology learned**: PyTorch model lifecycle, LangChain orchestration, HuggingFace Trainer API, structured LLM output schemas
 **Applied in**: `app/services/` — two-pass Claude extraction with `tool_use` correction, Pydantic structured output schemas, QLoRA fine-tuning pipeline
-**Production metric**: 95.5% accepted extraction F1 baseline with a 72-case current eval corpus including prompt-injection fixtures
+**Production metric**: 95.5% accepted extraction accuracy baseline (field-level, weighted) with a 72-case current eval corpus including prompt-injection fixtures
 **Design decision informed**: Two-pass extraction pattern (classify then extract) reduces hallucination vs single-pass; correction pass uses tool_use to self-repair low-confidence fields
 
 ## IBM RAG and Agentic AI — IBM (24h)
@@ -18,8 +18,8 @@ Each entry maps methodology learned to production implementation. References are
 
 ## Duke LLMOps Specialization — Duke University (48h)
 **Methodology learned**: Prompt lifecycle management, LLM regression testing, model selection criteria, CI/CD for LLM systems
-**Applied in**: `app/services/` and `.github/workflows/` — prompt versioning (semver-tagged), golden eval CI gate (2% regression tolerance), model A/B testing with z-test significance
-**Production metric**: CI gate blocks deploys when accuracy drops beyond tolerance from the 95.5% accepted F1 baseline; prompt versions are immutable and auditable
+**Applied in**: `app/services/` and `.github/workflows/` — prompt versioning (semver-tagged), golden eval CI gate (2% regression tolerance), offline model A/B harness (`model_ab_test.py` z-test; not a live traffic split)
+**Production metric**: CI gate blocks deploys when accuracy drops beyond tolerance from the 95.5% accepted accuracy baseline; prompt versions are immutable and auditable
 **Design decision informed**: Semver prompt tagging enables reproducible experiment comparisons across training runs and model upgrades
 
 ## DeepLearning.AI Deep Learning Specialization — DeepLearning.AI (120h)
@@ -60,8 +60,8 @@ Each entry maps methodology learned to production implementation. References are
 
 ## Google Advanced Data Analytics — Google (200h)
 **Methodology learned**: Statistical evaluation, A/B testing methodology, calibration metrics, regression analysis
-**Applied in**: `tests/evaluation/` and `app/services/` — RAGAS metrics (context recall, faithfulness, answer relevancy), Brier score calibration curve, z-test for A/B significance
-**Production metric**: Brier score 0.12 (well-calibrated confidence); 95.5% accepted F1 baseline with adversarial prompt-injection coverage
+**Applied in**: `tests/evaluation/` and `app/services/` — RAGAS metrics (context recall, faithfulness, answer relevancy), Brier score calibration curve, z-test harness for offline A/B significance (`model_ab_test.py`)
+**Production metric**: Brier score 0.12 (well-calibrated confidence); 95.5% accepted accuracy baseline (field-level, weighted) with adversarial prompt-injection coverage
 **Design decision informed**: Brier score required alongside accuracy — confidence calibration matters for downstream automation decisions more than raw accuracy
 
 ## Microsoft Data Visualization — Microsoft (87h)

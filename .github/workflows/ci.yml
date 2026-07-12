@@ -72,6 +72,8 @@ jobs:
         run: pip install -r requirements_ci.txt aiosqlite pytest-cov
       - name: Dependency check
         run: python -m pip check
+      - name: Metrics ledger (README measured-only)
+        run: python scripts/check_metrics_ledger.py README.md
       - name: Run tests
         env:
           DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/docextract_test

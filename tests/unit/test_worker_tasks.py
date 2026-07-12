@@ -282,6 +282,93 @@ class TestProcessPipeline:
             for p in patches:
                 p.stop()
 
+    def _pii_overrides(self):
+        from app.services.claude_extractor import ExtractionResult
+        from app.services.pdf_extractor import ExtractedContent
+
+        extract_patch = patch(
+            "app.services.claude_extractor.extract",
+            new_callable=AsyncMock,
+            return_value=ExtractionResult(
+                data={"customer_ssn": "123-45-6789", "total_amount": 500.00},
+                confidence=0.92,
+            ),
+        )
+        ingest_patch = patch(
+            "app.services.ingestion.ingest",
+            return_value=ExtractedContent(
+                text="Customer SSN 123-45-6789\nTotal: $500.00",
+                metadata={},
+                page_count=1,
+            ),
+        )
+        return extract_patch, ingest_patch
+
+    @staticmethod
+    def _added_record(mock_db):
+        from app.models.record import ExtractedRecord
+
+        records = [
+            c.args[0]
+            for c in mock_db.add.call_args_list
+            if isinstance(c.args[0], ExtractedRecord)
+        ]
+        assert len(records) == 1
+        return records[0]
+
+    @pytest.mark.asyncio
+    async def test_pii_redacted_before_persistence_when_enabled(
+        self, job_id, mock_redis, pipeline_mocks, monkeypatch
+    ):
+        import json
+
+        from app.config import settings
+
+        mock_db, patches, _ = pipeline_mocks
+        monkeypatch.setattr(settings, "pii_redaction_enabled", True)
+        extract_patch, ingest_patch = self._pii_overrides()
+        try:
+            extract_patch.start()
+            ingest_patch.start()
+            from worker.tasks import _process
+
+            await _process(mock_db, mock_redis, job_id)
+            record = self._added_record(mock_db)
+            stored = json.dumps(record.extracted_data)
+            assert "123-45-6789" not in stored
+            assert "[SSN]" in stored
+            assert "123-45-6789" not in (record.raw_text or "")
+        finally:
+            ingest_patch.stop()
+            extract_patch.stop()
+            for p in patches:
+                p.stop()
+
+    @pytest.mark.asyncio
+    async def test_pii_stored_raw_when_flag_disabled(
+        self, job_id, mock_redis, pipeline_mocks, monkeypatch
+    ):
+        import json
+
+        from app.config import settings
+
+        mock_db, patches, _ = pipeline_mocks
+        monkeypatch.setattr(settings, "pii_redaction_enabled", False)
+        extract_patch, ingest_patch = self._pii_overrides()
+        try:
+            extract_patch.start()
+            ingest_patch.start()
+            from worker.tasks import _process
+
+            await _process(mock_db, mock_redis, job_id)
+            record = self._added_record(mock_db)
+            assert "123-45-6789" in json.dumps(record.extracted_data)
+        finally:
+            ingest_patch.stop()
+            extract_patch.stop()
+            for p in patches:
+                p.stop()
+
 
 class TestFailJob:
     @pytest.mark.asyncio

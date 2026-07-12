@@ -257,7 +257,7 @@ async def demo_client(db_session, test_redis, fake_storage, fake_arq_pool):
         async with AsyncClient(
             transport=ASGITransport(app=app),
             base_url="http://test",
-            headers={"X-API-Key": settings.demo_api_key},
+            headers={"X-API-Key": settings.demo_api_key.get_secret_value()},
         ) as ac:
             yield ac
     finally:

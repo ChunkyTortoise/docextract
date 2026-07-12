@@ -4,6 +4,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import SecretStr
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -72,7 +73,7 @@ class TestSetupLangsmith:
             patch("langsmith.Client", return_value=mock_client_instance) as mock_cls,
         ):
             mock_settings.langsmith_enabled = True
-            mock_settings.langsmith_api_key = "ls-fake-key"
+            mock_settings.langsmith_api_key = SecretStr("ls-fake-key")
             mock_settings.langsmith_project = "test-project"
             ls.setup_langsmith()
 
@@ -89,7 +90,7 @@ class TestSetupLangsmith:
             patch.dict("sys.modules", {"langsmith": None}),
         ):
             mock_settings.langsmith_enabled = True
-            mock_settings.langsmith_api_key = "ls-fake-key"
+            mock_settings.langsmith_api_key = SecretStr("ls-fake-key")
             mock_settings.langsmith_project = "test-project"
             # Import error is caught internally — must not raise
             try:

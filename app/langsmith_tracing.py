@@ -54,11 +54,11 @@ def setup_langsmith() -> None:
 
     # Set env vars that the LangSmith SDK reads
     os.environ.setdefault("LANGCHAIN_TRACING_V2", "true")
-    os.environ.setdefault("LANGCHAIN_API_KEY", settings.langsmith_api_key)
+    os.environ.setdefault("LANGCHAIN_API_KEY", settings.langsmith_api_key.get_secret_value())
     os.environ.setdefault("LANGCHAIN_PROJECT", settings.langsmith_project)
 
     try:
-        _client = Client(api_key=settings.langsmith_api_key)
+        _client = Client(api_key=settings.langsmith_api_key.get_secret_value())
         _project = settings.langsmith_project
         logger.info(
             "LangSmith tracing enabled — project '%s'",

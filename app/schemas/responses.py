@@ -63,7 +63,14 @@ class RecordItem(BaseModel):
 
 def record_item_from_db(r: Any) -> RecordItem:
     """Build a RecordItem from a DB ExtractedRecord, extracting guardrail metadata."""
+    from app.config import settings
+    from app.services.pii_sanitizer import redact_pii
+
     guardrails_data = (r.extracted_data or {}).get("_guardrails")
+    if guardrails_data and settings.pii_redaction_enabled:
+        # Guardrail previews only mask digits, so email previews carry the
+        # full address; redact the whole blob before serializing.
+        guardrails_data = redact_pii(guardrails_data)
     guardrails = None
     pii_detected = False
     if guardrails_data:
@@ -80,12 +87,16 @@ def record_item_from_db(r: Any) -> RecordItem:
             grounding_issues=ungrounded,
         )
 
+    extracted_data = r.extracted_data
+    if settings.pii_redaction_enabled:
+        extracted_data = redact_pii(extracted_data)
+
     return RecordItem(
         id=str(r.id),
         job_id=str(r.job_id),
         document_id=str(r.document_id),
         document_type=r.document_type,
-        extracted_data=r.extracted_data,
+        extracted_data=extracted_data,
         confidence_score=r.confidence_score,
         needs_review=r.needs_review,
         validation_status=r.validation_status,

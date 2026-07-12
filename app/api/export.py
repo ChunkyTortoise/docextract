@@ -73,6 +73,10 @@ async def export_records(
     else:  # JSON
 
         def json_generator():
+            from app.config import settings
+            from app.services.pii_sanitizer import redact_pii
+
+            redact = settings.pii_redaction_enabled
             yield "["
             for i, record in enumerate(records):
                 if i > 0:
@@ -81,7 +85,11 @@ async def export_records(
                     {
                         "id": str(record.id),
                         "document_type": record.document_type,
-                        "extracted_data": record.extracted_data,
+                        "extracted_data": (
+                            redact_pii(record.extracted_data)
+                            if redact
+                            else record.extracted_data
+                        ),
                         "confidence_score": record.confidence_score,
                         "needs_review": record.needs_review,
                         "created_at": str(record.created_at),

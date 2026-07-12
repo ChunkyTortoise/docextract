@@ -41,7 +41,7 @@ async def get_api_key(
         raise HTTPException(status_code=401, detail="X-API-Key header required")
 
     # Demo mode bypass
-    if settings.demo_mode and api_key == settings.demo_api_key:
+    if settings.demo_mode and api_key == settings.demo_api_key.get_secret_value():
         request.state.demo = True
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             raise HTTPException(status_code=403, detail="Demo mode is read-only")

@@ -181,13 +181,20 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
             ],
         }
 
+    raw_text = extracted.text[:5000]
+    if settings.pii_redaction_enabled:
+        from app.services.pii_sanitizer import redact_pii
+
+        record_data = redact_pii(record_data)
+        raw_text = redact_pii(raw_text)
+
     record = ExtractedRecord(
         id=record_id,
         job_id=job.id,
         document_id=job.document_id,
         document_type=doc_type,
         extracted_data=record_data,
-        raw_text=extracted.text[:5000],
+        raw_text=raw_text,
         confidence_score=extraction_result.confidence,
         needs_review=validation_result.needs_review,
         validation_status=(

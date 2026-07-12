@@ -18,7 +18,7 @@ Self-hosted via `docker compose up`:
 Also supports: Render Blueprint, K8s/Kustomize, AWS Terraform (RDS+ElastiCache)
 
 ## Test
-```pytest tests/  # 1,280 tests```
+```pytest tests/  # 1,329 tests (1,329 passed / 7 skipped as of 2026-07-11)```
 
 ## Key Env
 ANTHROPIC_API_KEY, DATABASE_URL, REDIS_URL, SECRET_KEY

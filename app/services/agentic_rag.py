@@ -8,15 +8,20 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from decimal import Decimal
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel
 
+from app.services.cost_tracker import CostTracker
 from app.services.rag_tools import RagTools, SearchResult
 
 if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from app.services.model_router import ModelRouter
 
 logger = logging.getLogger(__name__)
@@ -33,6 +38,7 @@ class ReasoningStep(BaseModel):
     action_input: dict
     observation: str
     confidence: float
+    parse_failed: bool = False
 
 
 class AgenticRAGResult(BaseModel):
@@ -43,6 +49,8 @@ class AgenticRAGResult(BaseModel):
     confidence: float
     tools_used: list[str]
     question: str
+    degraded: bool = False
+    degradation_reason: str | None = None
 
 
 class StreamEvent(BaseModel):
@@ -65,6 +73,9 @@ class _IterationState:
     final_answer: str = ""
     final_confidence: float = 0.0
     should_stop: bool = False
+    accumulated_cost_usd: Decimal = field(default_factory=lambda: Decimal("0"))
+    degraded: bool = False
+    degradation_reason: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -106,6 +117,7 @@ class AgenticRAG:
     def __init__(self, tools: RagTools, model_router: ModelRouter) -> None:
         self._tools = tools
         self._router = model_router
+        self._cost_tracker = CostTracker()
 
     # ------------------------------------------------------------------
     # Public API
@@ -116,17 +128,23 @@ class AgenticRAG:
         question: str,
         doc_ids: list[str] | None = None,
         max_iterations: int = 3,
+        db: AsyncSession | None = None,
     ) -> AgenticRAGResult:
         """Run the ReAct loop and return a fully-traced result."""
         state = _IterationState()
 
         for iteration in range(1, max_iterations + 1):
+            reason = await self._check_spend_ceiling(state, db)
+            if reason:
+                self._apply_degradation(state, reason)
+                break
             await self._run_iteration(
                 iteration=iteration,
                 max_iterations=max_iterations,
                 question=question,
                 doc_ids=doc_ids,
                 state=state,
+                db=db,
             )
             if state.should_stop:
                 break
@@ -138,6 +156,7 @@ class AgenticRAG:
         question: str,
         doc_ids: list[str] | None = None,
         max_iterations: int = 3,
+        db: AsyncSession | None = None,
     ) -> AsyncIterator[StreamEvent]:
         """Stream ReAct reasoning steps as they execute.
 
@@ -148,12 +167,17 @@ class AgenticRAG:
         state = _IterationState()
 
         for iteration in range(1, max_iterations + 1):
+            reason = await self._check_spend_ceiling(state, db)
+            if reason:
+                self._apply_degradation(state, reason)
+                break
             await self._run_iteration(
                 iteration=iteration,
                 max_iterations=max_iterations,
                 question=question,
                 doc_ids=doc_ids,
                 state=state,
+                db=db,
             )
             # Yield the step that was just appended
             yield StreamEvent(
@@ -177,6 +201,7 @@ class AgenticRAG:
         question: str,
         doc_ids: list[str] | None,
         state: _IterationState,
+        db: AsyncSession | None = None,
     ) -> None:
         """Execute one Think → Act → Observe cycle, mutating *state* in place."""
         from app.config import settings
@@ -187,6 +212,8 @@ class AgenticRAG:
             user=self._build_think_prompt(question, state.accumulated_results, doc_ids),
             models=settings.classification_models,
             operation="rag_think",
+            state=state,
+            db=db,
         )
         think_data = _parse_json(think_response)
         thought = str(think_data.get("thought", ""))
@@ -204,16 +231,29 @@ class AgenticRAG:
         if action not in state.tools_used:
             state.tools_used.append(action)
 
+        # ---- Spend ceiling check between ACT and OBSERVE (THINK call may have
+        # already pushed accumulated cost past the per-request ceiling) ----
+        reason = await self._check_spend_ceiling(state, db)
+        if reason:
+            self._apply_degradation(state, reason)
+            return
+
         # ---- OBSERVE: self-assess confidence ----
         evaluate_response = await self._call_llm(
             system=_EVALUATE_SYSTEM,
             user=self._build_evaluate_prompt(question, state.accumulated_results),
             models=settings.classification_models,
             operation="rag_evaluate",
+            state=state,
+            db=db,
         )
-        eval_data = _parse_json(evaluate_response)
-        confidence = float(eval_data.get("confidence", 0.0))
-        candidate_answer = str(eval_data.get("final_answer", ""))
+        eval_data, eval_parse_ok = _parse_json_safe(evaluate_response)
+        if eval_parse_ok:
+            confidence = float(eval_data.get("confidence", 0.0))
+            candidate_answer = str(eval_data.get("final_answer", ""))
+        else:
+            confidence = 0.0
+            candidate_answer = ""
 
         state.reasoning_trace.append(
             ReasoningStep(
@@ -223,18 +263,82 @@ class AgenticRAG:
                 action_input=action_input,
                 observation=observation,
                 confidence=confidence,
+                parse_failed=not eval_parse_ok,
             )
         )
         state.final_confidence = confidence
 
-        if confidence >= CONFIDENCE_THRESHOLD or iteration == max_iterations:
-            if candidate_answer:
+        has_results = bool(state.accumulated_results)
+        if (confidence >= CONFIDENCE_THRESHOLD and has_results) or iteration == max_iterations:
+            if not has_results:
+                self._apply_degradation(state, "empty_retrieval")
+            elif candidate_answer:
                 state.final_answer = candidate_answer
             else:
-                state.final_answer = await self._generate_answer(
-                    question, state.accumulated_results, models=settings.extraction_models
-                )
+                reason = await self._check_spend_ceiling(state, db)
+                if reason:
+                    self._apply_degradation(state, reason)
+                else:
+                    state.final_answer = await self._generate_answer(
+                        question, state.accumulated_results, models=settings.extraction_models, state=state, db=db
+                    )
             state.should_stop = True
+
+    @staticmethod
+    def _degraded_answer(state: _IterationState) -> str:
+        """Best-effort answer to return when the loop stops early degraded."""
+        if state.final_answer:
+            return state.final_answer
+        if state.accumulated_results:
+            top = state.accumulated_results[0]
+            return (
+                "Spend ceiling reached before a confident answer could be generated. "
+                f"Best-effort context: {top.content[:300]}"
+            )
+        if state.degradation_reason == "empty_retrieval":
+            return "No relevant passages were retrieved; unable to produce a grounded answer."
+        return "Spend ceiling reached before any relevant information could be retrieved."
+
+    def _apply_degradation(self, state: _IterationState, reason: str) -> None:
+        """Mark *state* as degraded and stop the loop gracefully (no raise)."""
+        state.degraded = True
+        state.degradation_reason = reason
+        state.should_stop = True
+        state.final_answer = self._degraded_answer(state)
+
+    async def _check_spend_ceiling(
+        self,
+        state: _IterationState,
+        db: AsyncSession | None,
+    ) -> str | None:
+        """Return a degradation reason if the configured spend ceiling would be
+        exceeded by the next model call, else None. Inert unless
+        settings.spend_ceiling_enabled is True.
+        """
+        from app.config import settings
+
+        if not settings.spend_ceiling_enabled:
+            return None
+
+        per_request_ceiling = Decimal(str(settings.spend_ceiling_per_request_usd))
+        if state.accumulated_cost_usd >= per_request_ceiling:
+            return "per_request_ceiling_exceeded"
+
+        if db is not None:
+            per_day_ceiling = Decimal(str(settings.spend_ceiling_per_day_usd))
+            summary = await self._cost_tracker.get_cost_summary(db, days=1)
+            daily_total = sum(
+                (
+                    Decimal(str(op_data["total_cost"]))
+                    for model_data in summary.values()
+                    for op_data in model_data.values()
+                ),
+                Decimal("0"),
+            )
+            if daily_total >= per_day_ceiling:
+                return "per_day_ceiling_exceeded"
+
+        return None
 
     @staticmethod
     def _build_result(question: str, state: _IterationState) -> AgenticRAGResult:
@@ -248,6 +352,8 @@ class AgenticRAG:
             confidence=state.final_confidence,
             tools_used=state.tools_used,
             question=question,
+            degraded=state.degraded,
+            degradation_reason=state.degradation_reason,
         )
 
     # ------------------------------------------------------------------
@@ -260,6 +366,8 @@ class AgenticRAG:
         user: str,
         models: list[str],
         operation: str,
+        state: _IterationState | None = None,
+        db: AsyncSession | None = None,
     ) -> str:
         """Route an LLM call through ModelRouter for fallback support."""
         from anthropic import AsyncAnthropic
@@ -269,12 +377,28 @@ class AgenticRAG:
         client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
         async def _call(model: str) -> str:
-            response = await client.messages.create(
-                model=model,
-                max_tokens=1024,
-                system=system,
-                messages=[{"role": "user", "content": user}],
-            )
+            start = time.monotonic()
+            persist_trace = state is not None and settings.spend_ceiling_enabled and db is not None
+            if persist_trace:
+                from app.services.llm_tracer import trace_llm_call
+
+                async with trace_llm_call(db, model, operation) as trace_ctx:
+                    response = await client.messages.create(
+                        model=model,
+                        max_tokens=1024,
+                        system=system,
+                        messages=[{"role": "user", "content": user}],
+                    )
+                    trace_ctx.record_response(response)
+            else:
+                response = await client.messages.create(
+                    model=model,
+                    max_tokens=1024,
+                    system=system,
+                    messages=[{"role": "user", "content": user}],
+                )
+            if state is not None and settings.spend_ceiling_enabled:
+                self._record_cost(state, model, response, operation, (time.monotonic() - start) * 1000)
             return response.content[0].text
 
         try:
@@ -287,6 +411,36 @@ class AgenticRAG:
         except Exception as exc:
             logger.warning("LLM call failed for operation=%s: %s", operation, exc)
             return "{}"
+
+    def _record_cost(
+        self,
+        state: _IterationState,
+        model: str,
+        response: object,
+        operation: str,
+        latency_ms: float,
+    ) -> None:
+        """Accumulate the estimated USD cost of one model call onto *state*.
+
+        Silently skips models absent from CostTracker's pricing table (e.g.
+        third-party fallback models with no known per-token rate) rather than
+        failing the request.
+        """
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            return
+        try:
+            cost = self._cost_tracker.compute_cost(
+                model=model,
+                input_tokens=usage.input_tokens,
+                output_tokens=usage.output_tokens,
+                operation=operation,
+                latency_ms=latency_ms,
+            )
+        except ValueError:
+            logger.debug("No pricing data for model=%s; skipping cost accounting", model)
+            return
+        state.accumulated_cost_usd += cost.total_cost_usd
 
     async def _execute_tool(
         self,
@@ -348,6 +502,8 @@ class AgenticRAG:
         question: str,
         results: list[SearchResult],
         models: list[str],
+        state: _IterationState | None = None,
+        db: AsyncSession | None = None,
     ) -> str:
         """Generate a final answer given question + context passages."""
         context = "\n\n".join(
@@ -363,6 +519,8 @@ class AgenticRAG:
             user=user_prompt,
             models=models,
             operation="rag_answer",
+            state=state,
+            db=db,
         )
 
     @staticmethod
@@ -405,20 +563,31 @@ class AgenticRAG:
 # Utility functions
 # ---------------------------------------------------------------------------
 
-def _parse_json(text: str) -> dict:
-    """Extract the first JSON object from a string."""
+def _parse_json_safe(text: str) -> tuple[dict, bool]:
+    """Extract the first JSON object from a string.
+
+    Returns (data, ok) where ok is False if no valid JSON object could be
+    parsed, so callers can distinguish a genuine parse failure from a
+    legitimately empty response.
+    """
     text = text.strip()
     try:
-        return json.loads(text)
+        return json.loads(text), True
     except json.JSONDecodeError:
         pass
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if match:
         try:
-            return json.loads(match.group(0))
+            return json.loads(match.group(0)), True
         except json.JSONDecodeError:
             pass
-    return {}
+    return {}, False
+
+
+def _parse_json(text: str) -> dict:
+    """Extract the first JSON object from a string."""
+    data, _ = _parse_json_safe(text)
+    return data
 
 
 def _merge_results(

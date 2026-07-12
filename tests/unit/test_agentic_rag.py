@@ -20,7 +20,7 @@ def _search_result(doc_id="d1", chunk_id="c1", content="sample content", score=0
 def _make_tools(search_results: list[SearchResult] | None = None) -> RagTools:
     """Return a RagTools with all search methods mocked."""
     tools = MagicMock(spec=RagTools)
-    results = search_results or [_search_result()]
+    results = [_search_result()] if search_results is None else search_results
     tools.search_vectors = AsyncMock(return_value=results)
     tools.search_bm25 = AsyncMock(return_value=results)
     tools.search_hybrid = AsyncMock(return_value=results)
@@ -251,3 +251,83 @@ class TestAgenticRAGEmptyResults:
 
         assert len(result.sources) >= 1
         assert result.sources[0].doc_id == "d1"
+
+
+# ---------------------------------------------------------------------------
+# M5 — silent degradation on model self-grading
+# ---------------------------------------------------------------------------
+
+class TestAgenticRAGEmptyRetrievalDegradation:
+    @pytest.mark.asyncio
+    async def test_hallucinated_high_confidence_with_no_retrieval_degrades(self):
+        """If every iteration retrieves zero results, a hallucinated high
+        confidence must not produce a confident ungrounded answer — the run
+        must degrade instead."""
+        tools = _make_tools(search_results=[])
+        responses = [
+            _think_json(), _evaluate_json(confidence=0.95, answer="I am confident."),
+            _think_json(), _evaluate_json(confidence=0.95, answer="I am confident."),
+        ]
+        router = _make_router(responses)
+        agent = AgenticRAG(tools=tools, model_router=router)
+
+        result = await agent.search("irrelevant question", max_iterations=2)
+
+        assert result.degraded is True
+        assert result.degradation_reason == "empty_retrieval"
+        assert result.answer != "I am confident."
+
+    @pytest.mark.asyncio
+    async def test_confidence_gating_ignored_when_no_results_yet(self):
+        """A reported-confident evaluation with zero results retrieved so far
+        must not stop the loop early if iterations remain — the agent should
+        keep trying instead of returning an ungrounded answer immediately."""
+        sr = _search_result(doc_id="d2", chunk_id="c2", content="grounded content", score=0.9)
+        tools = MagicMock(spec=RagTools)
+        tools.search_hybrid = AsyncMock(side_effect=[[], [sr]])
+        tools.search_vectors = AsyncMock(return_value=[])
+        tools.search_bm25 = AsyncMock(return_value=[])
+        tools.lookup_metadata = AsyncMock(return_value={})
+        tools.rerank_results = AsyncMock(side_effect=lambda q, r: r)
+
+        responses = [
+            _think_json("search_hybrid"), _evaluate_json(confidence=0.95, answer="premature"),
+            _think_json("search_hybrid"), _evaluate_json(confidence=0.9, answer="final grounded answer"),
+        ]
+        router = _make_router(responses)
+        agent = AgenticRAG(tools=tools, model_router=router)
+
+        result = await agent.search("question?", max_iterations=2)
+
+        assert result.iterations == 2
+        assert result.answer == "final grounded answer"
+        assert result.degraded is False
+
+
+class TestAgenticRAGParseFailureSurfaced:
+    @pytest.mark.asyncio
+    async def test_unparseable_evaluate_response_recorded_as_parse_failure(self):
+        """An evaluate-step response that fails JSON parsing must be treated
+        as confidence 0.0 with a recorded parse-failure marker, not a silent
+        default that can pass as a scored result."""
+        tools = _make_tools()
+        responses = [_think_json(), "this is not valid json at all {{{"]
+        router = _make_router(responses)
+        agent = AgenticRAG(tools=tools, model_router=router)
+
+        result = await agent.search("question?", max_iterations=1)
+
+        assert len(result.reasoning_trace) == 1
+        step = result.reasoning_trace[0]
+        assert step.confidence == 0.0
+        assert step.parse_failed is True
+
+    @pytest.mark.asyncio
+    async def test_parseable_evaluate_response_not_marked_as_parse_failure(self):
+        tools = _make_tools()
+        router = _make_router([_think_json(), _evaluate_json(confidence=0.9, answer="Yes.")])
+        agent = AgenticRAG(tools=tools, model_router=router)
+
+        result = await agent.search("question?", max_iterations=1)
+
+        assert result.reasoning_trace[0].parse_failed is False
