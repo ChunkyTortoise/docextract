@@ -10,17 +10,19 @@ Token cost comparison across models (per 1,000 tokens, as of 2026):
 | Claude Haiku 4.5 | $0.00025 | $0.00125 | Classification, simple queries |
 | Claude Opus 4.6 | $0.015 | $0.075 | Evaluation, edge cases |
 
-DocExtract routes 60% of classification traffic to Haiku after A/B testing showed <2% quality difference vs Sonnet -- reducing classification costs by ~67%.
+Classification defaults to Haiku-first (failover chain in config); extraction uses Sonnet. A z-test A/B tool lives in `app/services/model_ab_test.py` for offline model comparison; it is not wired as a live traffic split.
 
 ## Per-Operation Costs
 
-| Model | Operation | Avg Cost/Request | Avg Latency |
+Modeled estimates (pricing table × typical token counts; not load-tested wall times):
+
+| Model | Operation | Avg Cost/Request | Avg Latency (modeled) |
 |-------|-----------|-----------------|-------------|
 | claude-sonnet-4-6 | Extraction (2-pass) | $0.004-$0.012 | 1.8s |
 | claude-haiku-4-5 | Classification | $0.0003-$0.001 | 0.4s |
 | claude-sonnet-4-6 | LLM Judge | $0.002-$0.006 | 1.2s |
 
-**Model routing strategy:** Classification and re-ranking use Haiku (4x cheaper, <5% quality gap). Full extraction uses Sonnet. LLM judge uses Sonnet for accuracy. A/B testing with z-test significance determines optimal model allocation per operation.
+**Model routing strategy:** Classification and re-ranking use Haiku (cheaper primary). Full extraction uses Sonnet. LLM judge uses Sonnet for accuracy. Use `model_ab_test.py` to compare models offline; do not treat allocation as a measured live split until an experiment is recorded.
 
 ## Cost Calculator
 
