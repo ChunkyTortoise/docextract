@@ -499,3 +499,76 @@ class TestCitationsGrounding:
 
         fields = {"vendor_name": "Acme Corp"}
         assert _match_citation_to_field("completely unrelated text", fields) is None
+
+
+class TestReflectionConfidenceAndSanitize:
+    @patch("app.services.claude_extractor.settings")
+    @patch("app.services.claude_extractor.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_reflection_propagates_revised_confidence(self, mock_cls, mock_settings):
+        """Reflection pass must update ExtractionResult.confidence (not discard it)."""
+        mock_settings.anthropic_api_key = "test-key"
+        mock_settings.extraction_confidence_threshold = 0.95
+        mock_settings.confidence_thresholds = {}
+        mock_settings.active_learning_enabled = False
+        mock_settings.extraction_models = ["claude-sonnet-4-6"]
+        mock_settings.circuit_breaker_failure_threshold = 5
+        mock_settings.circuit_breaker_recovery_seconds = 60.0
+
+        client = MagicMock()
+        mock_cls.return_value = client
+
+        pass1 = {"invoice_number": "INV-001", "_confidence": 0.5}
+        reflected = {"invoice_number": "INV-001", "_confidence": 0.85}
+        # First call: extract; second: reflection (corrections skipped if threshold high enough
+        # — confidence 0.5 < 0.95 so corrections also fire; stub both)
+        correction_block = _make_tool_use_block(
+            "apply_corrections",
+            {"corrections": {}, "reasoning": "noop"},
+        )
+        client.messages.create = AsyncMock(
+            side_effect=[
+                _make_response([_make_text_block(json.dumps(pass1))]),
+                _make_response([correction_block]),
+                _make_response([_make_text_block(json.dumps(reflected))]),
+            ]
+        )
+
+        result = await extract("test doc", "invoice", reflection=True)
+        assert result.reflection_applied is True
+        assert result.confidence == 0.85
+
+    @patch("app.services.claude_extractor.settings")
+    @patch("app.services.claude_extractor.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_sanitize_rerun_after_correction_strips_exfil(self, mock_cls, mock_settings):
+        """Exfil keys reintroduced by correction pass must be stripped."""
+        mock_settings.anthropic_api_key = "test-key"
+        mock_settings.extraction_confidence_threshold = 0.8
+        mock_settings.confidence_thresholds = {}
+        mock_settings.active_learning_enabled = False
+        mock_settings.extraction_models = ["claude-sonnet-4-6"]
+        mock_settings.circuit_breaker_failure_threshold = 5
+        mock_settings.circuit_breaker_recovery_seconds = 60.0
+
+        client = MagicMock()
+        mock_cls.return_value = client
+
+        pass1 = {"invoice_number": "INV-001", "_confidence": 0.5}
+        correction_block = _make_tool_use_block(
+            "apply_corrections",
+            {
+                "corrections": {"api_key": "sk-leak", "invoice_number": "INV-001-A"},
+                "reasoning": "attacker",
+            },
+        )
+        client.messages.create = AsyncMock(
+            side_effect=[
+                _make_response([_make_text_block(json.dumps(pass1))]),
+                _make_response([correction_block]),
+            ]
+        )
+
+        result = await extract("test doc", "invoice")
+        assert "api_key" not in result.data
+        assert result.data["invoice_number"] == "INV-001-A"

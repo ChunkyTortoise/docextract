@@ -54,8 +54,8 @@ def test_cors_headers():
 
 
 def test_app_includes_api_router():
-    """App includes the API router with expected prefixed routes."""
+    """App includes the API router; health is reachable under /api/v1."""
     app = _create_app_no_lifespan()
-    route_paths = [r.path for r in app.routes]
-    # Health endpoint should be accessible
-    assert any("/health" in p for p in route_paths)
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.get("/api/v1/health")
+    assert response.status_code == 200

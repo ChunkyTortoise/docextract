@@ -195,3 +195,15 @@ async def test_r2_list_keys_empty(mock_r2_storage):
 
     keys = await backend.list_keys()
     assert keys == []
+
+
+@pytest.mark.asyncio
+async def test_upload_rejects_path_traversal(local_storage):
+    with pytest.raises(ValueError, match="Invalid storage key"):
+        await local_storage.upload("../etc/passwd", b"x", "text/plain")
+
+
+@pytest.mark.asyncio
+async def test_upload_rejects_absolute_key(local_storage):
+    with pytest.raises(ValueError, match="Invalid storage key"):
+        await local_storage.upload("/tmp/evil.txt", b"x", "text/plain")

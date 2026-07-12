@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
 import arq
 import redis.asyncio as aioredis
@@ -24,6 +25,40 @@ from app.utils.mime import detect_mime_type, is_allowed_mime_type
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
+def _safe_filename(filename: str | None) -> str:
+    """Basename-only filename; reject traversal / absolute paths."""
+    if filename is None or filename == "":
+        return "unknown"
+    name = Path(filename).name
+    if not name or name in {".", ".."}:
+        raise HTTPException(400, "Invalid filename")
+    return name
+
+
+async def _read_upload_bounded(file: UploadFile) -> bytes:
+    """Read upload bytes, enforcing MAX_FILE_SIZE_MB before buffering unbounded."""
+    max_bytes = settings.max_file_size_mb * 1024 * 1024
+    content_length = file.headers.get("content-length") if file.headers else None
+    if content_length is not None:
+        try:
+            if int(content_length) > max_bytes:
+                raise HTTPException(400, f"File exceeds {settings.max_file_size_mb}MB limit")
+        except ValueError:
+            pass
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(1024 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise HTTPException(400, f"File exceeds {settings.max_file_size_mb}MB limit")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+
 @router.post("/upload", response_model=UploadResponse, status_code=202)
 async def upload_document(
     file: UploadFile = File(...),
@@ -39,10 +74,7 @@ async def upload_document(
     api_key: APIKey = Depends(get_api_key),
 ) -> UploadResponse:
     """Upload a document for processing."""
-    file_bytes = await file.read()
-
-    if len(file_bytes) > settings.max_file_size_mb * 1024 * 1024:
-        raise HTTPException(400, f"File exceeds {settings.max_file_size_mb}MB limit")
+    file_bytes = await _read_upload_bounded(file)
 
     mime_type = detect_mime_type(file_bytes)
     if not is_allowed_mime_type(mime_type):
@@ -71,12 +103,13 @@ async def upload_document(
             )
 
     doc_id = uuid.uuid4()
-    key = f"documents/{doc_id}/{file.filename}"
+    safe_name = _safe_filename(file.filename)
+    key = f"documents/{doc_id}/{safe_name}"
     await storage.upload(key, file_bytes, mime_type)
 
     doc = Document(
         id=doc_id,
-        original_filename=file.filename or "unknown",
+        original_filename=safe_name,
         stored_path=key,
         mime_type=mime_type,
         file_size_bytes=len(file_bytes),
@@ -114,7 +147,7 @@ async def upload_document(
     return UploadResponse(
         document_id=str(doc_id),
         job_id=str(job_id),
-        filename=file.filename or "",
+        filename=safe_name,
         duplicate=False,
         message="Document queued for processing.",
     )
@@ -137,10 +170,14 @@ async def batch_upload(
     errors: list[dict] = []
 
     for uploaded_file in files:
-        file_bytes = await uploaded_file.read()
-        filename = uploaded_file.filename or "unknown"
-
-        if len(file_bytes) > settings.max_file_size_mb * 1024 * 1024:
+        try:
+            filename = _safe_filename(uploaded_file.filename)
+        except HTTPException:
+            errors.append({"filename": uploaded_file.filename or "unknown", "reason": "invalid_filename"})
+            continue
+        try:
+            file_bytes = await _read_upload_bounded(uploaded_file)
+        except HTTPException:
             errors.append({"filename": filename, "reason": "file_too_large"})
             continue
 
@@ -162,12 +199,12 @@ async def batch_upload(
                 continue
 
         doc_id = uuid.uuid4()
-        key = f"documents/{doc_id}/{uploaded_file.filename}"
+        key = f"documents/{doc_id}/{filename}"
         await storage.upload(key, file_bytes, mime_type)
 
         doc = Document(
             id=doc_id,
-            original_filename=uploaded_file.filename or "unknown",
+            original_filename=filename,
             stored_path=key,
             mime_type=mime_type,
             file_size_bytes=len(file_bytes),

@@ -275,3 +275,33 @@ async def test_batch_upload_with_duplicate(client: AsyncClient):
         data = response2.json()
         assert len(data["job_ids"]) == 0
         assert "dup.pdf" in data["duplicates"]
+
+
+@pytest.mark.asyncio
+async def test_batch_upload_persists_sanitized_filename(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Batch path stores the traversal-guarded basename, not the raw client filename."""
+    content = MINIMAL_PDF + b"batch_sanitize"
+    with (
+        patch("app.api.documents.detect_mime_type", return_value="application/pdf"),
+        patch("app.api.documents.is_allowed_mime_type", return_value=True),
+    ):
+        files = [
+            ("files", ("../../evil.pdf", io.BytesIO(content), "application/pdf")),
+        ]
+        response = await client.post("/api/v1/documents/batch", files=files)
+
+        assert response.status_code == 202
+        assert len(response.json()["job_ids"]) == 1
+
+        from sqlalchemy import select
+
+        from app.utils.hashing import hash_file
+
+        result = await db_session.execute(
+            select(Document).where(Document.sha256_hash == hash_file(content))
+        )
+        doc = result.scalar_one()
+        assert doc.original_filename == "evil.pdf"
+        assert ".." not in doc.stored_path

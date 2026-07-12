@@ -201,12 +201,17 @@ async def extract(
                 outcome.validation_errors,
             )
 
+    def _sanitize(extracted_data: dict[str, Any]) -> dict[str, Any]:
+        cleaned, exfil_keys = injection_guard.sanitize_output(extracted_data)
+        nonlocal validation_errors
+        if exfil_keys:
+            logger.warning("injection_guard stripped exfil keys for %s: %s", doc_type, exfil_keys)
+            validation_errors = [*validation_errors, f"injection_guard removed keys: {exfil_keys}"]
+        return cleaned
+
     # Indirect prompt-injection defense: strip exfiltration keys regardless of
     # whether the input scan fired (defense-in-depth).
-    extracted, _exfil_keys = injection_guard.sanitize_output(extracted)
-    if _exfil_keys:
-        logger.warning("injection_guard stripped exfil keys for %s: %s", doc_type, _exfil_keys)
-        validation_errors = [*validation_errors, f"injection_guard removed keys: {_exfil_keys}"]
+    extracted = _sanitize(extracted)
 
     # Pass 2: Correction if low confidence
     corrections_applied = False
@@ -218,10 +223,11 @@ async def extract(
             client, text, doc_type, extracted, confidence, db=db,
             router=router,
         )
+        extracted = _sanitize(extracted)
 
     reflection_applied = False
     if reflection and confidence < 0.8:
-        extracted, reflection_applied = await _reflect_and_revise(
+        extracted, reflection_applied, confidence = await _reflect_and_revise(
             text=text,
             doc_type=doc_type,
             extracted=extracted,
@@ -229,6 +235,7 @@ async def extract(
             model=model_used or settings.extraction_models[0],
             db=db,
         )
+        extracted = _sanitize(extracted)
 
     grounding: CitationGrounding | None = None
     if citations:
@@ -490,11 +497,11 @@ async def _reflect_and_revise(
     confidence: float,
     model: str,
     db: AsyncSession | None = None,
-) -> tuple[dict[str, Any], bool]:
+) -> tuple[dict[str, Any], bool, float]:
     """Reflection pass: show the model its own low-confidence extraction and ask it to revise.
 
     Only called when confidence < 0.8 and reflection=True is requested.
-    Returns (revised_extraction, reflection_applied).
+    Returns (revised_extraction, reflection_applied, revised_confidence).
     """
     from app.services.llm_tracer import trace_llm_call
 
@@ -533,9 +540,9 @@ async def _reflect_and_revise(
                 new_confidence,
                 doc_type,
             )
-            return revised, True
+            return revised, True, new_confidence
 
     except Exception as e:
         logger.warning("Reflection pass failed: %s", e)
 
-    return extracted, False
+    return extracted, False, confidence
