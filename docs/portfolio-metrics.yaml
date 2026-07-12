@@ -1,10 +1,10 @@
 schema_version: 2
-updated: "2026-07-09"
+updated: "2026-07-12"
 testing:
   command: "pytest tests/ --collect-only -q"
-  collected_tests: 1280
+  collected_tests: 1354
   coverage_gate_percent: 80
-  source: "pytest --collect-only on chore/hero-hireability-remediation; coverage gate from pyproject --cov-fail-under=80"
+  source: "pytest --collect-only on feat/langfuse-braintrust-8q1 2026-07-12; coverage gate from pyproject --cov-fail-under=80"
 eval_corpus:
   golden_cases: 51
   adversarial_cases: 21

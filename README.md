@@ -11,7 +11,7 @@
 | Metric | Value | Basis |
 |--------|-------|-------|
 | Extraction accuracy (field-level, critical fields weighted 2x) | **95.5%** | CI-replayed, 28-case deterministic baseline; independent Gemini judge eliminates self-grading bias ([ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md)) |
-| Test suite | **1,280 collected tests**, 80% CI coverage gate | `pytest tests/ --collect-only`; coverage gate `--cov-fail-under=80` |
+| Test suite | **1,354 collected tests**, 80% CI coverage gate | `pytest tests/ --collect-only`; coverage gate `--cov-fail-under=80` |
 | Eval corpus | **72 cases** (51 golden + 21 adversarial) | 28 deterministic-replay in CI + 44 live-metered when API budget attached; adversarial set covers injection, PII leak, hallucination bait |
 | Cost / latency | See [cost-model.md](docs/cost-model.md) | Modeled only until a funded `scripts/benchmark.py` run is committed ([portfolio-metrics.yaml](docs/portfolio-metrics.yaml)) |
 
@@ -70,7 +70,7 @@ Services: API `:8000` (`/docs` for Swagger) | Frontend `:8501` | PostgreSQL `:54
 ## Tests
 
 ```bash
-pytest tests/ --collect-only -q       # 1,280 collected tests
+pytest tests/ --collect-only -q       # 1,354 collected tests
 python scripts/run_eval_ci.py --ci    # Deterministic eval (no API key)
 make eval                             # Full eval suite (~$0.44, ~4 min)
 ```

@@ -74,7 +74,7 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 
 ## The Results
 
-**1,280 collected tests** (`pytest tests/ --collect-only`) — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, and load tests via Locust.
+**1,354 collected tests** (`pytest tests/ --collect-only`) — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, and load tests via Locust.
 
 **95.5% accepted extraction accuracy baseline (field-level, weighted)** stored in `autoresearch/baseline.json` (28 scored baseline cases), with a current 72-case eval corpus (51 golden + 21 adversarial) across 6 document types. Enforced in CI with regression tolerance.
 
@@ -92,7 +92,7 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 
 | Metric | Value |
 |--------|-------|
-| Test suite | 1,280 collected tests (`pytest tests/ --collect-only`) |
+| Test suite | 1,354 collected tests (`pytest tests/ --collect-only`) |
 | Extraction accuracy | 95.5% accepted field-level accuracy baseline (28 scored baseline cases, 6 doc types) |
 | Eval corpus | 72 scored cases: 51 golden + 21 adversarial |
 | Embedding model | gemini-embedding-2-preview, 768-dim, HNSW index |
@@ -242,7 +242,7 @@ Four things I'm proud of in this build:
 - **Two-pass Claude extraction**: Pass 1 extracts structured JSON with a confidence score. If confidence < 80%, Pass 2 fires a tool_use correction call — Claude returns field-level fixes as structured data, not free text.
 - **Agentic RAG (ReAct)**: autonomous retrieval agent selects from 5 tools per query — vector, BM25, hybrid, metadata, rerank. Confidence-gated at 0.8 with max 3 iterations.
 - **RAGAS evaluation pipeline**: context recall, faithfulness, and answer relevancy scored by LLM-as-judge with structured rubric. CI gate blocks regressions.
-- **1,280 collected tests**: Full unit + integration coverage including eval regression gate, circuit breaker state machine tests, and OTel bridge tests (`pytest tests/ --collect-only`).
+- **1,354 collected tests**: Full unit + integration coverage including eval regression gate, circuit breaker state machine tests, and OTel bridge tests (`pytest tests/ --collect-only`).
 
 Stack: FastAPI + ARQ + pgvector HNSW + Claude Sonnet/Haiku + OpenTelemetry + Prometheus + Streamlit
 Self-hosted: `docker compose up` (API http://localhost:8000, Frontend http://localhost:8501)
