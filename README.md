@@ -52,8 +52,8 @@ FastAPI service that extracts structured data from PDFs and other documents via 
 ## Why these architecture choices
 
 - **pgvector in Postgres** ([ADR-0002](docs/adr/0002-pgvector-over-dedicated-vector-db.md)): embeddings live in the same ACID transaction as `extracted_records`, so retrieval cannot drift from extraction writes. A dedicated vector DB would add another consistency window for little gain at this corpus size.
-- **Two-pass extraction** ([ADR-0003](docs/adr/0003-two-pass-extraction.md)): Pass 2 runs only when needed (about 21% of documents in the recorded eval) and lifted accuracy from 84% to 91% on a 120-fixture set, instead of always paying for a second model call.
-- **ARQ over Celery** ([ADR-0001](docs/adr/0001-arq-over-celery.md)): async coroutines without a thread pool; local load test (50 concurrent users, 200 documents) sustained 42 jobs/min at p95 4.1s versus Celery at 28 jobs/min and p95 8.7s.
+- **Two-pass extraction** ([ADR-0003](docs/adr/0003-two-pass-extraction.md)): Pass 2 runs only when quality checks demand it, instead of always paying for a second model call. Measured trigger rate and accuracy lift are recorded in the ADR (not restated here; portfolio metrics ledger gates README numbers).
+- **ARQ over Celery** ([ADR-0001](docs/adr/0001-arq-over-celery.md)): async coroutines without a thread pool. Throughput and latency comparison vs Celery is recorded in the ADR load-test section (not restated here until those figures are ledger-status measured).
 
 ## Architecture
 
