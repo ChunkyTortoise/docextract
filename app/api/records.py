@@ -69,7 +69,7 @@ async def list_records(
 async def search_records(
     q: str = Query(..., min_length=1),
     limit: int = Query(10, ge=1, le=100),
-    mode: str = Query("vector", pattern="^(vector|bm25|hybrid)$"),
+    mode: str = Query("vector", pattern="^(vector|bm25|hybrid|graph)$"),
     db: AsyncSession = Depends(get_db),
     api_key: APIKey = Depends(get_api_key),
 ):
@@ -77,10 +77,45 @@ async def search_records(
 
     mode=vector: pure pgvector cosine distance (default)
     mode=bm25: pure BM25 text match
-    mode=hybrid: RRF combination of vector + BM25 rankings
+    mode=hybrid: RRF combination of vector + BM25 rankings (+ graph when enabled)
+    mode=graph: graph + BM25 retrieval over persisted knowledge graph
     """
     from app.services.bm25 import build_index, search_bm25
     from app.services.embedder import embed
+
+    if mode == "graph":
+        if not settings.graph_retrieval_enabled:
+            raise HTTPException(
+                400,
+                "Graph retrieval is disabled. Set GRAPH_RETRIEVAL_ENABLED=true to use mode=graph.",
+            )
+        from app.services.graph_rag.store import search_graph
+
+        hits = search_graph(q, k=limit)
+        if not hits:
+            return []
+
+        best_by_record: dict[str, float] = {}
+        for hit in hits:
+            rid = hit.doc_id
+            if rid not in best_by_record or hit.score > best_by_record[rid]:
+                best_by_record[rid] = hit.score
+
+        sorted_ids = sorted(
+            best_by_record, key=lambda r: best_by_record[r], reverse=True
+        )[:limit]
+        result = await db.execute(
+            select(ExtractedRecord).where(ExtractedRecord.id.in_(sorted_ids))
+        )
+        id_to_record = {str(r.id): r for r in result.scalars().all()}
+        return [
+            {
+                "record": record_item_from_db(id_to_record[rid]),
+                "similarity": round(best_by_record[rid], 4),
+            }
+            for rid in sorted_ids
+            if rid in id_to_record
+        ]
 
     if mode == "bm25":
         # Pure BM25: load all record texts, build index, search
@@ -136,6 +171,33 @@ async def search_records(
     index = build_index(texts)
     bm25_hits = search_bm25(q, index, record_ids, limit=limit)
     bm25_ranks = {rid: rank for rank, (rid, _) in enumerate(bm25_hits)}
+    vector_ranks = {str(record.id): i for i, (record, _) in enumerate(rows)}
+
+    if settings.graph_retrieval_enabled:
+        from app.services.graph_rag.rrf import reciprocal_rank_fusion
+        from app.services.graph_rag.store import search_graph
+
+        graph_hits = search_graph(q, k=limit * 2)
+        graph_ranks: dict[str, int] = {}
+        for rank, hit in enumerate(graph_hits):
+            if hit.doc_id not in graph_ranks:
+                graph_ranks[hit.doc_id] = rank
+
+        fused = reciprocal_rank_fusion(
+            [vector_ranks, bm25_ranks, graph_ranks],
+            k=60,
+            default_rank=len(record_ids),
+        )
+        id_to_row = {str(record.id): (record, distance) for record, distance in rows}
+        scored_ids = sorted(fused, key=lambda rid: fused[rid], reverse=True)[:limit]
+        return [
+            {
+                "record": record_item_from_db(id_to_row[rid][0]),
+                "similarity": round(1 - id_to_row[rid][1], 4),
+            }
+            for rid in scored_ids
+            if rid in id_to_row
+        ]
 
     def rrf_score(vector_rank: int, rid: str) -> float:
         bm25_rank = bm25_ranks.get(rid, len(record_ids))

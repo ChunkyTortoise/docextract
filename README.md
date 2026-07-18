@@ -49,6 +49,7 @@ FastAPI service that extracts structured data from PDFs and other documents via 
 - **OpenTelemetry cost attribution**: per-request USD cost computed from token counts via `app/services/cost_tracker.py`; exported as OTel metrics to Grafana
 - **Prompt-injection defense**: runtime fence + scan + output sanitization in [`injection_guard.py`](app/services/injection_guard.py) ([ADR-0020](docs/adr/0020-indirect-prompt-injection-defense.md))
 - **Retrieval quality (RAGAS)**: context_recall / faithfulness / answer_relevancy composite in [`ragas_evaluator.py`](app/services/ragas_evaluator.py)
+- **Opt-in GraphRAG retrieval**: entity graph + BM25 + three-way RRF hybrid when `GRAPH_RETRIEVAL_ENABLED=true`; see [`app/services/graph_rag/`](app/services/graph_rag/)
 
 
 ## Why these architecture choices
