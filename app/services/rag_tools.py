@@ -30,7 +30,7 @@ class SearchResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 class RagTools:
-    """Five tools the agentic RAG system can call.
+    """Tools the agentic RAG system can call (vector, BM25, hybrid, graph, metadata, rerank).
 
     All methods are async and return list[SearchResult] (or dict for metadata).
     Injecting db/client via constructor keeps everything unit-testable.
@@ -168,6 +168,39 @@ class RagTools:
             ]
         except Exception as exc:
             logger.warning("search_bm25 failed: %s", exc)
+            return []
+
+    # ------------------------------------------------------------------
+    # Graph search (entity graph + BM25)
+    # ------------------------------------------------------------------
+
+    async def search_graph(
+        self,
+        query: str,
+        top_k: int = 5,
+    ) -> list[SearchResult]:
+        """Graph-aware retrieval over the persisted knowledge graph."""
+        from app.config import settings
+
+        if not settings.graph_retrieval_enabled:
+            return []
+
+        from app.services.graph_rag.store import search_graph as store_search_graph
+
+        try:
+            hits = store_search_graph(query, k=top_k)
+            return [
+                SearchResult(
+                    doc_id=hit.doc_id,
+                    chunk_id=str(hit.chunk_id),
+                    content=hit.text,
+                    score=round(hit.score, 4),
+                    metadata={"source": hit.source, "entity_ids": hit.entity_ids},
+                )
+                for hit in hits
+            ]
+        except Exception as exc:
+            logger.warning("search_graph failed: %s", exc)
             return []
 
     # ------------------------------------------------------------------

@@ -87,6 +87,10 @@ def show() -> None:
     # --- Search tab ---
     with tab_search:
         st.subheader("Hybrid Semantic Search")
+        st.caption(
+            "Production also supports `mode=graph` and three-way hybrid RRF when "
+            "`GRAPH_RETRIEVAL_ENABLED=true`."
+        )
         query = st.text_input(  # noqa: F841
             "Search query",
             value="What is the total amount due on the invoice?",

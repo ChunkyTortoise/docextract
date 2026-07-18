@@ -72,6 +72,10 @@ class Settings(BaseSettings):
     # Active learning
     active_learning_enabled: bool = False
 
+    # GraphRAG hybrid retrieval (opt-in entity graph + BM25)
+    graph_retrieval_enabled: bool = False
+    graph_store_path: str = "data/knowledge_graph.json"
+
     # RAGAS evaluation pipeline
     ragas_enabled: bool = False
 

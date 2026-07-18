@@ -85,7 +85,7 @@ class _IterationState:
 _THINK_SYSTEM = (
     "You are a document retrieval agent. "
     "Decide which search tool to call next to answer the user's question. "
-    "Available tools: search_vectors, search_bm25, search_hybrid, lookup_metadata, rerank_results. "
+    "Available tools: search_vectors, search_bm25, search_hybrid, search_graph, lookup_metadata, rerank_results. "
     "Respond ONLY with a JSON object with keys: thought (string), action (tool name), "
     "action_input (object with 'query' and optionally 'top_k', 'doc_ids', 'alpha')."
 )
@@ -461,6 +461,8 @@ class AgenticRAG:
                 results = await self._tools.search_bm25(query=query, top_k=top_k, doc_ids=doc_ids)
             elif action == "search_hybrid":
                 results = await self._tools.search_hybrid(query=query, top_k=top_k, alpha=alpha)
+            elif action == "search_graph":
+                results = await self._tools.search_graph(query=query, top_k=top_k)
             elif action == "lookup_metadata":
                 doc_id = str(action_input.get("doc_id", query))
                 meta = await self._tools.lookup_metadata(doc_id)

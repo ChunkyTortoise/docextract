@@ -312,6 +312,14 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     await db.commit()
 
+    if settings.graph_retrieval_enabled:
+        try:
+            from app.services.graph_rag.store import index_document
+
+            index_document(str(record.id), extracted.text)
+        except Exception as exc:
+            logger.warning("Graph index failed for record %s: %s", record.id, exc)
+
     # 10% LLM-judge quality sampling — fire-and-forget, non-blocking
     if hash(job_id) % 10 == 0:
         await redis.enqueue_job("judge_extraction_sample", job_id=job_id)
