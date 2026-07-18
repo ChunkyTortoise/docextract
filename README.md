@@ -99,7 +99,8 @@ Services: API `:8000` (`/docs` for Swagger) | Frontend `:8501` | PostgreSQL `:54
 
 ```bash
 pytest tests/ --collect-only -q       # 1,354 collected tests
-python scripts/run_eval_ci.py --ci    # Deterministic eval (no API key)
+python scripts/eval_offline_replay.py --floor 0.85   # Always-on CI offline replay (badge driver)
+python scripts/run_eval_ci.py --ci                    # Wrapper; same 28-case deterministic path
 make eval                             # Full eval suite (~$0.44, ~4 min)
 ```
 

@@ -37,6 +37,6 @@ A public 90–120s screen recording is optional proof. Record only with `docs/me
 
 ```bash
 pytest tests/ --collect-only -q -o addopts=
-python scripts/run_eval_ci.py --ci
+python scripts/eval_offline_replay.py --floor 0.85
 python scripts/audit_portfolio_claims.py
 ```
