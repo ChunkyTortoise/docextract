@@ -73,3 +73,16 @@ The first line of each JSONL file is a metadata object:
 ```
 
 Bump `version` in the `_meta` line when making a breaking schema change. Non-breaking additions (new cases) do not require a version bump.
+
+
+## Variance-calibrated gate (Week 2)
+
+After collecting N≥7 score snapshots at fixed config:
+
+```bash
+python scripts/eval_variance_baseline.py \
+  --scores-glob 'eval_artifacts/variance_runs/run_*.json' \
+  --out eval_artifacts/variance_baseline.json
+```
+
+`scripts/eval_gate.py` loads `relative_drop_tolerance` from that artifact when present (else falls back to the fixed 0.03).
