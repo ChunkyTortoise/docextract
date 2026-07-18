@@ -8,7 +8,7 @@
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 
-**Reviewer path (90–120s, no API key):** follow [DEMO.md](DEMO.md) (live Streamlit or `DEMO_MODE=true`). Screen-recording URL added only after an owner records it.
+**Reviewer path (about two minutes, no API key):** follow [DEMO.md](DEMO.md) (live Streamlit or `DEMO_MODE=true`). Screen-recording URL added only after an owner records it.
 
 ![Live SSE streaming: extraction stages firing over /jobs/{id}/events in real time](docs/screenshots/sse-streaming-demo.gif)
 
