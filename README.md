@@ -8,11 +8,13 @@
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 
+**Reviewer path (90–120s, no API key):** follow [DEMO.md](DEMO.md) (live Streamlit or `DEMO_MODE=true`). Screen-recording URL added only after an owner records it.
+
 ![Live SSE streaming: extraction stages firing over /jobs/{id}/events in real time](docs/screenshots/sse-streaming-demo.gif)
 
 | Metric | Value | Basis |
 |--------|-------|-------|
-| Extraction accuracy (field-level, critical fields weighted 2x) | **95.5%** | CI-replayed, 28-case deterministic baseline; independent Gemini judge eliminates self-grading bias ([ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md)) |
+| Extraction accuracy (field-level, critical fields weighted 2x) | **95.5%** | Always-on CI offline replay of 28 deterministic fixtures (`scripts/eval_offline_replay.py` / `run_eval_ci.py --ci`); not a paid live grade |
 | Test suite | **1,354 collected tests**, 80% CI coverage gate | `pytest tests/ --collect-only`; coverage gate `--cov-fail-under=80` |
 | Eval corpus | **72 cases** (51 golden + 21 adversarial) | 28 deterministic-replay in CI + 44 live-metered when API budget attached; adversarial set covers injection, PII leak, hallucination bait |
 | Cost / latency | See [cost-model.md](docs/cost-model.md) | Modeled only until a funded `scripts/benchmark.py` run is committed ([portfolio-metrics.yaml](docs/portfolio-metrics.yaml)) |
@@ -36,7 +38,7 @@ Overall: 0.955 across 28 cases, replayed on every eval-gated PR at zero API cost
 
 ## What this does
 
-FastAPI service that extracts structured data from PDFs and other documents via a two-pass Claude pipeline (draft + verify). Extracted records are embedded in pgvector for semantic search. Quality is measured continuously by an LLM-as-judge (Gemini 2.5 Flash, sampled) and enforced in CI via an eval gate that fails on >3-point accuracy regression.
+FastAPI service that extracts structured data from PDFs and other documents via a two-pass Claude pipeline (draft + verify). Extracted records are embedded in pgvector for semantic search. Merge-safe quality signal is the zero-cost offline replay gate; when `ANTHROPIC_API_KEY` is present, paid live eval jobs (including an independent Gemini judge, [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md)) also run. The gate fails on >3-point accuracy regression vs baseline.
 
 ## Why this is interesting (engineering)
 

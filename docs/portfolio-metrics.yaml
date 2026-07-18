@@ -1,32 +1,36 @@
 schema_version: 2
-updated: "2026-07-12"
+updated: "2026-07-17"
 testing:
   command: "pytest tests/ --collect-only -q"
   collected_tests: 1354
+  latest_result: "1347 passed, 5 skipped, 2 deselected"
+  latest_coverage_percent: 81.55
   coverage_gate_percent: 80
-  source: "pytest --collect-only on feat/langfuse-braintrust-8q1 2026-07-12; coverage gate from pyproject --cov-fail-under=80"
+  source: "main CI run 29566414192 2026-07-17 (pytest -m 'not e2e'); collect-only on play/W1-DX-walkthrough @ 2d46f25"
 eval_corpus:
   golden_cases: 51
   adversarial_cases: 21
   total_cases: 72
+  promptfoo_cases: 72
   fixtures_recorded: 28
   fixtures_pending: 44
   source: "Non-meta rows in evals/*.jsonl; 28 deterministic fixtures in autoresearch/golden_responses/"
 metrics:
-  - id: extraction_f1
+  - id: extraction_accuracy
     value: "95.5%"
+    value_percent: 95.5
     status: measured
-    source_command: "python scripts/eval_offline_replay.py"
+    source_command: "python scripts/run_eval_ci.py --ci"
     artifact_path: "autoresearch/baseline.json"
-    date: "2026-05-17"
-    context: "28-case deterministic golden baseline; combined weighted field-level accuracy 0.9555 (artifact keys still say f1 for legacy reasons)"
+    date: "2026-07-17"
+    context: "28-case deterministic golden baseline; weighted field-level accuracy 0.9555 (artifact keys may still say f1 for legacy reasons). Not a live Gemini grade."
   - id: coverage_gate
     value: "80%"
     status: measured
     source_command: "grep cov-fail-under pyproject.toml"
     artifact_path: "pyproject.toml"
-    date: "2026-07-09"
-    context: "CI coverage gate enforced via --cov-fail-under=80"
+    date: "2026-07-17"
+    context: "CI coverage gate enforced via --cov-fail-under=80; latest measured 81.55% on main CI"
   - id: avg_cost_per_document_usd
     value: "$0.03/doc"
     status: modeled
@@ -43,5 +47,6 @@ metrics:
     context: "design target; do not cite in README until metered"
 notes:
   - "Only status=measured rows may be cited in README; modeled cost/latency live in cost-model.md only."
-  - "95.5% weighted field-level accuracy is the 28-case golden baseline (autoresearch/baseline.json), replayed in CI at zero API cost. Never label this number F1; the scorer computes weighted field-level accuracy (autoresearch/eval.py)."
+  - "95.5% weighted field-level accuracy is the 28-case golden baseline (autoresearch/baseline.json), replayed in CI at zero API cost via offline replay. Never label this number F1."
+  - "Paid live evaluation (Promptfoo/Ragas/LLM-judge) runs only when ANTHROPIC_API_KEY is present in the workflow; it is not required for merge when the key is absent."
   - "To flip modeled -> measured: follow docs/metering-runbook.md."
