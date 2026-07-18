@@ -6,13 +6,16 @@ This document explains how DocExtract measures prompt quality, enforces regressi
 
 ## 1. Why the eval gate exists
 
+DocExtract separates **merge-safe offline replay** from **conditional paid live evaluation**.
+
+- **Always-on (no API key):** `.github/workflows/eval-gate.yml` job `offline` runs `scripts/eval_offline_replay.py` against 28 committed fixtures. This is the merge-safe accuracy signal behind the README **95.5%** figure.
+- **Conditional (key present):** when `ANTHROPIC_API_KEY` is set in GitHub Actions, additional live jobs (Promptfoo / Ragas / LLM-judge and related steps) run. When the key is absent, those jobs are skipped and are **not** required PR checks.
+
+Complementary live frameworks exist for deeper signal when budgeted. Offline replay remains the authoritative always-running gate. On merge to main, baselines may auto-advance when measured metrics improve under the workflow rules.
+
 Prompts are code. A two-line edit to an extraction prompt can silently reduce field recall on medical records by 8% while appearing to improve invoice performance in a quick smoke test. Without automated measurement, these regressions reach production and surface only in user complaints.
 
-DocExtract runs three complementary eval frameworks on every pull request that touches a prompt or extraction service. A merge-blocking gate compares each metric against a stored baseline and rejects the PR if any metric regresses beyond the tolerance threshold. On merge to main, the baseline auto-advances when metrics improve.
-
 This design was chosen over simpler unit tests because extraction quality is inherently probabilistic: the same prompt on the same document can produce correct output on one run and a structurally valid but semantically wrong output on another. Deterministic assertions catch schema violations; probabilistic metrics catch semantic drift.
-
----
 
 ## 2. The stack at a glance
 

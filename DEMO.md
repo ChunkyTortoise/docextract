@@ -1,44 +1,42 @@
 # DocExtract Demo Walkthrough
 
-This walkthrough gives a hiring reviewer a five-minute path through the live or local demo without requiring API keys.
+Hiring-manager path: about **90 to 120 seconds**, no API keys required.
 
-## Live Demo
+## Start here (no credentials)
 
-[Open the Streamlit demo](https://docextract-demo.streamlit.app)
-
-First visit may take about 30 seconds to wake the hosted app.
-
-## Local Demo
+1. Open the [live demo](https://docextract-demo.streamlit.app) (cold start may take ~30s), **or** run locally:
 
 ```bash
 DEMO_MODE=true streamlit run frontend/app.py
 ```
 
-This mode uses cached demo data from `frontend/demo_data/` and does not call Anthropic, Gemini, PostgreSQL, or Redis.
+Local `DEMO_MODE` uses cached data under `frontend/demo_data/` and does not call Anthropic, Gemini, PostgreSQL, or Redis.
 
-## Five-Minute Path
+## 90–120 second path
 
-1. Open the app and start on the upload or demo sandbox flow.
-2. Choose the invoice, contract, or receipt sample.
-3. Inspect the extracted fields and confidence values.
-4. Open the search or agent trace view to see retrieval and reasoning output.
-5. Open the review or quality view to see how low-confidence results become human-review work.
-6. Open the evaluation view to connect the product behavior to the eval gate.
+1. **Extract** — pick the invoice, contract, or receipt sample; note structured fields and confidence.
+2. **SSE progress** — watch stage updates (live demo or `/jobs/{id}/events` when API is up).
+3. **Retrieval** — open search / agent trace for retrieval and reasoning output.
+4. **Human review** — open the review / quality view for low-confidence handoff.
+5. **Eval proof** — open the evaluation view, then skim the README metrics table (95.5% = 28-case offline CI replay, not a paid live run).
 
-## Proof Points
+## Recording (owner)
+
+A public 90–120s screen recording is optional proof. Record only with `docs/media/VIDEO-HUMAN-CHECKLIST.md`, verify in a clean browser, then add the stable URL here and on the README first screen. Do not invent a URL.
+
+## Proof points
 
 | Signal | What to inspect | Source |
 |---|---|---|
-| Typed extraction | Structured document schemas and confidence values | `app/schemas/extraction_models.py` |
-| Eval discipline | Golden, adversarial, and Promptfoo cases | `evals/` |
-| Failure analysis | Known failure modes and next experiments | `docs/eval-failure-analysis.md` |
-| Cost control | Per-model cost attribution | `app/services/cost_tracker.py` |
-| Reliability | Circuit breaker model fallback | `app/services/circuit_breaker.py` |
-| Demo mode | No-credential cached app data | `frontend/demo_mode.py` |
+| Typed extraction | Schemas and confidence | `app/schemas/extraction_models.py` |
+| Eval discipline | Golden / adversarial / Promptfoo | `evals/` |
+| Offline CI signal | 28-case replay | `scripts/eval_offline_replay.py`, `autoresearch/baseline.json` |
+| Demo mode | No-credential cached data | `frontend/demo_mode.py` |
 
 ## Verification
 
 ```bash
-pytest tests/unit/test_demo_mode.py -q
+pytest tests/ --collect-only -q -o addopts=
+python scripts/eval_offline_replay.py --floor 0.85
 python scripts/audit_portfolio_claims.py
 ```
