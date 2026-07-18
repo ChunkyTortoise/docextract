@@ -108,7 +108,7 @@ def render() -> None:
     st.caption("LLM-judge evaluation scores — 4-dimension rubric, EWMA smoothed.")
 
     if DEMO_MODE:
-        st.info("Demo data — synthetic 30-day quality trend", icon="🔬")
+        st.info("Synthetic seed — not measured production telemetry (30-day demo trend)", icon="🔬")
 
     days = st.slider("Window (days)", min_value=7, max_value=90, value=30, step=7)
 

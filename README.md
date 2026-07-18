@@ -16,7 +16,7 @@
 |--------|-------|-------|
 | Extraction accuracy (field-level, critical fields weighted 2x) | **95.5%** | Always-on CI offline replay of 28 deterministic fixtures (`scripts/eval_offline_replay.py` / `run_eval_ci.py --ci`); not a paid live grade |
 | Test suite | **1,354 collected tests**, 80% CI coverage gate | `pytest tests/ --collect-only`; coverage gate `--cov-fail-under=80` |
-| Eval corpus | **72 cases** (51 golden + 21 adversarial) | 28 deterministic-replay in CI + 44 live-metered when API budget attached; adversarial set covers injection, PII leak, hallucination bait |
+| Eval corpus | **120 cases** (87 golden + 33 adversarial) | 28 deterministic-replay in CI + remainder live-metered when API budget attached; adversarial set covers injection, PII leak, hallucination bait, OCR noise |
 | Cost / latency | See [cost-model.md](docs/cost-model.md) | Modeled only until a funded `scripts/benchmark.py` run is committed ([portfolio-metrics.yaml](docs/portfolio-metrics.yaml)) |
 
 

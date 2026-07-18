@@ -150,8 +150,8 @@ def render() -> None:
         using_mock = True
         rows = _generate_mock_runs(10)
         st.info(
-            "No live eval history found — showing mock data. "
-            "Run the RAGAS eval pipeline to populate real results."
+            "Synthetic seed — not measured production telemetry. "
+            "Run the RAGAS eval pipeline (or attach live eval history) to replace this."
         )
 
     # ── Regression alert ─────────────────────────────────────────────────
@@ -259,4 +259,4 @@ def render() -> None:
         st.info("No run data to display.")
 
     if using_mock:
-        st.caption("Displaying mock data. Set RAGAS_ENABLED=true to collect real metrics.")
+        st.caption("Synthetic seed pending live telemetry. Set RAGAS_ENABLED=true to collect measured metrics.")

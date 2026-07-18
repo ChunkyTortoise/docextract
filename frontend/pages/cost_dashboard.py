@@ -159,7 +159,7 @@ def render() -> None:
         cost_summary = _mock_cost_summary()
         model_comparison = _mock_model_comparison()
         st.info(
-            "No live cost data found — showing mock data. "
+            "Synthetic seed — not measured production telemetry. "
             "Connect the API and run extraction jobs to populate real metrics."
         )
 

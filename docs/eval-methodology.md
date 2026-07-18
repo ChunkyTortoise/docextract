@@ -56,7 +56,7 @@ This design was chosen over simpler unit tests because extraction quality is inh
 
 ## 3. The golden set
 
-The golden set (`evals/golden_set.jsonl`) contains 51 hand-labelled documents across six categories:
+The golden set (`evals/golden_set.jsonl`) contains 87 hand-labelled documents across six categories:
 
 | Category | Count | Notes |
 |---|---|---|
@@ -69,7 +69,7 @@ The golden set (`evals/golden_set.jsonl`) contains 51 hand-labelled documents ac
 
 **Selection criteria:** Each case targets a distinct failure mode. The invoice set includes a credit memo (negative total) and a partial-payment case (balance due != invoice total) because these tripped early versions of the extractor. The medical set includes Arabic, Chinese, and Spanish names because OCR pipelines frequently mangle non-ASCII characters before extraction.
 
-**Ground truth contexts** are verbatim spans from `input_text` (1-3 sentences) that contain the critical-field values. These are used by Ragas for `context_precision` scoring. All 51 cases have manually selected spans; none use the auto-derived sliding-window stubs from the initial migration.
+**Ground truth contexts** are verbatim spans from `input_text` (1-3 sentences) that contain the critical-field values. These are used by Ragas for `context_precision` scoring. All cases have manually selected spans; none use the auto-derived sliding-window stubs from the initial migration.
 
 **Diversity guardrails** applied during authoring:
 - OCR noise injected in 4 cases (collapsed spaces, `O`/`0` substitutions, dropped diacritics)
@@ -155,7 +155,7 @@ Ragas requires both a retriever and a generator. For DocExtract:
 
 This setup avoids a live pgvector query per eval case, which would couple the metric score to retrieval quality and make the metric harder to interpret in isolation.
 
-**Cost control:** Ragas calls the LLM twice per case (once for faithfulness, once for answer relevancy). At 51 golden cases, that is ~102 LLM calls per run. The `eval-gate.yml` workflow skips Ragas on PRs that do not touch `prompts/**` or `app/services/extraction/**`, keeping the common path (pure code change) cheap.
+**Cost control:** Ragas calls the LLM twice per case (once for faithfulness, once for answer relevancy). At 87 golden cases, that is ~174 LLM calls per run. The `eval-gate.yml` workflow skips Ragas on PRs that do not touch `prompts/**` or `app/services/extraction/**`, keeping the common path (pure code change) cheap.
 
 `context_precision` requires an embedding model. `scripts/eval_ragas.py` uses `OPENAI_API_KEY` for text-embedding-3-small by default; this can be swapped to a local embedding model by setting `RAGAS_EMBEDDING_MODEL=local`.
 
@@ -244,9 +244,9 @@ The issue-not-failure design is intentional. Drift does not mean the current rel
 
 | Component | Cost per run | Wall-clock |
 |---|---|---|
-| Promptfoo (51 golden × 2 prompts) | ~$0.04 | ~25s |
-| Ragas (51 cases × 2 LLM calls) | ~$0.18 | ~90s |
-| LLM-judge (51 cases × N=3) | ~$0.22 | ~120s |
+| Promptfoo (87 golden × 2 prompts) | ~$0.07 | ~40s |
+| Ragas (87 cases × 2 LLM calls) | ~$0.31 | ~150s |
+| LLM-judge (87 cases × N=3) | ~$0.38 | ~200s |
 | **Total per PR eval** | **~$0.44** | **~4 min** |
 | Daily drift cron | ~$0.18 | ~90s |
 

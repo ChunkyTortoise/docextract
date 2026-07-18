@@ -4,6 +4,40 @@ All additions, retirements, and schema changes to `golden_set.jsonl` and `advers
 
 ---
 
+## [1.2.0] — 2026-07-17
+
+**Evalgate W1 expansion** 72 → 120 cases. All new `ground_truth_contexts` are verbatim spans from `input_text`.
+
+### Golden set: 51 → 87 cases (+36)
+
+| Batch | IDs | Count |
+|---|---|---|
+| G8 invoice | invoice_11_cad_consulting … invoice_16_late_fee | 6 |
+| G9 receipt | receipt_10_pharmacy … receipt_15_parking | 6 |
+| G10 purchase_order | purchase_order_08_it_hardware … purchase_order_13_services_sow | 6 |
+| G11 bank_statement | bank_statement_06_payroll_heavy … bank_statement_11_business_checking | 6 |
+| G12 medical_record | medical_record_06_urgent_care … medical_record_11_allergy_list | 6 |
+| G13 identity_document | identity_drivers_license_02_ca … identity_passport_04_jp | 6 |
+
+Distribution after expansion: invoice ×24, receipt ×16, purchase_order ×14, bank_statement ×12, medical_record ×12, identity_document ×9.
+
+### Adversarial set: 21 → 33 cases (+12)
+
+| Attack type | IDs | Count |
+|---|---|---|
+| prompt_injection | adv_prompt_injection_ignore_previous, adv_prompt_injection_markdown_comment, adv_prompt_injection_json_schema_swap | 3 |
+| pii_leak | adv_pii_email_phone_dump, adv_pii_employee_id_badge, adv_pii_mrn_in_invoice | 3 |
+| hallucination_bait | adv_hallucinate_missing_currency, adv_hallucinate_missing_customer, adv_hallucinate_ambiguous_total | 3 |
+| ocr_noise / edge_case | adv_ocr_noise_column_shift, adv_edge_duplicate_invoice_numbers, adv_edge_zero_total_valid | 3 |
+
+### Follow-ups
+
+- Spot-check ~10% of new labels before citing as interview-defensible hand-verified.
+- Regenerate multi-metric baseline after API budget (`make eval && make eval-baseline`).
+- Deterministic fixtures remain 28; live-metered remainder grows with corpus.
+
+---
+
 ## [1.1.0] — 2026-04-15
 
 **Corpus expansion** 28 → 72 cases. All `ground_truth_contexts` replaced with manually-selected verbatim spans. Zero `needs_review` tags remaining.

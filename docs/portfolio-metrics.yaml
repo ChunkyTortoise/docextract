@@ -8,13 +8,13 @@ testing:
   coverage_gate_percent: 80
   source: "main CI run 29566414192 2026-07-17 (pytest -m 'not e2e'); collect-only on play/W1-DX-walkthrough @ 2d46f25"
 eval_corpus:
-  golden_cases: 51
-  adversarial_cases: 21
-  total_cases: 72
-  promptfoo_cases: 72
+  golden_cases: 87
+  adversarial_cases: 33
+  total_cases: 120
+  promptfoo_cases: 120
   fixtures_recorded: 28
-  fixtures_pending: 44
-  source: "Non-meta rows in evals/*.jsonl; 28 deterministic fixtures in autoresearch/golden_responses/"
+  fixtures_pending: 92
+  source: "Non-meta rows in evals/*.jsonl (v1.2.0); 28 deterministic fixtures in autoresearch/golden_responses/"
 metrics:
   - id: extraction_accuracy
     value: "95.5%"

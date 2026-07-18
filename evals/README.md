@@ -6,10 +6,10 @@ This directory contains the golden and adversarial case sets used by the eval-ga
 
 | File | Cases | Description |
 |---|---|---|
-| `golden_set.jsonl` | 50 (target) | Normal extraction cases with ground-truth labels |
-| `adversarial_set.jsonl` | 20 (target) | Edge cases, prompt injections, OCR noise, long docs |
+| `golden_set.jsonl` | 87 | Normal extraction cases with ground-truth labels |
+| `adversarial_set.jsonl` | 33 | Edge cases, prompt injections, OCR noise, long docs |
 
-**Current counts:** 16 golden + 12 adversarial migrated from `autoresearch/eval_dataset.json` (2026-04-14). New cases added via the CHANGELOG below.
+**Current counts:** 120 total (v1.2.0, 2026-07-17). See `CHANGELOG.md`.
 
 ## Schema
 
