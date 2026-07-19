@@ -130,17 +130,10 @@ def _check_regression(
 
 
 def render() -> None:
-    import os
-
-    if os.getenv("DEMO_MODE", "").lower() in ("true", "1", "yes"):
-        st.title('Evaluation Dashboard')
-        st.info(
-            "Hidden on the DEMO_MODE hiring path — these charts fall back to synthetic seed "
-            "without live API eval history. See README eval gate + docs/eval-methodology.md."
-        )
-        return
-
     st.title("Evaluation Dashboard")
+
+    if guard_demo_mode_dashboard("Evaluation Dashboard"):
+        return
 
     st.caption(
         "RAGAS-inspired metrics (context recall, faithfulness, answer relevancy) "
@@ -160,8 +153,7 @@ def render() -> None:
     if not rows:
         using_mock = True
         rows = _generate_mock_runs(10)
-        st.info(
-            "Synthetic seed — not measured production telemetry. "
+        show_synthetic_seed_banner(
             "Run the RAGAS eval pipeline (or attach live eval history) to replace this."
         )
 

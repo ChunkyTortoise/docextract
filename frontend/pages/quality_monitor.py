@@ -8,9 +8,8 @@ from datetime import date, timedelta
 import plotly.graph_objects as go
 import streamlit as st
 
+from frontend.dashboard_helpers import guard_demo_mode_dashboard, show_synthetic_seed_banner
 from frontend.theme import PLOTLY_DARK
-
-DEMO_MODE = os.environ.get("DEMO_MODE", "").lower() in ("1", "true", "yes")
 
 DIM_LABELS = {
     "completeness": "Completeness",
@@ -26,12 +25,8 @@ DIM_COLORS = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Demo data helpers
-# ---------------------------------------------------------------------------
-
 def _demo_trend(days: int = 30) -> dict:
-    """Generate synthetic 30-day quality trend data."""
+    """Generate synthetic quality trend data."""
     random.seed(42)
     today = date.today()
     dates = [(today - timedelta(days=days - i)).isoformat() for i in range(days)]
@@ -73,10 +68,6 @@ def _demo_trend(days: int = 30) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
-# API fetch
-# ---------------------------------------------------------------------------
-
 def _fetch_trend(days: int) -> dict | None:
     try:
         import httpx
@@ -90,6 +81,8 @@ def _fetch_trend(days: int) -> dict | None:
         )
         if resp.status_code == 200:
             data = resp.json()
+            if not data.get("ewma_composite"):
+                return None
             scores = [p["score"] for p in data.get("ewma_composite", [])]
             data["_last_score"] = scores[-1] if scores else 0.0
             data["_avg_7d"] = sum(scores[-7:]) / min(7, len(scores)) if scores else 0.0
@@ -99,37 +92,23 @@ def _fetch_trend(days: int) -> dict | None:
     return None
 
 
-# ---------------------------------------------------------------------------
-# Render
-# ---------------------------------------------------------------------------
-
 def render() -> None:
     st.title("Quality Monitor")
     st.caption("LLM-judge evaluation scores — 4-dimension rubric, EWMA smoothed.")
 
-    if DEMO_MODE:
-        st.info(
-            "Hidden on the DEMO_MODE hiring path — synthetic seed is not measured telemetry. "
-            "See README eval gate + docs/eval-methodology.md."
-        )
+    if guard_demo_mode_dashboard("Quality Monitor"):
         return
 
     days = st.slider("Window (days)", min_value=7, max_value=90, value=30, step=7)
 
-    # Load data
-    data: dict | None = None
+    data: dict | None = _fetch_trend(days)
     using_demo = False
-
-    if not DEMO_MODE:
-        data = _fetch_trend(days)
 
     if data is None:
         data = _demo_trend(days)
         using_demo = True
-        if not DEMO_MODE:
-            st.warning("API unavailable — showing demo data.")
+        show_synthetic_seed_banner()
 
-    # ── KPI row ─────────────────────────────────────────────────────────────
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Composite (last day)", f"{data['_last_score']:.1%}")
@@ -141,15 +120,12 @@ def render() -> None:
         st.metric("HITL Escalation Rate", f"{data['escalation_rate']:.1%}")
 
     st.divider()
-
-    # ── EWMA composite line chart ────────────────────────────────────────────
     st.subheader("Composite Quality Trend (EWMA α=0.3)")
 
     ewma_points = data.get("ewma_composite", [])
     if ewma_points:
         dates = [p["date"] for p in ewma_points]
         scores = [p["score"] for p in ewma_points]
-
         fig_line = go.Figure()
         fig_line.add_trace(
             go.Scatter(
@@ -182,8 +158,6 @@ def render() -> None:
         st.info("No quality data in this window. Process some documents to populate scores.")
 
     st.divider()
-
-    # ── Per-dimension bar chart (latest day avg) ─────────────────────────────
     st.subheader("Per-Dimension Scores (latest day)")
 
     per_dim = data.get("per_dimension", {})
@@ -211,8 +185,6 @@ def render() -> None:
     st.plotly_chart(fig_bar, use_container_width=True)
 
     st.divider()
-
-    # ── Per-dimension trend lines ────────────────────────────────────────────
     st.subheader("Per-Dimension Trends")
 
     if per_dim and any(per_dim.values()):
@@ -239,8 +211,5 @@ def render() -> None:
         )
         st.plotly_chart(fig_multi, use_container_width=True)
 
-    if using_demo and not DEMO_MODE:
-        st.caption("Showing demo data. Connect the API and run extraction jobs to see real scores.")
-
-
-render()
+    if using_demo:
+        st.caption("Synthetic seed pending live telemetry. Run extraction jobs with LLM_JUDGE_ENABLED=true.")

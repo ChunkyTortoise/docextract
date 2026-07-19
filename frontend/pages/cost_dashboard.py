@@ -136,20 +136,14 @@ def _compute_weekly_savings(summary: dict) -> float:
 # ---------------------------------------------------------------------------
 
 def render() -> None:
-    import os
+    st.title("Cost & Performance Dashboard")
 
-    if os.getenv("DEMO_MODE", "").lower() in ("true", "1", "yes"):
-        st.title('Cost Dashboard')
-        st.info(
-            "Hidden on the DEMO_MODE hiring path — these charts fall back to synthetic seed "
-            "without live API eval history. See README eval gate + docs/eval-methodology.md."
-        )
+    if guard_demo_mode_dashboard("Cost & Performance Dashboard"):
         return
 
-    st.title("Cost & Performance Dashboard")
     st.caption(
         "LLM spend by model and operation (last 7 days). "
-        "Enable live data by connecting to the API. Showing mock data when unavailable."
+        "Live data when the API returns cost telemetry; synthetic seed only when empty."
     )
 
     # ── Load data (API or mock) ──────────────────────────────────────────
