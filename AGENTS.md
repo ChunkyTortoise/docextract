@@ -32,6 +32,6 @@ OTEL_ENABLED (default false), EXTRACTION_MODELS, CLASSIFICATION_MODELS
 ## Learned Workspace Facts
 - Active front-door hireability track is evalgate (spec: `~/Projects/job-search/evalgate-docextract-spec-2026-07-12.md`): versioned corpus, variance-calibrated ship-gate, Langfuse telemetry.
 - Evalgate week plan: W1 corpus+Langfuse, W2 variance gate, W3 multi-provider (+ corpus toward ~200), W4 narrative/README packaging.
-- Evalgate W1 corpus (120 cases) merged via PR #31; human accept gates remain Langfuse keys on the live demo plus label spot-check.
+- Evalgate hireability overhaul merged via PR #31 (200-case corpus, variance baseline, site/). Human gates remain: Langfuse keys on live demo, label spot-check, Anthropic credits for live variance/measured cost, 90s video.
 - Langfuse/Braintrust instrumentation is already on main; live demo traces still need human-supplied Langfuse keys.
 - Optional GraphRAG hybrid retrieval lives under `app/services/graph_rag/`, gated by `graph_retrieval_enabled` (search mode `graph`; hybrid can three-way RRF when the flag is on).
