@@ -211,7 +211,7 @@ The agentic RAG loop now streams Think → Act → Observe steps in real-time vi
 Cross-document queries like "compare payment terms across all vendor contracts" are handled via map-reduce: the map phase extracts per-document evidence with bounded concurrency (`asyncio.gather` + `Semaphore`), the reduce phase synthesizes a combined answer with `[Doc N]` citations. POST `/api/v1/agent-search/synthesize`.
 
 **Semantic Caching Layer**
-LLM responses are cached by embedding cosine similarity rather than exact string match. The in-memory numpy cache supports sub-millisecond lookups over 10K+ entries with TTL-based expiry and FIFO eviction. Prometheus counters track hit rate and cumulative cost savings. Feature-flagged via `SEMANTIC_CACHE_ENABLED`.
+A semantic cache (embedding cosine similarity, TTL/FIFO, Prometheus hit counters) is implemented and feature-flagged via `SEMANTIC_CACHE_ENABLED`, but it is **not wired into the extraction hot path** (`claude_extractor.py` does not call it). Treat it as optional infrastructure until a measured hit-rate is ledgered — do not cite production savings from it yet.
 
 **Fine-Tuning Data Pipeline (DPO + JSONL Export)**
 HITL corrections export as training datasets in three formats: supervised JSONL (OpenAI fine-tune format), DPO pairs (corrected = chosen, original = rejected for RLHF alignment), and evaluation JSONL for regression testing. Deterministic train/val split via SHA-256 hash, deduplication by record_id, and doc_type filtering. GET `/api/v1/finetune/export` + `/finetune/stats`.
