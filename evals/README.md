@@ -6,10 +6,10 @@ This directory contains the golden and adversarial case sets used by the eval-ga
 
 | File | Cases | Description |
 |---|---|---|
-| `golden_set.jsonl` | 50 (target) | Normal extraction cases with ground-truth labels |
-| `adversarial_set.jsonl` | 20 (target) | Edge cases, prompt injections, OCR noise, long docs |
+| `golden_set.jsonl` | 150 | Normal extraction cases with ground-truth labels |
+| `adversarial_set.jsonl` | 50 | Edge cases, prompt injections, OCR noise, long docs |
 
-**Current counts:** 16 golden + 12 adversarial migrated from `autoresearch/eval_dataset.json` (2026-04-14). New cases added via the CHANGELOG below.
+**Current counts:** 200 total (v2.0.0, 2026-07-18). See `CHANGELOG.md`.
 
 ## Schema
 
@@ -73,3 +73,16 @@ The first line of each JSONL file is a metadata object:
 ```
 
 Bump `version` in the `_meta` line when making a breaking schema change. Non-breaking additions (new cases) do not require a version bump.
+
+
+## Variance-calibrated gate (Week 2)
+
+After collecting N≥7 score snapshots at fixed config:
+
+```bash
+python scripts/eval_variance_baseline.py \
+  --scores-glob 'eval_artifacts/variance_runs/run_*.json' \
+  --out eval_artifacts/variance_baseline.json
+```
+
+`scripts/eval_gate.py` loads `relative_drop_tolerance` from that artifact when present (else falls back to the fixed 0.03).

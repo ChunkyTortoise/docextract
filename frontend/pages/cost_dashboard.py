@@ -6,6 +6,7 @@ import random
 import plotly.graph_objects as go
 import streamlit as st
 
+from frontend.dashboard_helpers import guard_demo_mode_dashboard, show_synthetic_seed_banner
 from frontend.theme import PLOTLY_DARK
 
 # ---------------------------------------------------------------------------
@@ -136,9 +137,13 @@ def _compute_weekly_savings(summary: dict) -> float:
 
 def render() -> None:
     st.title("Cost & Performance Dashboard")
+
+    if guard_demo_mode_dashboard("Cost & Performance Dashboard"):
+        return
+
     st.caption(
         "LLM spend by model and operation (last 7 days). "
-        "Enable live data by connecting to the API. Showing mock data when unavailable."
+        "Live data when the API returns cost telemetry; synthetic seed only when empty."
     )
 
     # ── Load data (API or mock) ──────────────────────────────────────────
@@ -158,10 +163,7 @@ def render() -> None:
         using_mock = True
         cost_summary = _mock_cost_summary()
         model_comparison = _mock_model_comparison()
-        st.info(
-            "No live cost data found — showing mock data. "
-            "Connect the API and run extraction jobs to populate real metrics."
-        )
+        show_synthetic_seed_banner()
 
     # ── KPI row ──────────────────────────────────────────────────────────
     kpis = _compute_kpis(cost_summary)

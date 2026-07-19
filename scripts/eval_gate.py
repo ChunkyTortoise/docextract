@@ -48,6 +48,19 @@ ABSOLUTE_FLOORS: dict[str, float] = {
 
 # ── Relative drop tolerance (fraction) ────────────────────────────────────────
 RELATIVE_DROP_TOLERANCE: float = 0.03
+VARIANCE_BASELINE_PATH = REPO_ROOT / "eval_artifacts" / "variance_baseline.json"
+
+
+def load_relative_tolerance(path: Path | None = None) -> float:
+    """Prefer variance-calibrated tolerance when artifact exists; else fixed 0.03."""
+    path = path or VARIANCE_BASELINE_PATH
+    data = load_json(path)
+    if not data:
+        return RELATIVE_DROP_TOLERANCE
+    tol = data.get("relative_drop_tolerance")
+    if isinstance(tol, int | float) and 0 < float(tol) < 1:
+        return float(tol)
+    return RELATIVE_DROP_TOLERANCE
 
 
 def load_json(path: Path) -> dict | None:
@@ -108,9 +121,15 @@ def extract_baseline_metrics(data: dict | None) -> dict:
 def check_thresholds(
     combined: dict,
     baseline_combined: dict,
+    relative_drop_tolerance: float | None = None,
 ) -> list[dict]:
     """Return list of failures: [{metric, value, floor/baseline, reason}]."""
     failures = []
+    tolerance = (
+        RELATIVE_DROP_TOLERANCE
+        if relative_drop_tolerance is None
+        else relative_drop_tolerance
+    )
 
     # Absolute floors
     for metric, floor in ABSOLUTE_FLOORS.items():
@@ -133,13 +152,13 @@ def check_thresholds(
         if baseline_val is None or baseline_val == 0:
             continue
         drop = (baseline_val - current_val) / baseline_val
-        if drop > RELATIVE_DROP_TOLERANCE:
+        if drop > tolerance:
             failures.append({
                 "metric": metric,
                 "value": current_val,
                 "baseline": baseline_val,
                 "drop": round(drop, 4),
-                "reason": f"dropped {drop:.1%} vs baseline (tolerance {RELATIVE_DROP_TOLERANCE:.0%})",
+                "reason": f"dropped {drop:.1%} vs baseline (tolerance {tolerance:.1%})",
             })
 
     return failures
@@ -279,7 +298,10 @@ def main() -> None:
         baseline_combined.update(extract_baseline_metrics(baseline_data))
 
     # Threshold check
-    failures = check_thresholds(combined, baseline_combined)
+    tolerance = load_relative_tolerance()
+    if tolerance != RELATIVE_DROP_TOLERANCE:
+        print(f"Using variance-calibrated relative-drop tolerance: {tolerance:.4f}")
+    failures = check_thresholds(combined, baseline_combined, relative_drop_tolerance=tolerance)
 
     # Write outputs
     args.out.parent.mkdir(parents=True, exist_ok=True)

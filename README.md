@@ -2,23 +2,35 @@
 
 # DocExtract AI
 
-> Document-extraction RAG system: turns messy PDFs into structured data with eval-gated CI, cost-aware model routing, citation grounding, and a live demo.
+> **Ship-gate first:** versioned eval corpus, offline replay, variance-calibrated CI — then two-pass extraction, agentic RAG, and a live demo.
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 
-**Reviewer path (about two minutes, no API key):** follow [DEMO.md](DEMO.md) (live Streamlit or `DEMO_MODE=true`). Screen-recording URL added only after an owner records it.
+**Reviewer path (about two minutes, no API key):** follow [DEMO.md](DEMO.md) or the [live Streamlit demo](https://docextract-demo.streamlit.app). Screen-recording URL added only after an owner records it ([checklist](docs/media/VIDEO-HUMAN-CHECKLIST.md)).
 
-![Live SSE streaming: extraction stages firing over /jobs/{id}/events in real time](docs/screenshots/sse-streaming-demo.gif)
+Static marketing front door: [`site/`](site/) (HTML + CSS, no build step).
+
+## Eval gate {#eval-gate}
+
+Prompts are code. DocExtract treats extraction quality as a **merge-blocking CI signal**, not a post-hoc dashboard number.
+
+| Signal | What runs | When |
+|--------|-----------|------|
+| **Offline replay** (badge driver) | `scripts/eval_offline_replay.py` on 28 committed fixtures | Every eval-gated PR; zero API cost |
+| **Variance-calibrated gate** | `scripts/eval_gate.py` vs `autoresearch/baseline.json` | PRs touching prompts / extraction services |
+| **Paid live eval** | Promptfoo, RAGAS, LLM-judge | Only when `ANTHROPIC_API_KEY` is present in CI; skipped otherwise |
+| **Drift cron** | Golden set vs production prompt version | Daily 13:23 UTC |
+
+**Eval gate proof (red blocked PR):** A public regression PR that the gate blocks intentionally will be linked here once published. Until then: see [docs/eval-methodology.md](docs/eval-methodology.md) and the offline replay job in [eval-gate.yml](.github/workflows/eval-gate.yml).
 
 | Metric | Value | Basis |
 |--------|-------|-------|
-| Extraction accuracy (field-level, critical fields weighted 2x) | **95.5%** | Always-on CI offline replay of 28 deterministic fixtures (`scripts/eval_offline_replay.py` / `run_eval_ci.py --ci`); not a paid live grade |
-| Test suite | **1,354 collected tests**, 80% CI coverage gate | `pytest tests/ --collect-only`; coverage gate `--cov-fail-under=80` |
-| Eval corpus | **72 cases** (51 golden + 21 adversarial) | 28 deterministic-replay in CI + 44 live-metered when API budget attached; adversarial set covers injection, PII leak, hallucination bait |
-| Cost / latency | See [cost-model.md](docs/cost-model.md) | Modeled only until a funded `scripts/benchmark.py` run is committed ([portfolio-metrics.yaml](docs/portfolio-metrics.yaml)) |
-
+| Extraction accuracy (field-level, critical fields weighted 2×) | **95.5%** | Always-on CI offline replay of **28** deterministic fixtures (`scripts/eval_offline_replay.py`); not a paid live grade |
+| Test suite | **1,366 collected tests**, 80% CI coverage gate | `pytest tests/ --collect-only`; gate `--cov-fail-under=80` ([portfolio-metrics.yaml](docs/portfolio-metrics.yaml)) |
+| Eval corpus | **200 cases** (150 golden + 50 adversarial) | 28 deterministic-replay in CI + remainder live-metered when API budget attached |
+| Cost / latency | See [cost-model.md](docs/cost-model.md) | Modeled only until a funded `scripts/benchmark.py` run is committed |
 
 <details>
 <summary>CI-replayed eval breakdown by document type (from committed <code>autoresearch/baseline.json</code>)</summary>
@@ -36,53 +48,52 @@ Overall: 0.955 across 28 cases, replayed on every eval-gated PR at zero API cost
 
 </details>
 
+More: [CASE_STUDY.md](CASE_STUDY.md) · [docs/eval-methodology.md](docs/eval-methodology.md) · [evals/](evals/)
+
 ## What this does
 
-FastAPI service that extracts structured data from PDFs and other documents via a two-pass Claude pipeline (draft + verify). Extracted records are embedded in pgvector for semantic search. Merge-safe quality signal is the zero-cost offline replay gate; when `ANTHROPIC_API_KEY` is present, paid live eval jobs (including an independent Gemini judge, [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md)) also run. The gate fails on >3-point accuracy regression vs baseline.
+FastAPI document intelligence: upload PDFs and images, classify with cost-aware routing, extract structured fields via a **two-pass Claude pipeline**, embed into **pgvector**, and query with **agentic RAG** (ReAct loop with streaming SSE reasoning).
+
+```
+Upload → ARQ worker → classify → extract → validate → embed → search / agentic RAG
+         ↑
+    Langfuse traces (live)          Offline eval replay (CI only — not on request path)
+```
 
 ## Why this is interesting (engineering)
 
-- **Eval-gated CI**: `eval-gate.yml` replays 28-case deterministic baseline at zero API cost via `scripts/eval_offline_replay.py`; PRs touching prompts or extraction services must pass before merge
-- **Cost-aware model routing**: Claude Haiku for classification (Haiku-first failover), Sonnet for extraction; prompt caching on system prompts; offline A/B runner in `model_ab_test.py` (not a live traffic split)
-- **Independent judge**: Gemini 2.5 Flash grades extractions to eliminate self-grading bias; documented in [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md)
-- **Circuit breaker fallback**: Sonnet → Haiku with dead-letter queue, idempotent retries, and HMAC-signed webhooks
-- **OpenTelemetry cost attribution**: per-request USD cost computed from token counts via `app/services/cost_tracker.py`; exported as OTel metrics to Grafana
-- **Prompt-injection defense**: runtime fence + scan + output sanitization in [`injection_guard.py`](app/services/injection_guard.py) ([ADR-0020](docs/adr/0020-indirect-prompt-injection-defense.md))
-- **Retrieval quality (RAGAS)**: context_recall / faithfulness / answer_relevancy composite in [`ragas_evaluator.py`](app/services/ragas_evaluator.py)
-- **Opt-in GraphRAG retrieval**: entity graph + BM25 + three-way RRF hybrid when `GRAPH_RETRIEVAL_ENABLED=true`; see [`app/services/graph_rag/`](app/services/graph_rag/)
-
-
-## Why these architecture choices
-
-- **pgvector in Postgres** ([ADR-0002](docs/adr/0002-pgvector-over-dedicated-vector-db.md)): embeddings live in the same ACID transaction as `extracted_records`, so retrieval cannot drift from extraction writes. A dedicated vector DB would add another consistency window for little gain at this corpus size.
-- **Two-pass extraction** ([ADR-0003](docs/adr/0003-two-pass-extraction.md)): Pass 2 runs only when quality checks demand it, instead of always paying for a second model call. Measured trigger rate and accuracy lift are recorded in the ADR (not restated here; portfolio metrics ledger gates README numbers).
-- **ARQ over Celery** ([ADR-0001](docs/adr/0001-arq-over-celery.md)): async coroutines without a thread pool. Throughput and latency comparison vs Celery is recorded in the ADR load-test section (not restated here until those figures are ledger-status measured).
+- **Eval-gated CI**: `eval-gate.yml` offline job replays 28-case deterministic baseline at zero API cost; PRs touching prompts or extraction services must pass before merge
+- **Agentic RAG**: ReAct Think → Act → Observe over hybrid retrieval tools; primary search story in API and Streamlit ([`agentic_rag.py`](app/services/agentic_rag.py), [`agent_trace.py`](frontend/pages/agent_trace.py))
+- **Cost-aware model routing**: Haiku for classification, Sonnet for extraction; prompt caching on system prompts; circuit breaker with Haiku fallback
+- **Independent judge**: Gemini grades extractions to reduce self-grading bias ([ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md))
+- **Langfuse observability**: primary spine for live extraction traces, prompt registry, and eval-run debugging ([`app/observability.py`](app/observability.py))
+- **Prompt-injection defense**: runtime fence + scan + output sanitization ([ADR-0020](docs/adr/0020-indirect-prompt-injection-defense.md))
 
 ## Architecture
 
 ```mermaid
 graph LR
-  A[Browser / API Client] -->|POST /documents| B[FastAPI]
+  A[Client / Streamlit] -->|POST /documents| B[FastAPI]
   B -->|enqueue| C[ARQ Worker]
-  C -->|classify| D{Model Router}
+  C -->|classify + extract| D{Model Router}
   D -->|primary| E[Claude Sonnet]
   D -->|fallback| F[Claude Haiku]
-  E -->|Pass 2: extract + correct| G[pgvector HNSW]
-  B -->|SSE stream stages| A
-  G -->|semantic search| B
-  B -->|/metrics| H[Prometheus]
-  D --- I[Circuit Breaker]
+  E --> G[(pgvector)]
+  G -->|search| H[Agentic RAG]
+  H --> A
+  C -->|Langfuse| I[Traces]
+  B -->|SSE /jobs/events| A
 ```
 
 ## Demo
 
-[Live demo](https://docextract-demo.streamlit.app) on Streamlit Cloud (allow about a minute cold start). Or run it locally with no API key:
+[Live demo](https://docextract-demo.streamlit.app) on Streamlit Cloud (allow about a minute cold start). Or run locally with no API key:
 
 ```bash
 DEMO_MODE=true streamlit run frontend/app.py
 ```
 
-Progress streams over two real Server-Sent Events endpoints: `/jobs/{id}/events` (extraction stages) and `/agent-search/stream` (agentic retrieval reasoning).
+Progress streams over SSE: `/jobs/{id}/events` (extraction stages) and `/agent-search/stream` (agentic retrieval reasoning).
 
 ## Install
 
@@ -99,7 +110,7 @@ Services: API `:8000` (`/docs` for Swagger) | Frontend `:8501` | PostgreSQL `:54
 ## Tests
 
 ```bash
-pytest tests/ --collect-only -q       # 1,354 collected tests
+pytest tests/ --collect-only -q       # 1,366 collected tests
 python scripts/eval_offline_replay.py --floor 0.85   # Always-on CI offline replay (badge driver)
 python scripts/run_eval_ci.py --ci                    # Wrapper; same 28-case deterministic path
 make eval                             # Full eval suite (~$0.44, ~4 min)
@@ -114,11 +125,12 @@ make eval                             # Full eval suite (~$0.44, ~4 min)
 | [ADR-0003](docs/adr/0003-two-pass-extraction.md) | Two-pass Claude extraction with confidence gating |
 | [ADR-0006](docs/adr/0006-circuit-breaker-model-fallback.md) | Circuit breaker model fallback chain |
 | [ADR-0015](docs/adr/0015-prompt-caching.md) | Anthropic prompt caching for eval cost reduction |
-| [ADR-0017](docs/adr/0017-semantic-cache-l1-l2.md) | Two-layer semantic cache (L1 exact hash + L2 embedding similarity) |
-| [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Gemini 2.5 as independent judge (eliminates self-grading bias) |
+| [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Gemini as independent judge |
 | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | TF-IDF reranker + agentic self-reflection loop |
 
-More: [CASE_STUDY.md](CASE_STUDY.md) | [DEMO.md](DEMO.md) | [docs/eval-methodology.md](docs/eval-methodology.md) | [docs/cost-model.md](docs/cost-model.md)
+**Scope notes (honest):** GraphRAG hybrid retrieval is opt-in (`GRAPH_RETRIEVAL_ENABLED=false` by default): regex entity graph, file-backed — see [`app/services/graph_rag/`](app/services/graph_rag/). Semantic cache ([ADR-0017](docs/adr/0017-semantic-cache-l1-l2.md)) is implemented but feature-flagged off and not wired into the extraction hot path. LangSmith and OpenTelemetry exporters exist for optional ops wiring; **Langfuse is the primary observability story** for reviewers.
+
+More: [DEMO.md](DEMO.md) | [docs/cost-model.md](docs/cost-model.md) | [site/](site/)
 
 ## License
 

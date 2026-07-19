@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 import plotly.graph_objects as go
 import streamlit as st
 
+from frontend.dashboard_helpers import guard_demo_mode_dashboard, show_synthetic_seed_banner
 from frontend.theme import PLOTLY_DARK
 
 # ---------------------------------------------------------------------------
@@ -131,6 +132,9 @@ def _check_regression(
 def render() -> None:
     st.title("Evaluation Dashboard")
 
+    if guard_demo_mode_dashboard("Evaluation Dashboard"):
+        return
+
     st.caption(
         "RAGAS-inspired metrics (context recall, faithfulness, answer relevancy) "
         "and LLM-as-judge scores over time. "
@@ -149,9 +153,8 @@ def render() -> None:
     if not rows:
         using_mock = True
         rows = _generate_mock_runs(10)
-        st.info(
-            "No live eval history found — showing mock data. "
-            "Run the RAGAS eval pipeline to populate real results."
+        show_synthetic_seed_banner(
+            "Run the RAGAS eval pipeline (or attach live eval history) to replace this."
         )
 
     # ── Regression alert ─────────────────────────────────────────────────
@@ -259,4 +262,4 @@ def render() -> None:
         st.info("No run data to display.")
 
     if using_mock:
-        st.caption("Displaying mock data. Set RAGAS_ENABLED=true to collect real metrics.")
+        st.caption("Synthetic seed pending live telemetry. Set RAGAS_ENABLED=true to collect measured metrics.")

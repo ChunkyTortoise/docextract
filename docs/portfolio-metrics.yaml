@@ -1,20 +1,20 @@
 schema_version: 2
-updated: "2026-07-17"
+updated: "2026-07-18"
 testing:
   command: "pytest tests/ --collect-only -q"
-  collected_tests: 1354
-  latest_result: "1347 passed, 5 skipped, 2 deselected"
+  collected_tests: 1366
+  latest_result: "1359 passed, 5 skipped, 2 deselected"
   latest_coverage_percent: 81.55
   coverage_gate_percent: 80
-  source: "main CI run 29566414192 2026-07-17 (pytest -m 'not e2e'); collect-only on play/W1-DX-walkthrough @ 2d46f25"
+  source: "collect-only 1366 on feat/evalgate-w1 2026-07-18; pass tally = prior CI 1347 + 12 new unit tests (provisional until post-merge CI); coverage from main CI 29566414192"
 eval_corpus:
-  golden_cases: 51
-  adversarial_cases: 21
-  total_cases: 72
-  promptfoo_cases: 72
+  golden_cases: 150
+  adversarial_cases: 50
+  total_cases: 200
+  promptfoo_cases: 200
   fixtures_recorded: 28
-  fixtures_pending: 44
-  source: "Non-meta rows in evals/*.jsonl; 28 deterministic fixtures in autoresearch/golden_responses/"
+  fixtures_pending: 172
+  source: "Non-meta rows in evals/*.jsonl (v2.0.0); 28 deterministic fixtures in autoresearch/golden_responses/"
 metrics:
   - id: extraction_accuracy
     value: "95.5%"

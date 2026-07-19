@@ -4,63 +4,55 @@ import streamlit as st
 
 def show() -> None:
     st.title("Architecture Overview")
-    st.caption("DocExtract AI — production document intelligence pipeline")
+    st.caption("DocExtract AI — eval-gated document intelligence")
 
     st.markdown("""
 ```mermaid
 graph TD
-    A[PDF / Image Upload] --> B[FastAPI Ingestion Layer]
-    B --> C{OCR Engine}
-    C -->|Default| D[Claude Vision API]
-    C -->|Fallback| E[Tesseract OCR]
-    D --> F[Chunker & Preprocessor]
-    E --> F
-    F --> G[Gemini Embeddings]
-    G --> H[(pgvector DB)]
-    F --> I[BM25 Index]
+    A[PDF / Image Upload] --> B[FastAPI Ingestion]
+    B --> C[ARQ Worker]
+    C --> D[Classify + Two-pass Extract]
+    D --> E[Pydantic Validator]
+    E --> F[(pgvector HNSW)]
+    E --> G[Streamlit / API Client]
 
-    H --> J{Retrieval}
-    I --> J
-    J -->|Hybrid RRF| K[Ranked Chunks]
-    K --> L[Agentic RAG - ReAct Loop]
-    L --> M[Claude Extraction]
-    M --> N[Pydantic Validator]
+    F --> H{Retrieval}
+    H -->|vector / BM25 / hybrid| I[Ranked Chunks]
+    I --> J[Agentic RAG - ReAct Loop]
+    J --> G
 
-    N --> O[RAGAS Eval Pipeline]
-    O --> P[LLM-as-Judge]
-    P --> Q[(Eval History DB)]
-
-    M --> R[Streamlit Dashboard]
-    O --> R
-    Q --> R
+    subgraph Offline CI — not on request path
+        K[28-case offline replay]
+        L[eval-gate.yml]
+        M[(baseline.json)]
+        K --> L
+        L --> M
+    end
 
     subgraph Observability
-        S[OpenTelemetry / OTLP]
-        T[Prometheus /metrics]
-        U[Grafana Dashboard]
-        S --> U
-        T --> U
+        N[Langfuse traces]
+        O[Prometheus /metrics]
     end
 
-    M --> S
-    L --> T
-
-    subgraph Deployment
-        V[Docker Compose]
-        W[K8s - Kustomize + HPA]
-        X[AWS RDS + ElastiCache]
-    end
+    C --> N
+    J --> N
+    B --> O
 ```
 """)
 
     st.subheader("Key Design Decisions")
     cols = st.columns(3)
     with cols[0]:
-        st.metric("Test Coverage", "850+ tests", "pytest + CI gate")
-        st.caption("RAGAS CI blocks merges on quality regression")
+        st.metric("Eval gate", "28 fixtures", "offline CI replay")
+        st.caption("Merge-safe accuracy signal; not inline on upload requests")
     with cols[1]:
-        st.metric("Retrieval Modes", "3 strategies", "vector / BM25 / hybrid RRF")
-        st.caption("Agentic layer auto-selects based on confidence")
+        st.metric("Agentic RAG", "ReAct loop", "Think → Act → Observe")
+        st.caption("Primary search path; streams reasoning over SSE")
     with cols[2]:
-        st.metric("Models Supported", "4", "Sonnet / Haiku / Opus / Gemini")
-        st.caption("Circuit breaker with auto-fallback chains")
+        st.metric("Test suite", "1,354 collected", "80% coverage gate")
+        st.caption("Langfuse primary for live trace debugging")
+
+    st.caption(
+        "GraphRAG (opt-in, regex entity graph, file-backed) and semantic cache "
+        "(implemented, default-off, not on extraction hot path) are documented in the README footnotes."
+    )

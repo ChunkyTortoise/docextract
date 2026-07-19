@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     # fix's scope (e.g. app/services/claude_extractor.py), so it stays str
     # and is only hidden from repr/str via Field(repr=False).
     anthropic_api_key: str = Field(default="", repr=False)
+    openai_api_key: SecretStr = SecretStr("")
     gemini_api_key: SecretStr = SecretStr("")
     api_key_secret: SecretStr = SecretStr("change-me-32-chars-minimum-secret")
 
@@ -120,11 +121,9 @@ class Settings(BaseSettings):
     # Local LoRA adapter — feature-flagged, falls back to Claude when disabled/unavailable
     use_local_adapter: bool = False
 
-    # Model routing — fallback chains and circuit breaker config
-    # Supported: Anthropic (claude-*), Zhipu AI via OpenAI-compat API (glm-4-plus, glm-4-flash)
-    # GLM-4: set ZHIPUAI_API_KEY and point client base_url to https://open.bigmodel.cn/api/paas/v4/
-    extraction_models: list[str] = ["claude-sonnet-4-6", "claude-haiku-4-5-20251001", "glm-4-plus"]
-    classification_models: list[str] = ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "glm-4-flash"]
+    # Model routing — fallback chains and circuit breaker config (Anthropic only in production)
+    extraction_models: list[str] = ["claude-sonnet-4-6", "claude-haiku-4-5-20251001"]
+    classification_models: list[str] = ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"]
     circuit_breaker_failure_threshold: int = 5
     circuit_breaker_recovery_seconds: float = 60.0
 

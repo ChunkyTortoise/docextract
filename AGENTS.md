@@ -18,10 +18,20 @@ Self-hosted via `docker compose up`:
 Also supports: Render Blueprint, K8s/Kustomize, AWS Terraform (RDS+ElastiCache)
 
 ## Test
-```pytest tests/  # 1,280 collected tests```
+```pytest tests/  # 1,366 collected tests (ledger: docs/portfolio-metrics.yaml)```
 
 ## Key Env
 ANTHROPIC_API_KEY, DATABASE_URL, REDIS_URL, SECRET_KEY
 OTEL_ENABLED (default false), EXTRACTION_MODELS, CLASSIFICATION_MODELS
 
+## Learned User Preferences
+- Prefer DocExtract evalgate over EnterpriseHub nightly-eval closeout when choosing portfolio/eval ROI for agent time.
+- Do not invent secrets, Loom/walkthrough URLs, or fake metrics; Langfuse and Anthropic API keys are human-only gates.
+- Hireability orchestration for this repo defaults to A2 (DocExtract showcase-ready, then sibling heroes) + B1 (AI Eng — RAG / evals / DocAI) unless the user changes it.
 
+## Learned Workspace Facts
+- Active front-door hireability track is evalgate (spec: `~/Projects/job-search/evalgate-docextract-spec-2026-07-12.md`): versioned corpus, variance-calibrated ship-gate, Langfuse telemetry.
+- Evalgate week plan: W1 corpus+Langfuse, W2 variance gate, W3 multi-provider (+ corpus toward ~200), W4 narrative/README packaging.
+- Evalgate W1 corpus (120 cases) merged via PR #31; human accept gates remain Langfuse keys on the live demo plus label spot-check.
+- Langfuse/Braintrust instrumentation is already on main; live demo traces still need human-supplied Langfuse keys.
+- Optional GraphRAG hybrid retrieval lives under `app/services/graph_rag/`, gated by `graph_retrieval_enabled` (search mode `graph`; hybrid can three-way RRF when the flag is on).

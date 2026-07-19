@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "method": "max(2.0*stdev, 0.005)",
+  "floor": 0.005,
+  "stdev_mult": 2.0,
+  "n_runs": 7,
+  "relative_drop_tolerance": 0.005,
+  "per_metric": {
+    "extraction_f1": {
+      "n": 7,
+      "mean": 0.9555,
+      "stdev": 0.0,
+      "tolerance": 0.005,
+      "values": [
+        0.9555,
+        0.9555,
+        0.9555,
+        0.9555,
+        0.9555,
+        0.9555,
+        0.9555
+      ]
+    }
+  },
+  "timestamp": "2026-07-19T01:09:47+00:00",
+  "calibration_source": "offline_replay_deterministic",
+  "calibration_note": "N=7 identical offline-replay extraction_f1 snapshots (stdev=0 \u2192 floor 0.005). Re-run with make eval outputs when Anthropic credits allow live Ragas/judge variance."
+}

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DocExtract AI — eval-gated document intelligence</title>
+  <meta name="description" content="Ship-gate first: versioned corpus, offline replay, variance-calibrated CI. Then extraction and agentic RAG over structured records." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="logo" href="/">DocExtract <span>AI</span></a>
+    <nav aria-label="Primary">
+      <a href="https://github.com/ChunkyTortoise/docextract#eval-gate">Eval gate</a>
+      <a href="https://github.com/ChunkyTortoise/docextract/blob/main/docs/eval-methodology.md">Methodology</a>
+      <a class="nav-cta" href="https://docextract-demo.streamlit.app" target="_blank" rel="noopener noreferrer">Live demo</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="top">
+      <p class="eyebrow">Ship-gate discipline before features</p>
+      <h1>Measure extraction quality<br /><em>before</em> you ship prompts.</h1>
+      <p class="lede">
+        DocExtract AI is a document-intelligence stack where a <strong>versioned eval corpus</strong>,
+        <strong>offline replay</strong>, and <strong>variance-calibrated CI gate</strong> are the front door —
+        then two-pass Claude extraction, pgvector search, and an agentic ReAct retrieval loop.
+      </p>
+      <div class="hero-actions">
+        <a class="btn primary" href="https://docextract-demo.streamlit.app" target="_blank" rel="noopener noreferrer">Open live demo</a>
+        <a class="btn ghost" href="https://github.com/ChunkyTortoise/docextract">View on GitHub</a>
+      </div>
+      <dl class="proof-strip">
+        <div>
+          <dt>CI replay</dt>
+          <dd>28 fixtures · zero API cost</dd>
+        </div>
+        <div>
+          <dt>Corpus</dt>
+          <dd>200 cases (150 golden + 50 adversarial)</dd>
+        </div>
+        <div>
+          <dt>Baseline</dt>
+          <dd>95.5% weighted field accuracy</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="panel" id="gate">
+      <h2>Eval gate, not vibes</h2>
+      <div class="two-col">
+        <div>
+          <p>
+            Every PR that touches prompts or extraction services runs
+            <code>scripts/eval_offline_replay.py</code> against committed golden responses.
+            The badge on the README is driven by this job — not a one-off notebook score.
+          </p>
+          <ul class="checklist">
+            <li>Deterministic 28-case offline replay on every eval-gated PR</li>
+            <li>Variance-calibrated regression tolerance vs <code>autoresearch/baseline.json</code></li>
+            <li>Langfuse as the primary observability spine for live traces</li>
+            <li>Ledger-honest metrics in <code>docs/portfolio-metrics.yaml</code></li>
+          </ul>
+        </div>
+        <aside class="callout">
+          <h3>Red blocked PR</h3>
+          <p>
+            Public regression PR that the gate blocks intentionally — see the README
+            <em>Eval gate proof</em> section for the link once published.
+          </p>
+          <p class="muted">Placeholder: see README for public regression PR link.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="panel" id="extraction">
+      <h2>Then extraction — with agentic RAG</h2>
+      <p class="section-lede">
+        Upload PDFs and images, classify with cost-aware routing, extract structured fields with a
+        two-pass Claude pipeline, embed into pgvector, and query with a ReAct agent that streams
+        reasoning over SSE.
+      </p>
+      <div class="stack-cards">
+        <article>
+          <h3>Two-pass extraction</h3>
+          <p>Sonnet draft + verify; Haiku failover behind a circuit breaker. Confidence gating triggers Pass 2 only when needed.</p>
+        </article>
+        <article>
+          <h3>Agentic RAG</h3>
+          <p>Think → Act → Observe loop over hybrid retrieval tools — the primary search story in the live demo and API.</p>
+        </article>
+        <article>
+          <h3>Async + observable</h3>
+          <p>ARQ workers, SSE job progress, Langfuse traces per pipeline run. Prometheus <code>/metrics</code> for ops.</p>
+        </article>
+      </div>
+      <p class="footnote">
+        GraphRAG hybrid retrieval is opt-in (<code>GRAPH_RETRIEVAL_ENABLED</code>): regex entity graph, file-backed, not the default path.
+        Semantic cache is implemented but feature-flagged off and not wired into the extraction hot path.
+      </p>
+    </section>
+
+    <section class="panel links-panel" id="links">
+      <h2>Start here</h2>
+      <ul class="link-grid">
+        <li>
+          <a href="https://docextract-demo.streamlit.app" target="_blank" rel="noopener noreferrer">
+            <span class="link-label">Live Streamlit demo</span>
+            <span class="link-url">docextract-demo.streamlit.app</span>
+          </a>
+        </li>
+        <li>
+          <a href="https://github.com/ChunkyTortoise/docextract/blob/main/DEMO.md">
+            <span class="link-label">DEMO.md</span>
+            <span class="link-url">90–120s reviewer walkthrough</span>
+          </a>
+        </li>
+        <li>
+          <a href="https://github.com/ChunkyTortoise/docextract">
+            <span class="link-label">GitHub repository</span>
+            <span class="link-url">ChunkyTortoise/docextract</span>
+          </a>
+        </li>
+        <li>
+          <a href="https://github.com/ChunkyTortoise/docextract/blob/main/CASE_STUDY.md">
+            <span class="link-label">CASE_STUDY.md</span>
+            <span class="link-url">Architecture narrative</span>
+          </a>
+        </li>
+        <li>
+          <a href="https://github.com/ChunkyTortoise/docextract/blob/main/docs/eval-methodology.md">
+            <span class="link-label">eval-methodology.md</span>
+            <span class="link-url">Gate design &amp; golden set</span>
+          </a>
+        </li>
+        <li>
+          <span class="link-card disabled" aria-disabled="true">
+            <span class="link-label">Blocked eval PR</span>
+            <span class="link-url">See README for public regression PR link</span>
+          </span>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>DocExtract AI · MIT · Metrics cite <code>docs/portfolio-metrics.yaml</code> only when measured.</p>
+  </footer>
+</body>
+</html>
