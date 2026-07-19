@@ -24,8 +24,8 @@ Each entry maps methodology learned to production implementation. References are
 
 ## DeepLearning.AI Deep Learning Specialization — DeepLearning.AI (120h)
 **Methodology learned**: Neural network architecture, embedding spaces, attention mechanisms, fine-tuning theory (QLoRA, LoRA, DPO)
-**Applied in**: `app/services/` and `scripts/` — 768-dim Gemini embedding model, HNSW index design, semantic cache with cosine similarity, QLoRA Mistral-7B training scripts
-**Production metric**: Semantic cache hit rate ~23% on repeated query patterns; adapter trained with r=16, lora_alpha=32 on Mistral-7B-Instruct-v0.2
+**Applied in**: `app/services/` and `scripts/` — 768-dim Gemini embedding model, HNSW index design, optional semantic cache (not on extract hot path), QLoRA Mistral-7B training scripts
+**Production metric**: Semantic cache is implemented and feature-flagged (`SEMANTIC_CACHE_ENABLED`) but not on the extraction hot path — do not cite a hit-rate until metered. Adapter trained with r=16, lora_alpha=32 on Mistral-7B-Instruct-v0.2
 **Design decision informed**: 768-dim embedding chosen over 384-dim for retrieval precision on technical documents; QLoRA 4-bit quantization fits T4 15GB VRAM
 
 ## Microsoft AI & ML Engineering — Microsoft (75h)
