@@ -29,6 +29,9 @@ NOTES.md
 
 # Eval artifacts (generated, not committed)
 eval_artifacts/
+!eval_artifacts/variance_baseline.json
+!eval_artifacts/variance_runs/
+!eval_artifacts/variance_runs/*.json
 
 # Backups and transient eval-run artifacts (not committed)
 *.bak-*

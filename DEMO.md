@@ -14,11 +14,13 @@ Local `DEMO_MODE` uses cached data under `frontend/demo_data/` and does not call
 
 ## 90–120 second path
 
-1. **Extract** — pick the invoice, contract, or receipt sample; note structured fields and confidence.
+In `DEMO_MODE`, Evaluation / Cost Dashboard / Quality Monitor are **hidden** (they fall back to synthetic seed without a live API). Stay on the pages below.
+
+1. **Demo sandbox** — start on **Demo**; pick the invoice, contract, or receipt sample; note structured fields and confidence.
 2. **SSE progress** — watch stage updates (live demo or `/jobs/{id}/events` when API is up).
-3. **Retrieval** — open search / agent trace for retrieval and reasoning output.
-4. **Human review** — open the review / quality view for low-confidence handoff.
-5. **Eval proof** — open the evaluation view, then skim the README metrics table (95.5% = 28-case offline CI replay, not a paid live run).
+3. **Retrieval** — open **Agent Trace** for retrieval and reasoning output.
+4. **Human review** — open **Review** for low-confidence handoff.
+5. **Eval proof** — skim the README metrics table and [docs/eval-methodology.md](docs/eval-methodology.md) (95.5% = 28-case offline CI replay, not a paid live run). Optional: public red blocked eval-gate PR linked from the README.
 
 ## Recording (owner)
 

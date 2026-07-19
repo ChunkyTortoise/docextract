@@ -1,5 +1,48 @@
 # Eval Corpus Changelog
 
+## [2.0.0] — 2026-07-18
+
+**Phase B hireability expansion** 120 → 200 cases. All new `ground_truth_contexts` are verbatim spans from `input_text`.
+
+### Golden set: 87 → 150 cases (+63)
+
+| Batch | IDs | Count |
+|---|---|---|
+| G14 invoice | invoice_17_freight_forwarder … invoice_28_insurance_premium | 12 |
+| G15 receipt | receipt_16_hotel … receipt_26_self_checkout | 11 |
+| G16 purchase_order | purchase_order_14_catering … purchase_order_23_consulting_t_and_m | 10 |
+| G17 bank_statement | bank_statement_12_savings … bank_statement_21_cad_small_business | 10 |
+| G18 medical_record | medical_record_12_dental … medical_record_21_home_health | 10 |
+| G19 identity_document | identity_drivers_license_03_tx … identity_green_card_01_us | 10 |
+
+Distribution after expansion: invoice ×36, receipt ×27, purchase_order ×24, bank_statement ×22, medical_record ×22, identity_document ×19.
+
+### Adversarial set: 33 → 50 cases (+17)
+
+| Attack type | IDs | Count |
+|---|---|---|
+| prompt_injection | adv_prompt_injection_base64, adv_prompt_injection_unicode_homoglyph, adv_prompt_injection_few_shot_poison | 3 |
+| pii_leak | adv_pii_bank_account_in_invoice, adv_pii_passport_in_po, adv_pii_insurance_member_id, adv_pii_drivers_license_in_receipt | 4 |
+| hallucination_bait | adv_hallucinate_implicit_tax, adv_hallucinate_missing_due_date, adv_hallucinate_line_item_from_header, adv_hallucinate_currency_from_symbol_ambiguity | 4 |
+| ocr_noise | adv_ocr_noise_strikethrough, adv_ocr_noise_rotated_margin, adv_ocr_noise_table_wrap | 3 |
+| edge_case | adv_edge_conflicting_dates, adv_edge_negative_qty_credit | 2 |
+| long_document | adv_long_document_boilerplate | 1 |
+
+### Labeling protocol (Phase B)
+
+- Single annotator (Cayman Roden); IAA N/A — documented limitation.
+- Each new case: author `input_text` → manually compute `expected_output` → select 1–5 verbatim `ground_truth_contexts` spans.
+- Spot-check ~10% of new labels before citing corpus as interview-defensible hand-verified.
+- Regenerate multi-metric baseline after API budget (`make eval && make eval-baseline`).
+- Deterministic fixtures remain 28; live-metered remainder grows with corpus (172 pending).
+
+### Follow-ups
+
+- Run `make eval-fast` to validate harness picks up all 200 cases.
+- Human spot-check on adversarial safe-behavior rubrics recommended before W3 multi-provider gate.
+
+---
+
 All additions, retirements, and schema changes to `golden_set.jsonl` and `adversarial_set.jsonl`.
 
 ---

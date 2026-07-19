@@ -28,11 +28,15 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       has_key: ${{ steps.k.outputs.has_key }}
+      has_openai_key: ${{ steps.k.outputs.has_openai_key }}
     steps:
       - id: k
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: echo "has_key=$([ -n "$ANTHROPIC_API_KEY" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          echo "has_key=$([ -n "$ANTHROPIC_API_KEY" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "has_openai_key=$([ -n "$OPENAI_API_KEY" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
   # ── Deterministic offline replay: scores committed golden_responses fixtures
   #    with the same weighted scorer as the baseline. No network, no secret.
   #    THIS JOB DRIVES THE BADGE — it always runs and must always be green. ──
@@ -198,3 +202,35 @@ jobs:
             --pr       "${{ github.event.pull_request.html_url }}" \
             --scores   eval_artifacts/scores.json \
             || true  # don't fail CI if Slack webhook is not configured
+  # ── Multi-provider judge panels (eval-time only). Needs Anthropic + OpenAI keys.
+  #    Informational — does not gate merge or affect offline badge. ──
+  multiprovider:
+    name: Multi-provider judge panel
+    needs: precheck
+    if: needs.precheck.outputs.has_key == 'true' && needs.precheck.outputs.has_openai_key == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - name: Install Python deps
+        run: pip install -r requirements_ci.txt
+      - name: Run multi-provider LLM-judge panel
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          mkdir -p eval_artifacts
+          python scripts/eval_multiprovider.py             --golden evals/golden_set.jsonl             --adv             --providers anthropic openai             --out eval_artifacts/multiprovider_panel.json
+      - name: Upload multi-provider panel
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multiprovider-panel-${{ github.run_id }}
+          path: eval_artifacts/multiprovider_panel.json
+          retention-days: 90
+

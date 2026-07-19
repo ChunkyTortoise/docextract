@@ -1,0 +1,7 @@
+{
+  "run_id": "offline_replay_snapshot_05",
+  "source": "scripts/eval_offline_replay.py",
+  "method_note": "Deterministic offline replay; identical by design. Calibrates extraction_f1 floor until live N=7 exists.",
+  "extraction_f1": 0.9555,
+  "timestamp": "2026-07-19T01:09:46+00:00"
+}

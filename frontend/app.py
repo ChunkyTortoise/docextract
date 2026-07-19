@@ -73,7 +73,37 @@ def main() -> None:
         st.caption("AI Document Processing")
         st.divider()
 
-        pages = ["Upload", "Batch Upload", "Progress", "Results", "Records", "Review", "ROI", "Dashboard", "Cost Dashboard", "Demo", "Architecture", "Evaluation", "Prompt Lab", "Agent Trace", "Quality Monitor"]
+        # Hiring-path DEMO_MODE: hide synthetic-seed dashboards so reviewers
+        # never bounce on mock Evaluation/Cost/Quality without live API data.
+        if DEMO_MODE:
+            pages = [
+                "Demo",
+                "Upload",
+                "Progress",
+                "Results",
+                "Records",
+                "Review",
+                "Architecture",
+                "Agent Trace",
+            ]
+        else:
+            pages = [
+                "Upload",
+                "Batch Upload",
+                "Progress",
+                "Results",
+                "Records",
+                "Review",
+                "ROI",
+                "Dashboard",
+                "Cost Dashboard",
+                "Demo",
+                "Architecture",
+                "Evaluation",
+                "Prompt Lab",
+                "Agent Trace",
+                "Quality Monitor",
+            ]
         default_idx = 0
         if "nav_target" in st.session_state:
             target = st.session_state.pop("nav_target")

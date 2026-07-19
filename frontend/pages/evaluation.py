@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 import plotly.graph_objects as go
 import streamlit as st
 
+from frontend.dashboard_helpers import guard_demo_mode_dashboard, show_synthetic_seed_banner
 from frontend.theme import PLOTLY_DARK
 
 # ---------------------------------------------------------------------------
@@ -129,6 +130,16 @@ def _check_regression(
 
 
 def render() -> None:
+    import os
+
+    if os.getenv("DEMO_MODE", "").lower() in ("true", "1", "yes"):
+        st.title('Evaluation Dashboard')
+        st.info(
+            "Hidden on the DEMO_MODE hiring path — these charts fall back to synthetic seed "
+            "without live API eval history. See README eval gate + docs/eval-methodology.md."
+        )
+        return
+
     st.title("Evaluation Dashboard")
 
     st.caption(

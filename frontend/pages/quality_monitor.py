@@ -108,7 +108,11 @@ def render() -> None:
     st.caption("LLM-judge evaluation scores — 4-dimension rubric, EWMA smoothed.")
 
     if DEMO_MODE:
-        st.info("Synthetic seed — not measured production telemetry (30-day demo trend)", icon="🔬")
+        st.info(
+            "Hidden on the DEMO_MODE hiring path — synthetic seed is not measured telemetry. "
+            "See README eval gate + docs/eval-methodology.md."
+        )
+        return
 
     days = st.slider("Window (days)", min_value=7, max_value=90, value=30, step=7)
 

@@ -78,7 +78,7 @@ The golden set (`evals/golden_set.jsonl`) contains 87 hand-labelled documents ac
 - Negative or zero amounts in 3 cases
 - Ambiguous date formats in 2 cases
 
-**Failure-mining rotation:** The current 51-case set was constructed from first-principles. Once the harness has been running for 30+ days in production, new cases will be mined from Langfuse traces where extraction confidence was low or where downstream validation rejected the output.
+**Failure-mining rotation:** The current 120-case set (87 golden + 33 adversarial, v1.2.0) was constructed from first-principles. Once the harness has been running for 30+ days in production, new cases will be mined from Langfuse traces where extraction confidence was low or where downstream validation rejected the output.
 
 ---
 
@@ -259,13 +259,56 @@ Total monthly cost at 20 PRs/month: ~$9 in API calls plus GitHub Actions runner 
 
 ---
 
-## 13. How the harness caught a real regression
+## 13. Multi-provider eval panels (eval-time only)
+
+Phase B adds **offline multi-provider comparison** for the LLM-judge suite. This is strictly eval/CI infrastructure — it is **not** wired to stranger-facing demo clicks or hot-path extraction.
+
+### Providers and scripts
+
+| Provider | Eval script flag | API key env | Default judge model |
+|---|---|---|---|
+| Anthropic | `--provider anthropic` | `ANTHROPIC_API_KEY` | `claude-haiku-4-5-20251001` |
+| OpenAI | `--provider openai` | `OPENAI_API_KEY` | `gpt-4o-mini` |
+| Gemini | `--provider gemini` | `GEMINI_API_KEY` | `gemini-2.5-flash` |
+
+- **Single provider:** `python scripts/eval_llm_judge.py --provider openai --out eval_artifacts/llm_judge_openai.json`
+- **All available providers:** `python scripts/eval_multiprovider.py --adv --out eval_artifacts/multiprovider_panel.json`
+
+Providers without API keys are skipped (not failed) when running `eval_multiprovider.py`.
+
+### Per-provider panel fields
+
+`eval_artifacts/multiprovider_panel.json` records one entry per provider:
+
+| Field | Meaning |
+|---|---|
+| `task_success_rate` | Judge pass rate on the golden (+ optional adversarial) set |
+| `latency_ms.p50` / `p95` | Approximate per-case latency from wall-clock (refine with token telemetry later) |
+| `latency_ms.wall_clock_total_ms` | Total provider run time |
+| `cost_per_task_usd` | **null until measured** — populate only from real token-usage telemetry; never invent |
+| `artifact` | Path to per-provider `llm_judge_<provider>.json` |
+
+The merge gate (`eval_gate.py`) still consumes the **Anthropic** judge artifact on the live job. Multi-provider runs are informational panels for cost/success comparison across tiers — they do not change offline badge behavior.
+
+### CI behavior
+
+`.github/workflows/eval-gate.yml`:
+
+- **`offline`** — always runs (drives README badge).
+- **`live`** — runs when `ANTHROPIC_API_KEY` is present (unchanged gate).
+- **`multiprovider`** — runs when **both** `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are present; uploads `multiprovider_panel.json`. Skips cleanly when `OPENAI_API_KEY` is absent.
+
+OpenAI keys must never be injected into demo/runtime deployments — eval workflow secrets only.
+
+---
+
+## 14. How the harness caught a real regression
 
 *Note: The following is a representative case study. The harness caught this class of regression during development. The specific PR number and exact figures are synthetic placeholders; they will be replaced with a real incident once the harness has been running in production for 60+ days.*
 
 **The bug:** Extraction prompt v1.1.0 added a "rate your confidence 1-10" instruction to improve interpretability. This inadvertently caused the model to prepend a confidence preamble before the JSON output on approximately 20% of cases, breaking `is-json` assertions and causing Ragas faithfulness to drop from 0.881 to 0.743.
 
-**How it was caught:** The Promptfoo `is-json` assertion failed on 11 of 51 cases immediately, blocking the PR. The sticky comment showed faithfulness dropping 13.8 percentage points (far outside the 3% tolerance).
+**How it was caught:** The Promptfoo `is-json` assertion failed on 11 of 87 golden cases immediately, blocking the PR. The sticky comment showed faithfulness dropping 13.8 percentage points (far outside the 3% tolerance).
 
 **The fix:** Moved the confidence instruction inside the JSON schema definition (`"confidence": "rate 1-10"` as a field spec) so the model returned confidence as a structured field rather than a preamble.
 
@@ -273,7 +316,7 @@ Total monthly cost at 20 PRs/month: ~$9 in API calls plus GitHub Actions runner 
 
 ---
 
-## 14. What we would do at 10x scale
+## 15. What we would do at 10x scale
 
 **Shard the golden set:** At 500+ cases, the 4-minute eval run becomes a 40-minute blocker. Shard by doc_type so PRs touching only the invoice extractor run the invoice subset (18 cases, ~30 seconds).
 
@@ -287,7 +330,7 @@ Total monthly cost at 20 PRs/month: ~$9 in API calls plus GitHub Actions runner 
 
 ---
 
-## 15. Appendix: Runbooks
+## 16. Appendix: Runbooks
 
 ### Updating a prompt
 
