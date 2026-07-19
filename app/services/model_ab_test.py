@@ -184,14 +184,15 @@ class ModelABTest:
         var1 = sum((x - mean1) ** 2 for x in control_scores) / n1
         var2 = sum((x - mean2) ** 2 for x in treatment_scores) / n2
 
-        pooled_se = math.sqrt(var1 / n1 + var2 / n2)
+        # Welch SE of the mean difference (per-arm variance, not pooled).
+        se_diff = math.sqrt(var1 / n1 + var2 / n2)
 
-        if pooled_se == 0.0:
+        if se_diff == 0.0:
             # Identical distributions — no effect
             z_score = 0.0
             p_value = 1.0
         else:
-            z_score = (mean1 - mean2) / pooled_se
+            z_score = (mean1 - mean2) / se_diff
             p_value = _p_value_from_z(z_score)
 
         significant = p_value < 0.05

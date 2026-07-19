@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.middleware import get_api_key
@@ -12,6 +12,7 @@ from app.dependencies import get_db
 from app.models.api_key import APIKey
 from app.models.job import ExtractionJob
 from app.models.llm_trace import LLMTrace
+from app.models.record import ExtractedRecord
 from app.schemas.responses import (
     BusinessMetricsResponse,
     LLMMetricsResponse,
@@ -117,6 +118,23 @@ async def get_llm_metrics(
     )
 
 
+async def _hitl_escalation_rate(db: AsyncSession, since: datetime) -> float:
+    """Fraction of records created since `since` that were flagged for human
+    review (ExtractedRecord.needs_review). Returns 0.0 when there are no
+    records in the window."""
+    total, escalated = (
+        await db.execute(
+            select(
+                func.count(ExtractedRecord.id),
+                func.count(ExtractedRecord.id).filter(
+                    ExtractedRecord.needs_review.is_(True)
+                ),
+            ).where(ExtractedRecord.created_at >= since)
+        )
+    ).one()
+    return round(escalated / total, 4) if total else 0.0
+
+
 @router.get("/business", response_model=BusinessMetricsResponse)
 async def get_business_metrics(
     db: AsyncSession = Depends(get_db),
@@ -177,7 +195,7 @@ async def get_business_metrics(
         p50_ms=round(p50_ms, 1),
         p95_ms=round(p95_ms, 1),
         docs_30d=docs_30d,
-        hitl_escalation_rate=0.12,
+        hitl_escalation_rate=await _hitl_escalation_rate(db, since),
     )
 
 
@@ -204,7 +222,7 @@ async def get_quality_trend(
             ewma_composite=[],
             per_dimension={d: [] for d in ("completeness", "field_accuracy",
                                             "hallucination_absence", "format_compliance")},
-            escalation_rate=0.0,
+            escalation_rate=await _hitl_escalation_rate(db, since),
             sample_count=0,
         )
 
@@ -244,6 +262,6 @@ async def get_quality_trend(
         days=days,
         ewma_composite=ewma_composite,
         per_dimension=per_dimension,
-        escalation_rate=0.12,  # placeholder until HITL escalation table exists
+        escalation_rate=await _hitl_escalation_rate(db, since),
         sample_count=len(logs),
     )

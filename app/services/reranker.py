@@ -83,11 +83,12 @@ class TFIDFReranker:
         combined = self.alpha * tfidf_scores + (1.0 - self.alpha) * norm_scores
         ranked_indices = combined.argsort()[::-1]
 
-        reranked = []
-        for idx in ranked_indices:
-            result = results[idx]
-            result.score = float(combined[idx])
-            reranked.append(result)
+        # Return copies: rerank must not mutate the caller's SearchResult
+        # objects — their original retrieval scores are still needed upstream.
+        reranked = [
+            results[idx].model_copy(update={"score": float(combined[idx])})
+            for idx in ranked_indices
+        ]
 
         logger.debug(
             "Reranked %d results — top score %.3f (tfidf=%.3f retrieval=%.3f)",

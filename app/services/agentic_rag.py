@@ -592,15 +592,21 @@ def _parse_json(text: str) -> dict:
     return data
 
 
+def _dedup_key(r: SearchResult) -> str:
+    # Fall back to doc_id only when chunk_id is genuinely absent (None);
+    # a falsy-but-valid chunk_id ("") must not collapse distinct chunks.
+    return r.chunk_id if r.chunk_id is not None else r.doc_id
+
+
 def _merge_results(
     existing: list[SearchResult],
     new: list[SearchResult],
 ) -> list[SearchResult]:
     """Merge new results into existing, deduplicating by chunk_id/doc_id."""
-    seen = {(r.chunk_id or r.doc_id) for r in existing}
+    seen = {_dedup_key(r) for r in existing}
     merged = list(existing)
     for r in new:
-        key = r.chunk_id or r.doc_id
+        key = _dedup_key(r)
         if key not in seen:
             merged.append(r)
             seen.add(key)
@@ -611,7 +617,7 @@ def _deduplicate(results: list[SearchResult]) -> list[SearchResult]:
     seen: set[str] = set()
     out: list[SearchResult] = []
     for r in results:
-        key = r.chunk_id or r.doc_id
+        key = _dedup_key(r)
         if key not in seen:
             out.append(r)
             seen.add(key)

@@ -25,7 +25,10 @@ python-multipart>=0.0.22
 sse-starlette==2.1.3
 httpx==0.27.2
 eml-parser==1.17.5
-extract-msg==0.52.0
+# extract-msg (Outlook .msg support) is optional: see requirements-msg.txt.
+# It pulls red-black-tree-mod, which has no prebuilt wheel and needs a C
+# toolchain, so it is kept out of the default install. The code degrades
+# gracefully without it (app/services/email_extractor.py:HAS_EXTRACT_MSG).
 pgvector==0.3.5
 cryptography>=46.0.6
 streamlit>=1.54.0
