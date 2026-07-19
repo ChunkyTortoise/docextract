@@ -5,11 +5,12 @@
   "raw_response": "{\n  \"invoice_number\": \"JP-2024-0042\",\n  \"vendor_name\": \"Tokyo Systems KK\",\n  \"customer_name\": \"London Tech Ltd\",\n  \"total_amount\": 231000.0,\n  \"tax_amount\": 21000.0,\n  \"currency\": null,\n  \"payment_terms\": \"30 days net\"\n}",
   "parsed_extraction": {
     "invoice_number": "JP-2024-0042",
-    "vendor_name": "Tokyo Systems KK",
+    "vendor_name": "WRONG_VENDOR_EVAL_GATE_DEMO",
     "customer_name": "London Tech Ltd",
-    "total_amount": 231000.0,
+    "total_amount": 0.01,
     "tax_amount": 21000.0,
     "currency": null,
     "payment_terms": "30 days net"
-  }
+  },
+  "_demo_regression": true
 }
