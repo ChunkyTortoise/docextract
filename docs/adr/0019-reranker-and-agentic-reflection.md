@@ -1,6 +1,6 @@
 # ADR-0019 — TF-IDF Reranker + Agentic Self-Reflection Loop
 
-**Status:** Accepted  
+**Status:** Accepted
 **Date:** 2026-04-18
 
 ## Context

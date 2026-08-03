@@ -7,9 +7,10 @@ Create Date: 2026-03-21
 """
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
+
+from alembic import op
 
 revision = "009_corrections"
 down_revision = "008_llm_traces"

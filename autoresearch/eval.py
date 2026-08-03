@@ -13,7 +13,7 @@ import argparse
 import asyncio
 import json
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -431,7 +431,7 @@ def _append_result(score: float, prompts_path: Path) -> None:
     """Append a result line to results.tsv."""
     import datetime
 
-    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    timestamp = datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
     header_needed = not RESULTS_PATH.exists()
     with open(RESULTS_PATH, "a") as f:
         if header_needed:

@@ -1,6 +1,6 @@
 # ADR-0018 — Independent LLM Judge (Gemini) + Multi-Provider Router
 
-**Status:** Accepted  
+**Status:** Accepted
 **Date:** 2026-04-18
 
 ## Context

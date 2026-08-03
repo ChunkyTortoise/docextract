@@ -66,6 +66,7 @@ st.divider()
 
 # Run the demo sandbox
 from frontend.pages.demo_sandbox import show
+
 show()
 
 st.divider()

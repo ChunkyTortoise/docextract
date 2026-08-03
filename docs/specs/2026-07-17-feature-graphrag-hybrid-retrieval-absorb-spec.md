@@ -1,7 +1,7 @@
 # Spec: GraphRAG hybrid retrieval absorb (graphrag-demo → docextract)
 
-**Date:** 2026-07-17  
-**Status:** Implement  
+**Date:** 2026-07-17
+**Status:** Implement
 **Lane:** AI Engineer — RAG / evals / DocAI (B1)
 
 ## Goal

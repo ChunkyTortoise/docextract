@@ -1,6 +1,6 @@
 # ADR-0015 — Anthropic Prompt Caching
 
-**Status:** Accepted  
+**Status:** Accepted
 **Date:** 2026-04-18
 
 ## Context

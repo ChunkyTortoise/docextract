@@ -12,7 +12,7 @@ RESULTS_PATH = Path(__file__).parent / "results.tsv"
 
 
 def generate_report(
-    case_results: list["CaseResult"],
+    case_results: list[CaseResult],
     overall_score: float,
     format: str = "json",
 ) -> str:
@@ -32,7 +32,7 @@ def generate_report(
 
 
 def compare_runs(
-    current_results: list["CaseResult"],
+    current_results: list[CaseResult],
     previous_score: float,
 ) -> str:
     """Generate a markdown delta table comparing current vs previous run.
@@ -54,8 +54,8 @@ def compare_runs(
     lines = [
         "## Eval Comparison",
         "",
-        f"| Metric | Previous | Current | Delta |",
-        f"|--------|----------|---------|-------|",
+        "| Metric | Previous | Current | Delta |",
+        "|--------|----------|---------|-------|",
         f"| Overall Score | {previous_score:.4f} | {current_score:.4f} | {sign}{delta:.4f} |",
         f"| Cases | - | {len(current_results)} | - |",
         "",
@@ -73,7 +73,7 @@ def compare_runs(
     return "\n".join(lines)
 
 
-def _json_report(case_results: list["CaseResult"], overall_score: float) -> str:
+def _json_report(case_results: list[CaseResult], overall_score: float) -> str:
     data = {
         "overall_score": overall_score,
         "case_count": len(case_results),
@@ -93,13 +93,13 @@ def _json_report(case_results: list["CaseResult"], overall_score: float) -> str:
     return json.dumps(data, indent=2)
 
 
-def _markdown_report(case_results: list["CaseResult"], overall_score: float) -> str:
+def _markdown_report(case_results: list[CaseResult], overall_score: float) -> str:
     lines = [
-        f"# Eval Report",
-        f"",
+        "# Eval Report",
+        "",
         f"**Overall Score:** {overall_score:.4f}",
         f"**Cases Evaluated:** {len(case_results)}",
-        f"",
+        "",
         "| Case ID | Doc Type | Score | Completeness | Hallucinations | Format Valid |",
         "|---------|----------|-------|-------------|----------------|--------------|",
     ]

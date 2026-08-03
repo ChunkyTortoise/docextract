@@ -137,5 +137,3 @@ def _build_client_with_mock_response(
     client._client = MagicMock()
     client._client.aio.models.generate_content = AsyncMock(return_value=mock_api_response)
     return client
-
-

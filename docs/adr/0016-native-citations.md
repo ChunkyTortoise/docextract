@@ -1,6 +1,6 @@
 # ADR-0016 — Anthropic Native Citations API for Grounded Extraction
 
-**Status:** Accepted  
+**Status:** Accepted
 **Date:** 2026-04-18
 
 ## Context
