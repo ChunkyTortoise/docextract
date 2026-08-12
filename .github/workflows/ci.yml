@@ -134,7 +134,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push API image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -143,7 +143,7 @@ jobs:
             ghcr.io/${{ env.REGISTRY_OWNER }}/docextract-api:latest
             ghcr.io/${{ env.REGISTRY_OWNER }}/docextract-api:${{ github.sha }}
       - name: Build and push Worker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.worker
@@ -152,7 +152,7 @@ jobs:
             ghcr.io/${{ env.REGISTRY_OWNER }}/docextract-worker:latest
             ghcr.io/${{ env.REGISTRY_OWNER }}/docextract-worker:${{ github.sha }}
       - name: Build and push Frontend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.frontend
