@@ -29,7 +29,7 @@ Prompts are code. DocExtract treats extraction quality as a **merge-blocking CI 
 |--------|-------|-------|
 | Extraction accuracy (field-level, critical fields weighted 2×) | **95.5%** | Always-on CI offline replay of **28** deterministic fixtures (`scripts/eval_offline_replay.py`); not a paid live grade |
 | Test suite | **1,366 collected tests**, 80% CI coverage gate | `pytest tests/ --collect-only`; gate `--cov-fail-under=80` ([portfolio-metrics.yaml](docs/portfolio-metrics.yaml)) |
-| Eval corpus | **200 cases** (150 golden + 50 adversarial) | 28 deterministic-replay in CI + remainder live-metered when API budget attached |
+| Eval corpus | **202 cases** (151 golden + 51 adversarial) | `evals/golden_set.jsonl` + `evals/adversarial_set.jsonl` (line counts); 28 deterministic-replay in CI |
 | Cost / latency | See [cost-model.md](docs/cost-model.md) | Modeled only until a funded `scripts/benchmark.py` run is committed |
 
 <details>
