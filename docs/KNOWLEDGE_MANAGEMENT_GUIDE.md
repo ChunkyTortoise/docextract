@@ -117,7 +117,7 @@ The two-pass extraction pipeline runs on every document:
 1. **Pass 1**: Claude Sonnet produces a structured JSON extraction with per-field confidence scores
 2. **Pass 2**: If any field confidence falls below 0.80, a second `tool_use` call targets those specific fields for correction
 
-Evaluated with an accepted 95.5% accuracy baseline (field-level, weighted) in `autoresearch/baseline.json` and a current 72-case corpus (51 golden + 21 adversarial) that includes prompt-injection, OCR-noise, and hallucination-bait cases.
+Evaluated with 95.5% weighted field-level accuracy on a 28-case offline CI replay (`autoresearch/baseline.json`) and a current 202-case corpus (151 golden + 51 adversarial) that includes prompt-injection, OCR-noise, and hallucination-bait cases.
 
 Model fallback chain: Sonnet primary → Haiku fallback (circuit breaker triggers after 5 failures, recovers after 60s).
 
@@ -297,7 +297,7 @@ API key authentication on all endpoints. Admin keys can create and revoke other 
 Low-confidence extractions are routed to the human review queue automatically. Reviewers correct and approve records. All corrections are logged to the audit trail. Correction data can be exported as a DPO training dataset (`finetune_exporter.py`) to improve future extractions.
 
 **What is the extraction accuracy?**
-95.5% accepted field-level accuracy baseline on the committed eval baseline, with a 72-case current corpus including adversarial cases. Accuracy on your specific document types will vary. Phase 1 of the implementation includes tuning and validation against a sample of your own documents.
+95.5% weighted field-level accuracy on a 28-case offline CI replay, with a 202-case current corpus (151 golden + 51 adversarial). Accuracy on your specific document types will vary. Phase 1 of the implementation includes tuning and validation against a sample of your own documents.
 
 **How does it handle sensitive documents?**
 The PII detection pipeline scans all extraction output for SSNs, credit cards, phone numbers, and email addresses. Records containing PII are auto-flagged for review. PII is redacted before sending data to external observability services (Langfuse, LangSmith). See `docs/COMPLIANCE.md` for HIPAA and GDPR details.

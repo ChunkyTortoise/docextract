@@ -72,7 +72,7 @@ Based on Anthropic pricing (as of 2026-03):
 
 ## Accuracy by Document Type
 
-From the accepted eval baseline and current 72-case corpus:
+From the accepted eval baseline and current 202-case corpus:
 
 | Document Type | Cases | Accuracy | Hardest Case |
 |---------------|-------|----------|-------------|

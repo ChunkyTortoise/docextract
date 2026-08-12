@@ -7,7 +7,7 @@ Each entry maps methodology learned to production implementation. References are
 ## IBM Generative AI Engineering — IBM (144h)
 **Methodology learned**: PyTorch model lifecycle, LangChain orchestration, HuggingFace Trainer API, structured LLM output schemas
 **Applied in**: `app/services/` — two-pass Claude extraction with `tool_use` correction, Pydantic structured output schemas, QLoRA fine-tuning pipeline
-**Production metric**: 95.5% accepted extraction accuracy baseline (field-level, weighted) with a 72-case current eval corpus including prompt-injection fixtures
+**Production metric**: 95.5% weighted field-level accuracy on a 28-case offline CI replay; current eval corpus 202 cases (151 golden + 51 adversarial), including prompt-injection fixtures
 **Design decision informed**: Two-pass extraction pattern (classify then extract) reduces hallucination vs single-pass; correction pass uses tool_use to self-repair low-confidence fields
 
 ## IBM RAG and Agentic AI — IBM (24h)
