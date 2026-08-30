@@ -17,7 +17,7 @@
     <nav aria-label="Primary">
       <a href="https://github.com/ChunkyTortoise/docextract#eval-gate">Eval gate</a>
       <a href="https://github.com/ChunkyTortoise/docextract/blob/main/docs/eval-methodology.md">Methodology</a>
-      <a class="nav-cta" href="https://docextract-demo.streamlit.app" target="_blank" rel="noopener noreferrer">Live demo</a>
+      <a class="nav-cta" href="https://github.com/ChunkyTortoise/docextract/blob/main/DEMO.md">Local demo</a>
     </nav>
   </header>
 
@@ -31,7 +31,7 @@
         then two-pass Claude extraction, pgvector search, and an agentic ReAct retrieval loop.
       </p>
       <div class="hero-actions">
-        <a class="btn primary" href="https://docextract-demo.streamlit.app" target="_blank" rel="noopener noreferrer">Open live demo</a>
+        <a class="btn primary" href="https://github.com/ChunkyTortoise/docextract/blob/main/DEMO.md">Run local demo</a>
         <a class="btn ghost" href="https://github.com/ChunkyTortoise/docextract">View on GitHub</a>
       </div>
       <dl class="proof-strip">
@@ -62,7 +62,7 @@
           <ul class="checklist">
             <li>Deterministic 28-case offline replay on every eval-gated PR</li>
             <li>Variance-calibrated regression tolerance vs <code>autoresearch/baseline.json</code></li>
-            <li>Langfuse as the primary observability spine for live traces</li>
+            <li>Optional Langfuse and OpenTelemetry integrations when configured</li>
             <li>Ledger-honest metrics in <code>docs/portfolio-metrics.yaml</code></li>
           </ul>
         </div>
@@ -91,11 +91,11 @@
         </article>
         <article>
           <h3>Agentic RAG</h3>
-          <p>Think → Act → Observe loop over hybrid retrieval tools — the primary search story in the live demo and API.</p>
+          <p>Think, act, and observe loop over hybrid retrieval tools in the local demo and API.</p>
         </article>
         <article>
           <h3>Async + observable</h3>
-          <p>ARQ workers, SSE job progress, Langfuse traces per pipeline run. Prometheus <code>/metrics</code> for ops.</p>
+          <p>ARQ workers, SSE job progress, optional trace exporters, and Prometheus <code>/metrics</code> for ops.</p>
         </article>
       </div>
       <p class="footnote">
@@ -107,12 +107,6 @@
     <section class="panel links-panel" id="links">
       <h2>Start here</h2>
       <ul class="link-grid">
-        <li>
-          <a href="https://docextract-demo.streamlit.app" target="_blank" rel="noopener noreferrer">
-            <span class="link-label">Live Streamlit demo</span>
-            <span class="link-url">docextract-demo.streamlit.app</span>
-          </a>
-        </li>
         <li>
           <a href="https://github.com/ChunkyTortoise/docextract/blob/main/DEMO.md">
             <span class="link-label">DEMO.md</span>

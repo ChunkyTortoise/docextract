@@ -19,7 +19,7 @@ Self-hosted via `docker compose up`:
 Also supports: Render Blueprint, K8s/Kustomize, AWS Terraform (RDS+ElastiCache)
 
 ## Test
-```pytest tests/  # 1,366 collected tests (ledger: docs/portfolio-metrics.yaml)```
+```pytest tests/  # current suite; do not publish a collected-test count```
 
 ## Key Env
 ANTHROPIC_API_KEY, DATABASE_URL, REDIS_URL, SECRET_KEY

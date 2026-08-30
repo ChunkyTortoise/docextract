@@ -74,7 +74,7 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 
 ## The Results
 
-**1,366 collected tests** (`pytest tests/ --collect-only`) — unit tests for every service layer, integration tests for the full upload-to-extraction pipeline, and load tests via Locust.
+The test suite covers service layers, the upload-to-extraction pipeline, and load behavior. CI enforces an 80% coverage floor; the changing collected-test total is intentionally omitted.
 
 **95.5% accepted extraction accuracy baseline (field-level, weighted)** stored in `autoresearch/baseline.json` (28 scored baseline cases), with a current 202-case eval corpus (151 golden + 51 adversarial) across 6 document types. Enforced in CI with regression tolerance.
 
@@ -92,7 +92,7 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 
 | Metric | Value |
 |--------|-------|
-| Test suite | 1,366 collected tests (`pytest tests/ --collect-only`) |
+| Test suite | Unit, integration, and load coverage with an 80% CI coverage floor |
 | Extraction accuracy | 95.5% accepted field-level accuracy baseline (28 scored baseline cases, 6 doc types) |
 | Eval corpus | 202 cases: 151 golden + 51 adversarial |
 | Embedding model | gemini-embedding-2-preview, 768-dim, HNSW index |
@@ -178,7 +178,7 @@ The three features that turned docextract from a demo into a system you'd trust 
 
 **Circuit breaker model fallback** (`app/services/circuit_breaker.py`, `app/services/model_router.py`). Each model in the fallback chain has its own `AsyncCircuitBreaker` — a CLOSED/OPEN/HALF_OPEN state machine behind an `asyncio.Lock`. When a model trips (5 consecutive failures: rate limits, 5xx), its circuit opens and calls route to the next model in the chain. After a 60-second recovery window it enters HALF_OPEN and probes with a single call. Extraction chains Sonnet→Haiku; classification chains Haiku→Sonnet (inverted by intent: classification is simpler, so Haiku-first is the preferred path not the degraded one).
 
-**Golden eval CI gate** (`scripts/run_eval_ci.py`, `autoresearch/baseline.json`). The current eval corpus has 72 scored cases (51 golden + 21 adversarial), while the accepted committed baseline records 95.5% field-level accuracy over 28 scored baseline cases. The gate loads the committed baseline and fails the build if the current run drops beyond tolerance. The `--update-baseline` flag accepts an intentional regression. This makes extraction quality a first-class CI signal, the same way coverage thresholds gate code quality.
+**Golden eval CI gate** (`scripts/run_eval_ci.py`, `autoresearch/baseline.json`). The accepted committed baseline records 95.5% weighted field-level accuracy over 28 deterministic replay fixtures. A separate 202-case authoring corpus contains 151 golden and 51 adversarial cases. The gate loads the committed baseline and fails the build if replay drops beyond tolerance. The `--update-baseline` flag accepts an intentional baseline change.
 
 **OpenTelemetry + Prometheus** (`app/observability.py`). Feature-flagged behind `OTEL_ENABLED=false` so existing CI is unaffected. When enabled, `setup_telemetry(app)` creates a `PrometheusMetricReader`, mounts `/metrics`, and wires up three instruments: `llm_call_duration_ms` (Histogram), `llm_calls_total` (Counter), and `llm_tokens_total` (Counter). The bridge pattern augments the existing `llm_tracer.py` DB tracing rather than replacing it — the DB traces power the `/stats` endpoint and ROI features; OTel powers ops dashboards.
 
@@ -242,7 +242,7 @@ Four things I'm proud of in this build:
 - **Two-pass Claude extraction**: Pass 1 extracts structured JSON with a confidence score. If confidence < 80%, Pass 2 fires a tool_use correction call — Claude returns field-level fixes as structured data, not free text.
 - **Agentic RAG (ReAct)**: autonomous retrieval agent selects from 5 tools per query — vector, BM25, hybrid, metadata, rerank. Confidence-gated at 0.8 with max 3 iterations.
 - **RAGAS evaluation pipeline**: context recall, faithfulness, and answer relevancy scored by LLM-as-judge with structured rubric. CI gate blocks regressions.
-- **1,366 collected tests**: Full unit + integration coverage including eval regression gate, circuit breaker state machine tests, and OTel bridge tests (`pytest tests/ --collect-only`).
+- **Test coverage**: Unit and integration coverage includes the eval regression gate, circuit breaker state machine tests, and OTel bridge tests; CI enforces an 80% floor.
 
 Stack: FastAPI + ARQ + pgvector HNSW + Claude Sonnet/Haiku + OpenTelemetry + Prometheus + Streamlit
 Self-hosted: `docker compose up` (API http://localhost:8000, Frontend http://localhost:8501)
