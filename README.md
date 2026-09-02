@@ -8,7 +8,7 @@
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 
-**Reviewer path (about two minutes, no API key):** follow [DEMO.md](DEMO.md) and run the local fixture-backed demo. The hosted Streamlit URL is intentionally omitted until anonymous access is verified.
+**Reviewer path (about two minutes, zero API keys):** follow [DEMO.md](DEMO.md) and run the local fixture-backed demo (`DEMO_MODE=true streamlit run frontend/app.py`). The hosted Streamlit URL is intentionally omitted until anonymous access is verified. Static preview and trace visualizer available in [`site/`](site/) and [`frontend/pages/agent_trace.py`](frontend/pages/agent_trace.py).
 
 Static marketing front door: [`site/`](site/) (HTML + CSS, no build step).
 
@@ -63,6 +63,8 @@ Upload → ARQ worker → classify → extract → validate → embed → search
 ## Why this is interesting (engineering)
 
 - **Eval-gated CI**: `eval-gate.yml` offline job replays 28-case deterministic baseline at zero API cost; PRs touching prompts or extraction services must pass before merge
+- **FastAPI & Strict Type Safety**: End-to-end Pydantic V2 validation contracts, typed error domains, and deterministic schema enforcement preventing malformed extraction persistence
+- **PostgreSQL (pgvector) & ARQ Queue**: Document chunk embeddings indexed via pgvector HNSW vectors, decoupled background document processing via Redis and ARQ worker queue
 - **Agentic RAG**: ReAct Think → Act → Observe over hybrid retrieval tools; primary search story in API and Streamlit ([`agentic_rag.py`](app/services/agentic_rag.py), [`agent_trace.py`](frontend/pages/agent_trace.py))
 - **Cost-aware model routing**: Haiku for classification, Sonnet for extraction; prompt caching on system prompts; circuit breaker with Haiku fallback
 - **Independent judge**: Gemini grades extractions to reduce self-grading bias ([ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md))
