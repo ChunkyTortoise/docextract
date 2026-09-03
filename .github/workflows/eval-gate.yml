@@ -56,7 +56,7 @@ jobs:
         run: python scripts/eval_offline_replay.py --floor 0.85 --out eval_artifacts/offline_replay.json
       - name: Upload offline replay artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: offline-replay-${{ github.run_id }}
           path: eval_artifacts/
@@ -144,7 +144,7 @@ jobs:
             --mode      ${{ github.event_name }}
       - name: Upload eval artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: eval-report-${{ github.run_id }}
           path: eval_artifacts/
@@ -228,7 +228,7 @@ jobs:
           python scripts/eval_multiprovider.py             --golden evals/golden_set.jsonl             --adv             --providers anthropic openai             --out eval_artifacts/multiprovider_panel.json
       - name: Upload multi-provider panel
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: multiprovider-panel-${{ github.run_id }}
           path: eval_artifacts/multiprovider_panel.json
