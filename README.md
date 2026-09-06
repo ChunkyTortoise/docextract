@@ -1,16 +1,26 @@
-![DocExtract AI fixture-backed demo with evaluation scores, agent trace, and cost analysis](docs/screenshots/demo-hero.png)
-
 # DocExtract AI
 
-> **Ship-gate first:** versioned eval corpus, offline replay, and a variance-calibrated CI gate, followed by two-pass extraction and agentic RAG.
+**Fixture-backed document intelligence with an explicit eval gate.**
+
+Replay the evidence first. A **95.5%** field-level score from a deterministic **28-fixture** CI replay, plus a separately labeled **202-case** authoring corpus. Then two-pass extraction and agentic RAG.
+
+<p align="center">
+  <img src="./docs/assets/eval-proof.svg" width="620" alt="DocExtract deterministic evaluation proof: 95.5% field-level score from a 28-fixture replay, with a separately labeled 202-case authoring corpus, then extraction pass 1, pass 2, and the eval gate." />
+</p>
+
+```bash
+git clone https://github.com/ChunkyTortoise/docextract.git
+cd docextract
+DEMO_MODE=true streamlit run frontend/app.py
+```
+
+No API key. Local `DEMO_MODE` uses cached fixtures. Full reviewer path: [DEMO.md](DEMO.md).
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 
-**Reviewer path (about two minutes, zero API keys):** follow [DEMO.md](DEMO.md) and run the local fixture-backed demo (`DEMO_MODE=true streamlit run frontend/app.py`). The hosted Streamlit URL is intentionally omitted until anonymous access is verified. Static preview and trace visualizer available in [`site/`](site/) and [`frontend/pages/agent_trace.py`](frontend/pages/agent_trace.py).
-
-Static marketing front door: [`site/`](site/) (HTML + CSS, no build step).
+The hosted Streamlit URL is intentionally omitted until anonymous access is verified. Static preview and trace visualizer live in [`site/`](site/) and [`frontend/pages/agent_trace.py`](frontend/pages/agent_trace.py).
 
 ## Eval gate {#eval-gate}
 
@@ -94,6 +104,8 @@ Run the fixture-backed demo locally with no API key:
 ```bash
 DEMO_MODE=true streamlit run frontend/app.py
 ```
+
+![DocExtract AI fixture-backed demo with evaluation scores, agent trace, and cost analysis](docs/screenshots/demo-hero.png)
 
 Progress streams over SSE: `/jobs/{id}/events` (extraction stages) and `/agent-search/stream` (agentic retrieval reasoning).
 

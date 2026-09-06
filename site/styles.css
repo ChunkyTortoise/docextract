@@ -175,6 +175,20 @@ main {
   margin-bottom: 2.5rem;
 }
 
+.proof-visual {
+  margin: 0 0 2rem;
+  max-width: 38rem;
+}
+
+.proof-visual img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: calc(var(--radius) + 0.25rem);
+  border: 1px solid var(--border);
+  background: #f7f9fc;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

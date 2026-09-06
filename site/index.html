@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DocExtract AI — eval-gated document intelligence</title>
   <meta name="description" content="Ship-gate first: versioned corpus, offline replay, variance-calibrated CI. Then extraction and agentic RAG over structured records." />
+  <meta property="og:title" content="DocExtract AI — deterministic proof first" />
+  <meta property="og:description" content="95.5% field-level score from a deterministic 28-fixture replay. 202-case authoring corpus labeled separately." />
+  <meta property="og:image" content="eval-proof.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -34,6 +37,9 @@
         <a class="btn primary" href="https://github.com/ChunkyTortoise/docextract/blob/main/DEMO.md">Run local demo</a>
         <a class="btn ghost" href="https://github.com/ChunkyTortoise/docextract">View on GitHub</a>
       </div>
+      <figure class="proof-visual">
+        <img src="eval-proof.svg" width="620" height="620" alt="DocExtract deterministic evaluation proof: 95.5% field-level score from a 28-fixture replay, with a separately labeled 202-case authoring corpus, then extraction pass 1, pass 2, and the eval gate." />
+      </figure>
       <dl class="proof-strip">
         <div>
           <dt>CI replay</dt>
@@ -132,10 +138,10 @@
           </a>
         </li>
         <li>
-          <span class="link-card disabled" aria-disabled="true">
+          <a href="https://github.com/ChunkyTortoise/docextract/pull/32">
             <span class="link-label">Blocked eval PR</span>
-            <span class="link-url">See README for public regression PR link</span>
-          </span>
+            <span class="link-url">#32 — intentional red replay (do not merge)</span>
+          </a>
         </li>
       </ul>
     </section>

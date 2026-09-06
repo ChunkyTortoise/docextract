@@ -27,3 +27,5 @@ Upload the `site/` directory to any static host (GitHub Pages, Cloudflare Pages,
 ## Content sources
 
 Copy and metrics on the page mirror the README and `docs/portfolio-metrics.yaml`. Update those sources first, then refresh `site/index.html` if numbers or links change.
+
+The hero proof image is `site/eval-proof.svg`, kept in lockstep with `docs/assets/eval-proof.svg`. The 1280×640 social card lives at `docs/assets/social-preview.svg` and is not uploaded to GitHub Settings from this change.
