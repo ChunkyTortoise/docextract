@@ -1,20 +1,27 @@
 # DocExtract AI
 
-**Fixture-backed document intelligence with an explicit eval gate.**
-
-Replay the evidence first. A **95.5%** field-level score from a deterministic **28-fixture** CI replay, plus a separately labeled **202-case** authoring corpus. Then two-pass extraction and agentic RAG.
+Fixture-backed document intelligence with two-pass extraction, agentic retrieval, and an eval gate.
 
 <p align="center">
-  <img src="./docs/assets/eval-proof.svg" width="620" alt="DocExtract deterministic evaluation proof: 95.5% field-level score from a 28-fixture replay, with a separately labeled 202-case authoring corpus, then extraction pass 1, pass 2, and the eval gate." />
+  <img src="./docs/assets/eval-proof.svg" width="720" alt="DocExtract deterministic evaluation proof: 95.5% field-level score from a 28-fixture replay, two extraction passes, an eval gate, and a separately labeled 202-case authoring corpus." />
 </p>
 
-```bash
-git clone https://github.com/ChunkyTortoise/docextract.git
-cd docextract
-DEMO_MODE=true streamlit run frontend/app.py
-```
+## Deterministic eval replay
 
-No API key. Local `DEMO_MODE` uses cached fixtures. Full reviewer path: [DEMO.md](DEMO.md).
+> **95.5% field-level score from a deterministic 28-fixture replay**
+
+| Evidence | What it is | What it is not |
+|----------|------------|----------------|
+| **28 fixtures** | Deterministic replay behind the 95.5% field-level score (`scripts/eval_offline_replay.py`, `autoresearch/baseline.json`) | Not the authoring-corpus size |
+| **202 cases** | Authoring corpus (151 golden + 51 adversarial) | Not the replay fixture total and not the score population |
+
+### Reviewer path
+
+1. Replay the committed fixtures: `python scripts/eval_offline_replay.py --floor 0.85`
+2. Compare the replayed field-level score to **95.5%**
+3. Inspect the two extraction passes and the deterministic eval gate on the proof card
+4. Continue to retrieval, architecture, and the honest scope notes below
+5. Run the local fixture-backed UI: `DEMO_MODE=true streamlit run frontend/app.py` — [DEMO.md](DEMO.md)
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
@@ -60,6 +67,8 @@ Overall: 0.955 across 28 cases, replayed on every eval-gated PR at zero API cost
 
 More: [CASE_STUDY.md](CASE_STUDY.md) · [docs/eval-methodology.md](docs/eval-methodology.md) · [evals/](evals/)
 
+![DocExtract AI fixture-backed demo with evaluation scores, agent trace, and cost analysis](docs/screenshots/demo-hero.png)
+
 ## What this does
 
 FastAPI document intelligence: upload PDFs and images, classify with cost-aware routing, extract structured fields via a **two-pass Claude pipeline**, embed into **pgvector**, and query with **agentic RAG** (ReAct loop with streaming SSE reasoning).
@@ -104,8 +113,6 @@ Run the fixture-backed demo locally with no API key:
 ```bash
 DEMO_MODE=true streamlit run frontend/app.py
 ```
-
-![DocExtract AI fixture-backed demo with evaluation scores, agent trace, and cost analysis](docs/screenshots/demo-hero.png)
 
 Progress streams over SSE: `/jobs/{id}/events` (extraction stages) and `/agent-search/stream` (agentic retrieval reasoning).
 
