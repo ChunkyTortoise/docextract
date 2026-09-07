@@ -209,7 +209,7 @@ Do not describe CI replay as a live two-pass Claude grade.
 
 - **A 202-case score.** The authoring corpus is not the replay denominator. There is no published 202-case accuracy figure here.
 - **Live model grade.** CI replay does not call Anthropic (or any other provider). A change to prompts or the extractor can still pass offline replay until fixtures are re-recorded.
-- **Held-out freshness.** The 28 predictions are committed files. They are not a fresh sample drawn at eval time.
+- **Held-out freshness.** The 28 predictions are committed files. They are not a fresh sample drawn at eval time. Procedure for a funded live run on an untouched partition (performance unmeasured until that run is logged): [held-out-live-eval-protocol.md](held-out-live-eval-protocol.md).
 - **The 44 pending cases in `eval_dataset_72.json`.** No fixture means not scored, not failed.
 - **Generalization** to new vendors, layouts, languages, or document types outside these 28.
 - **Cost or latency.** Those remain modeled until a metered `scripts/benchmark.py` artifact is committed (`docs/cost-model.md`).

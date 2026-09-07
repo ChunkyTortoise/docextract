@@ -15,7 +15,7 @@ Fixture-backed document intelligence with two-pass extraction, agentic retrieval
 | **28 fixtures** | Deterministic replay behind the 95.5% field-level score (`scripts/eval_offline_replay.py`, `autoresearch/baseline.json`) | Not the authoring-corpus size |
 | **202 cases** | Authoring corpus (151 golden + 51 adversarial) | Not the replay fixture total and not the score population |
 
-How the 28-fixture replay is scored, and how it relates to the 202-case authoring corpus: [docs/eval-boundary.md](docs/eval-boundary.md).
+How the 28-fixture replay is scored, and how it relates to the 202-case authoring corpus: [docs/eval-boundary.md](docs/eval-boundary.md). Held-out live eval (protocol only; performance unmeasured): [docs/held-out-live-eval-protocol.md](docs/held-out-live-eval-protocol.md).
 
 ### Reviewer path
 
@@ -40,6 +40,7 @@ Prompts are code. DocExtract treats extraction quality as a **merge-blocking CI 
 | **Offline replay** (badge driver) | `scripts/eval_offline_replay.py` on 28 committed fixtures | Every eval-gated PR; zero API cost |
 | **Variance-calibrated gate** | `scripts/eval_gate.py` vs `autoresearch/baseline.json` | PRs touching prompts / extraction services |
 | **Paid live eval** | Promptfoo, RAGAS, LLM-judge | Only when `ANTHROPIC_API_KEY` is present in CI; skipped otherwise |
+| **Held-out live protocol** | Public or synthetic docs, untouched test partition, `score_extraction` | Unmeasured until a funded run is logged ([protocol](docs/held-out-live-eval-protocol.md)) |
 | **Drift cron** | Golden set vs production prompt version | Daily 13:23 UTC |
 
 **Eval gate proof (red blocked PR):** [#32 — intentional regression (keep open / expect red)](https://github.com/ChunkyTortoise/docextract/pull/32). Executed vs replayed stages: [docs/eval-gate-proof.md](docs/eval-gate-proof.md). See also [docs/eval-methodology.md](docs/eval-methodology.md).
@@ -67,7 +68,7 @@ Overall: 0.955 across 28 cases, replayed on every eval-gated PR at zero API cost
 
 </details>
 
-More: [CASE_STUDY.md](CASE_STUDY.md) · [docs/eval-methodology.md](docs/eval-methodology.md) · [docs/eval-boundary.md](docs/eval-boundary.md) · [evals/](evals/)
+More: [CASE_STUDY.md](CASE_STUDY.md) · [docs/eval-methodology.md](docs/eval-methodology.md) · [docs/eval-boundary.md](docs/eval-boundary.md) · [docs/held-out-live-eval-protocol.md](docs/held-out-live-eval-protocol.md) · [evals/](evals/)
 
 ![DocExtract AI fixture-backed demo with evaluation scores, agent trace, and cost analysis](docs/screenshots/demo-hero.png)
 
