@@ -114,6 +114,61 @@ def test_stub_dataset_is_empty_array_not_fake_scores():
     assert STATUS in manifest["status"]
 
 
+def test_summarize_arm_empty_is_unmeasured():
+    from scripts.held_out_baseline_benchmark import summarize_arm, unmeasured_arm
+
+    assert summarize_arm([]) == unmeasured_arm()
+
+
+def test_summarize_arm_aggregates_without_api():
+    from scripts.held_out_baseline_benchmark import summarize_arm
+
+    rows = [
+        {
+            "weight": 1.0,
+            "score": 1.0,
+            "invalid": False,
+            "accepted": True,
+            "low_confidence": False,
+            "critical_failed": 0,
+            "critical_total": 2,
+            "doc_type": "invoice",
+            "latency_ms": 10.0,
+            "cost_usd": 0.001,
+        },
+        {
+            "weight": 1.0,
+            "score": 0.5,
+            "invalid": False,
+            "accepted": True,
+            "low_confidence": True,
+            "critical_failed": 1,
+            "critical_total": 2,
+            "doc_type": "invoice",
+            "latency_ms": 20.0,
+            "cost_usd": 0.002,
+        },
+        {
+            "weight": 1.0,
+            "score": None,
+            "invalid": True,
+            "accepted": False,
+            "low_confidence": False,
+            "critical_failed": 0,
+            "critical_total": 0,
+            "doc_type": "receipt",
+            "latency_ms": 5.0,
+            "cost_usd": 0.0,
+        },
+    ]
+    summary = summarize_arm(rows)
+    assert summary["field_accuracy_overall"] == "0.750000"
+    assert summary["critical_field_failure_rate"] == "0.250000"
+    assert summary["invalid_or_missing_outputs"] == "0.333333"
+    assert summary["abstention_low_confidence_frequency"] == "0.500000"
+    assert summary["document_type_breakdown"]["invoice"] == "0.750000"
+
+
 def test_benchmark_doc_status_banner():
     text = (REPO / "docs" / "held-out-baseline-benchmark.md").read_text()
     assert f"STATUS: {STATUS}" in text

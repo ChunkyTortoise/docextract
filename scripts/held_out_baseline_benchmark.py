@@ -459,7 +459,7 @@ def main(argv: list[str] | None = None) -> int:
                 dataset_path=dataset_path,
                 case_count=case_count,
                 command=command,
-                artifact_path=str(ARTIFACT_ROOT / "<YYYYMMDD>" / "run.json"),
+                artifact_path="docs/artifacts/held-out-baseline/<YYYYMMDD>/run.json",
             ),
             end="",
         )
