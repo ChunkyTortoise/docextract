@@ -11,10 +11,11 @@ DocExtract separates a deterministic, merge-safe offline replay from optional pa
 | Offline replay fixtures | 28 cases | Deterministic zero-cost CI signal |
 | Accepted replay baseline | 95.5% | Weighted field-level accuracy over the 28 replay fixtures |
 | Held-out live protocol | n/a | Funded live extract on a locked test partition; performance unmeasured |
+| Held-out vs simpler baseline | n/a | Two-pass vs Pass-1-only on the same locked test docs; plan + harness only; performance unmeasured |
 
 The 202-case authoring corpus is separate from the 28-fixture replay. The published 95.5% result uses only the replay fixtures as its denominator and must not be described as F1 or as a 202-case live-model result.
 
-Scoring formulas, missing-field rules, fixture provenance, and the 28-vs-202 denominator boundary: [eval-boundary.md](eval-boundary.md). Held-out live evaluation (protocol only; performance unmeasured): [held-out-live-eval-protocol.md](held-out-live-eval-protocol.md).
+Scoring formulas, missing-field rules, fixture provenance, and the 28-vs-202 denominator boundary: [eval-boundary.md](eval-boundary.md). Held-out live evaluation (protocol only; performance unmeasured): [held-out-live-eval-protocol.md](held-out-live-eval-protocol.md). Held-out two-pass vs Pass-1-only comparison (plan + harness; performance unmeasured): [held-out-baseline-benchmark.md](held-out-baseline-benchmark.md).
 
 ## Always-on gate
 
@@ -45,7 +46,7 @@ Promptfoo, Ragas, and LLM-as-judge paths provide deeper model-dependent checks w
 
 Live results should be published only with a dated artifact, provider and model identifiers, case count, run count, cost, and latency. Modeled cost or latency belongs in `docs/cost-model.md`, not in the README as measured performance.
 
-Those optional CI jobs are not a held-out live grade. For a funded run on public or synthetic documents with an untouched test partition and the predeclared `score_extraction` rubric, follow [held-out-live-eval-protocol.md](held-out-live-eval-protocol.md). That protocol stays `STATUS: PROTOCOL ONLY — PERFORMANCE UNMEASURED` until a funded artifact is logged. Repeating offline replay does not satisfy it.
+Those optional CI jobs are not a held-out live grade. For a funded run on public or synthetic documents with an untouched test partition and the predeclared `score_extraction` rubric, follow [held-out-live-eval-protocol.md](held-out-live-eval-protocol.md). That protocol stays `STATUS: PROTOCOL ONLY — PERFORMANCE UNMEASURED` until a funded artifact is logged. Repeating offline replay does not satisfy it. Comparing two-pass extraction to the real Pass-1-only path on that same partition is a separate unmeasured plan ([held-out-baseline-benchmark.md](held-out-baseline-benchmark.md)); it also is not satisfied by replaying the 28 fixtures.
 
 ## Observability boundary
 

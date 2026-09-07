@@ -72,11 +72,13 @@ async def extract(
     db: AsyncSession | None = None,
     citations: bool = False,
     reflection: bool = False,
+    correction: bool = True,
 ) -> ExtractionResult:
     """Two-pass Claude extraction.
 
     Pass 1: Extract structured data using JSON output format
-    Pass 2: Tool-use correction if confidence < threshold
+    Pass 2: Tool-use correction if confidence < threshold (skipped when
+    ``correction=False`` — used by the held-out simpler-baseline harness).
     """
     from app.services.llm_tracer import trace_llm_call
     from app.services.response_validator import validate_extraction
@@ -213,12 +215,12 @@ async def extract(
     # whether the input scan fired (defense-in-depth).
     extracted = _sanitize(extracted)
 
-    # Pass 2: Correction if low confidence
+    # Pass 2: Correction if low confidence (opt-out for the Pass-1-only baseline).
     corrections_applied = False
     threshold = settings.confidence_thresholds.get(
         doc_type, settings.extraction_confidence_threshold
     )
-    if confidence < threshold:
+    if correction and confidence < threshold:
         extracted, corrections_applied = await _apply_corrections_pass(
             client, text, doc_type, extracted, confidence, db=db,
             router=router,

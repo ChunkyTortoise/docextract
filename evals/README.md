@@ -8,6 +8,7 @@ This directory contains the golden and adversarial case sets used by the eval-ga
 |---|---|---|
 | `golden_set.jsonl` | 150 | Normal extraction cases with ground-truth labels |
 | `adversarial_set.jsonl` | 50 | Edge cases, prompt injections, OCR noise, long docs |
+| `held_out_live/` | stubs | Locked held-out partition for the live protocol and two-pass vs Pass-1 benchmark. Not scored. See that folder's README. |
 
 **Current counts:** 200 total (v2.0.0, 2026-07-18). See `CHANGELOG.md`.
 

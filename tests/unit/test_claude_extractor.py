@@ -161,6 +161,32 @@ class TestExtractPass2Corrections:
         # Only one API call (no correction pass)
         assert client.messages.create.call_count == 1
 
+    @patch("app.services.claude_extractor.settings")
+    @patch("app.services.claude_extractor.AsyncAnthropic")
+    @pytest.mark.asyncio
+    async def test_correction_false_skips_pass2_on_low_confidence(self, mock_cls, mock_settings):
+        """Pass-1-only baseline uses the real extract path with correction=False."""
+        mock_settings.anthropic_api_key = "test-key"
+        mock_settings.extraction_confidence_threshold = 0.8
+        mock_settings.confidence_thresholds = {}
+        mock_settings.active_learning_enabled = False
+        mock_settings.extraction_models = ["claude-sonnet-4-6"]
+        mock_settings.circuit_breaker_failure_threshold = 5
+        mock_settings.circuit_breaker_recovery_seconds = 60.0
+
+        client = MagicMock()
+        mock_cls.return_value = client
+
+        pass1_data = {"invoice_number": "INV-001", "_confidence": 0.6}
+        client.messages.create = AsyncMock(return_value=_make_response(
+            [_make_text_block(json.dumps(pass1_data))]
+        ))
+
+        result = await extract("test doc", "invoice", correction=False)
+        assert result.corrections_applied is False
+        assert result.data["invoice_number"] == "INV-001"
+        assert client.messages.create.call_count == 1
+
 
 class TestApplyCorrections:
     def test_merge_corrections(self):

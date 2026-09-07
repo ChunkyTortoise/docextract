@@ -1,0 +1,13 @@
+{
+  "protocol": "docs/held-out-live-eval-protocol.md",
+  "benchmark": "docs/held-out-baseline-benchmark.md",
+  "declared_at": null,
+  "declared_git_sha": null,
+  "train_dev_path": "evals/held_out_live/train_dev.json",
+  "test_path": "evals/held_out_live/test.json",
+  "train_dev_sha256": null,
+  "test_sha256": null,
+  "test_case_count": null,
+  "sources": [],
+  "status": "BENCHMARK PLAN / HARNESS ONLY — PERFORMANCE UNMEASURED"
+}

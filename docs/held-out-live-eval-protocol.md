@@ -12,6 +12,7 @@ Related:
 - Always-on vs paid live paths: [eval-methodology.md](eval-methodology.md)
 - Credit / metering gate: [metering-runbook.md](metering-runbook.md)
 - Ledger after a funded, approved publish: `docs/portfolio-metrics.yaml` (METRICS-SOT)
+- Two-pass vs Pass-1-only A/B on the same partition (plan + harness; unmeasured): [held-out-baseline-benchmark.md](held-out-baseline-benchmark.md)
 
 This PR does **not** run live API evals. `docs/metering-runbook.md` records that `scripts/benchmark.py --limit 1` previously failed solely with HTTP 400 `credit balance is too low`. Funding is not authorized here.
 
@@ -31,6 +32,7 @@ Until a funded run is logged, held-out live performance stays **unmeasured**.
 |---|---|---|---|---|
 | Offline replay | `python scripts/eval_offline_replay.py --floor 0.85` scores committed `autoresearch/golden_responses/*.json` with `score_extraction` | 28 fixtures; `autoresearch/baseline.json` `overall_score` 0.95546 rounded to **Measured 95.5%** | Measured (CI badge) | Zero |
 | This held-out live protocol | Live `extract()` on a predeclared untouched test partition; same `score_extraction` rubric | Partition declared before scoring; not the 28 fixtures; not the 202-case authoring inventory | **Unmeasured** until a funded run is logged | Paid (Anthropic) |
+| Held-out vs simpler baseline | Same locked test docs; `full` two-pass vs `simple` Pass-1-only (`extract(..., correction=False)`); same `score_extraction` | Same untouched test partition as this protocol | **Unmeasured** ([benchmark plan + harness](held-out-baseline-benchmark.md)) | Paid when funded; not run in CONT-RA10 |
 | Optional Promptfoo / Ragas / LLM-judge | Conditional jobs in `.github/workflows/eval-gate.yml` (`live`) | Authoring JSONL / generated Promptfoo cases | Optional CI; skipped when `ANTHROPIC_API_KEY` is absent; not this protocol | Paid when the key is present |
 
 Do not substitute one row for another:
@@ -38,6 +40,7 @@ Do not substitute one row for another:
 - Offline replay is the public 95.5% claim. Leave that wording unchanged.
 - Promptfoo / Ragas / LLM-judge are extra CI jobs, not a held-out live grade.
 - This protocol does not replace the badge driver.
+- The two-pass vs Pass-1 A/B ([held-out-baseline-benchmark.md](held-out-baseline-benchmark.md)) is a separate unmeasured comparison. It does not fill in a live accuracy number for this protocol.
 
 ## 3. Document sources
 

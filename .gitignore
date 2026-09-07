@@ -33,6 +33,10 @@ eval_artifacts/
 !eval_artifacts/variance_runs/
 !eval_artifacts/variance_runs/*.json
 
+# Held-out A/B measured JSON (commit only after a funded, approved publish)
+docs/artifacts/held-out-baseline/**/*.json
+!docs/artifacts/held-out-baseline/README.md
+
 # Backups and transient eval-run artifacts (not committed)
 *.bak-*
 autoresearch/golden_responses.bak-*/
