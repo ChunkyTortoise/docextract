@@ -42,7 +42,7 @@ Prompts are code. DocExtract treats extraction quality as a **merge-blocking CI 
 | **Paid live eval** | Promptfoo, RAGAS, LLM-judge | Only when `ANTHROPIC_API_KEY` is present in CI; skipped otherwise |
 | **Drift cron** | Golden set vs production prompt version | Daily 13:23 UTC |
 
-**Eval gate proof (red blocked PR):** [#32 — intentional regression (keep open / expect red)](https://github.com/ChunkyTortoise/docextract/pull/32). See also [docs/eval-methodology.md](docs/eval-methodology.md).
+**Eval gate proof (red blocked PR):** [#32 — intentional regression (keep open / expect red)](https://github.com/ChunkyTortoise/docextract/pull/32). Executed vs replayed stages: [docs/eval-gate-proof.md](docs/eval-gate-proof.md). See also [docs/eval-methodology.md](docs/eval-methodology.md).
 
 | Metric | Value | Basis |
 |--------|-------|-------|
