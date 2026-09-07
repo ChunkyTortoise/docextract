@@ -1,11 +1,11 @@
 schema_version: 2
-updated: "2026-08-29"
+updated: "2026-09-07"
 testing:
   command: "pytest tests/ --collect-only -q"
   latest_coverage_percent: 81.55
   coverage_gate_percent: 80
   count_status: "omitted pending a clean default-main collection"
-  source: "Coverage from main CI 29566414192; collected-test count is not a public claim."
+  source: "Coverage from main CI 29566414192; collected-test count is not a public claim. Historical collect-only 1,366 (feat/evalgate-w1 2026-07-18) is superseded / not a public claim — do not cite on README, resume, or site."
 eval_corpus:
   golden_cases: 151
   adversarial_cases: 51
@@ -48,3 +48,4 @@ notes:
   - "95.5% weighted field-level accuracy is the 28-case golden baseline (autoresearch/baseline.json), replayed in CI at zero API cost via offline replay. Never label this number F1."
   - "Paid live evaluation (Promptfoo/Ragas/LLM-judge) runs only when ANTHROPIC_API_KEY is present in the workflow; it is not required for merge when the key is absent."
   - "To flip modeled -> measured: follow docs/metering-runbook.md."
+  - "CONT-RA14 apply 2026-09-07: historical 1,366 collect-only inventory is not public; omit pending clean main collection."
