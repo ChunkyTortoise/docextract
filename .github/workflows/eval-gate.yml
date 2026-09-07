@@ -151,7 +151,7 @@ jobs:
           retention-days: 90
       - name: Comment PR with metric diff
         if: github.event_name == 'pull_request' && always()
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           path: eval_artifacts/pr_comment.md
       # ── Auto-bump baseline on main if metrics improved > 1% ──
