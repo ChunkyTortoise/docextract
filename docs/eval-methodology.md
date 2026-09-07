@@ -13,6 +13,8 @@ DocExtract separates a deterministic, merge-safe offline replay from optional pa
 
 The 202-case authoring corpus is separate from the 28-fixture replay. The published 95.5% result uses only the replay fixtures as its denominator and must not be described as F1 or as a 202-case live-model result.
 
+Scoring formulas, missing-field rules, fixture provenance, and the 28-vs-202 denominator boundary: [eval-boundary.md](eval-boundary.md).
+
 ## Always-on gate
 
 The `offline` job in `.github/workflows/eval-gate.yml` runs:
