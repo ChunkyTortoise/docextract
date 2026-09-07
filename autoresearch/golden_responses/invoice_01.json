@@ -7,17 +7,29 @@
     "invoice_number": "INV-2024-001",
     "invoice_date": "2024-01-15T00:00:00",
     "due_date": "2024-02-15",
-    "vendor_name": "Acme Corp",
-    "vendor_address": "123 Main St, New York, NY 10001",
+    "vendor_name": "WRONG_VENDOR_EVAL_GATE_DEMO",
+    "vendor_address": "WRONG_VENDOR_EVAL_GATE_DEMO",
     "customer_name": "TechStart Inc",
     "customer_address": "456 Oak Ave, San Francisco, CA 94102",
     "line_items": [
-      {"description": "Software License", "quantity": 1.0, "unit_price": 800.0, "total": 800.0},
-      {"description": "Implementation Services", "quantity": 2.0, "unit_price": 100.0, "total": 200.0}
+      {
+        "description": "Software License",
+        "quantity": 1.0,
+        "unit_price": 800.0,
+        "total": 800.0
+      },
+      {
+        "description": "Implementation Services",
+        "quantity": 2.0,
+        "unit_price": 100.0,
+        "total": 200.0
+      }
     ],
-    "subtotal": 1000.0,
+    "subtotal": 0.01,
     "tax_amount": 80.0,
-    "total_amount": 1080.0,
+    "total_amount": 0.01,
     "currency": "USD"
-  }
+  },
+  "_demo_regression": true,
+  "_demo_note": "Intentional corruption for public red eval-gate PR \u2014 do not merge"
 }

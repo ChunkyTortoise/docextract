@@ -7,17 +7,23 @@
     "invoice_number": "EUR-2024-0892",
     "invoice_date": "2024-03-15",
     "due_date": "2024-04-15",
-    "vendor_name": "Berlin Software GmbH",
-    "vendor_address": "Kurfuerstendamm 45, 10719 Berlin, Deutschland",
+    "vendor_name": "WRONG_VENDOR_EVAL_GATE_DEMO",
+    "vendor_address": "WRONG_VENDOR_EVAL_GATE_DEMO",
     "customer_name": "Paris Analytics SAS",
     "customer_address": "12 Rue de Rivoli, 75001 Paris, France",
     "line_items": [
-      {"description": "API Access License", "quantity": 1.0, "unit_price": 950.0, "total": 950.0}
+      {
+        "description": "API Access License",
+        "quantity": 1.0,
+        "unit_price": 950.0,
+        "total": 950.0
+      }
     ],
-    "subtotal": 1250.0,
+    "subtotal": 0.01,
     "tax_amount": 237.5,
-    "total_amount": 1487.5,
+    "total_amount": 0.01,
     "currency": "EURO",
     "payment_terms": "30 Tage netto"
-  }
+  },
+  "_demo_regression": true
 }
