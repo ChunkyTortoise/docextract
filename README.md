@@ -1,16 +1,33 @@
-![DocExtract AI fixture-backed demo with evaluation scores, agent trace, and cost analysis](docs/screenshots/demo-hero.png)
-
 # DocExtract AI
 
-> **Ship-gate first:** versioned eval corpus, offline replay, and a variance-calibrated CI gate, followed by two-pass extraction and agentic RAG.
+Fixture-backed document intelligence with two-pass extraction, agentic retrieval, and an eval gate.
+
+<p align="center">
+  <img src="./docs/assets/eval-proof.svg" width="720" alt="DocExtract deterministic evaluation proof: 95.5% field-level score from a 28-fixture replay, two extraction passes, an eval gate, and a separately labeled 202-case authoring corpus." />
+</p>
+
+## Deterministic eval replay
+
+> **95.5% field-level score from a deterministic 28-fixture replay**
+
+| Evidence | What it is | What it is not |
+|----------|------------|----------------|
+| **28 fixtures** | Deterministic replay behind the 95.5% field-level score (`scripts/eval_offline_replay.py`, `autoresearch/baseline.json`) | Not the authoring-corpus size |
+| **202 cases** | Authoring corpus (151 golden + 51 adversarial) | Not the replay fixture total and not the score population |
+
+### Reviewer path
+
+1. Replay the committed fixtures: `python scripts/eval_offline_replay.py --floor 0.85`
+2. Compare the replayed field-level score to **95.5%**
+3. Inspect the two extraction passes and the deterministic eval gate on the proof card
+4. Continue to retrieval, architecture, and the honest scope notes below
+5. Run the local fixture-backed UI: `DEMO_MODE=true streamlit run frontend/app.py` — [DEMO.md](DEMO.md)
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 
-**Reviewer path (about two minutes, zero API keys):** follow [DEMO.md](DEMO.md) and run the local fixture-backed demo (`DEMO_MODE=true streamlit run frontend/app.py`). The hosted Streamlit URL is intentionally omitted until anonymous access is verified. Static preview and trace visualizer available in [`site/`](site/) and [`frontend/pages/agent_trace.py`](frontend/pages/agent_trace.py).
-
-Static marketing front door: [`site/`](site/) (HTML + CSS, no build step).
+The hosted Streamlit URL is intentionally omitted until anonymous access is verified. Static preview and trace visualizer live in [`site/`](site/) and [`frontend/pages/agent_trace.py`](frontend/pages/agent_trace.py).
 
 ## Eval gate {#eval-gate}
 
@@ -49,6 +66,8 @@ Overall: 0.955 across 28 cases, replayed on every eval-gated PR at zero API cost
 </details>
 
 More: [CASE_STUDY.md](CASE_STUDY.md) · [docs/eval-methodology.md](docs/eval-methodology.md) · [evals/](evals/)
+
+![DocExtract AI fixture-backed demo with evaluation scores, agent trace, and cost analysis](docs/screenshots/demo-hero.png)
 
 ## What this does
 
