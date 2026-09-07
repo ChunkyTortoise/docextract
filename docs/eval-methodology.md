@@ -29,6 +29,8 @@ eval-gated change -> 28 committed fixtures -> offline replay -> baseline compari
 
 The committed baseline records weighted field-level accuracy. Critical fields receive twice the weight of noncritical fields. A replay below the configured floor or outside the accepted regression tolerance fails the job.
 
+Public proof that this job fails on intentionally wrong fixtures (and what was replayed vs skipped) is in [eval-gate-proof.md](eval-gate-proof.md), using [PR #32](https://github.com/ChunkyTortoise/docextract/pull/32).
+
 ## Optional live evaluation
 
 Promptfoo, Ragas, and LLM-as-judge paths provide deeper model-dependent checks when credentials and budget are available. They are conditional jobs, not unconditional required checks. When `ANTHROPIC_API_KEY` is absent, the workflow skips them.
