@@ -15,6 +15,8 @@ Fixture-backed document intelligence with two-pass extraction, agentic retrieval
 | **28 fixtures** | Deterministic replay behind the 95.5% field-level score (`scripts/eval_offline_replay.py`, `autoresearch/baseline.json`) | Not the authoring-corpus size |
 | **202 cases** | Authoring corpus (151 golden + 51 adversarial) | Not the replay fixture total and not the score population |
 
+How the 28-fixture replay is scored, and how it relates to the 202-case authoring corpus: [docs/eval-boundary.md](docs/eval-boundary.md).
+
 ### Reviewer path
 
 1. Replay the committed fixtures: `python scripts/eval_offline_replay.py --floor 0.85`
@@ -65,7 +67,7 @@ Overall: 0.955 across 28 cases, replayed on every eval-gated PR at zero API cost
 
 </details>
 
-More: [CASE_STUDY.md](CASE_STUDY.md) · [docs/eval-methodology.md](docs/eval-methodology.md) · [evals/](evals/)
+More: [CASE_STUDY.md](CASE_STUDY.md) · [docs/eval-methodology.md](docs/eval-methodology.md) · [docs/eval-boundary.md](docs/eval-boundary.md) · [evals/](evals/)
 
 ![DocExtract AI fixture-backed demo with evaluation scores, agent trace, and cost analysis](docs/screenshots/demo-hero.png)
 
