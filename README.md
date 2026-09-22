@@ -1,10 +1,6 @@
 # DocExtract AI
 
-Fixture-backed document intelligence with two-pass extraction, agentic retrieval, and an eval gate.
-
-<p align="center">
-  <img src="./docs/assets/eval-proof.svg" width="720" alt="DocExtract deterministic evaluation proof: 95.5% field-level score from a 28-fixture replay, two extraction passes, an eval gate, and a separately labeled 202-case authoring corpus." />
-</p>
+Fixture-backed document intelligence with two-pass extraction, agentic retrieval, and an offline CI evaluation check.
 
 ## Deterministic eval replay
 
@@ -13,15 +9,15 @@ Fixture-backed document intelligence with two-pass extraction, agentic retrieval
 | Evidence | What it is | What it is not |
 |----------|------------|----------------|
 | **28 fixtures** | Deterministic replay behind the 95.5% field-level score (`scripts/eval_offline_replay.py`, `autoresearch/baseline.json`) | Not the authoring-corpus size |
-| **202 cases** | Authoring corpus (151 golden + 51 adversarial) | Not the replay fixture total and not the score population |
+| **200 cases** | Authoring corpus: 150 golden + 50 adversarial cases, stored as 202 JSONL lines including two metadata rows | Not the replay fixture total and not the score population |
 
-How the 28-fixture replay is scored, and how it relates to the 202-case authoring corpus: [docs/eval-boundary.md](docs/eval-boundary.md). Held-out live eval (protocol only; performance unmeasured): [docs/held-out-live-eval-protocol.md](docs/held-out-live-eval-protocol.md).
+The verified replay scored 28 committed prediction fixtures against 72 lookup cases, with 44 fixtures pending. Its weighted field-level accuracy is 0.9555 (95.5% rounded), not F1 or live-model performance. Retrieval recall, support and abstention remain unmeasured. See [retrieval and extraction evidence](docs/retrieval-extraction-evidence.md) for the score, populations and limitations. Held-out live eval (protocol only; performance unmeasured): [docs/held-out-live-eval-protocol.md](docs/held-out-live-eval-protocol.md).
 
 ### Reviewer path
 
 1. Replay the committed fixtures: `python scripts/eval_offline_replay.py --floor 0.85`
 2. Compare the replayed field-level score to **95.5%**
-3. Inspect the two extraction passes and the deterministic eval gate on the proof card
+3. Inspect the [two extraction passes](docs/adr/0003-two-pass-extraction.md) and the [offline CI evidence](docs/retrieval-extraction-evidence.md)
 4. Continue to retrieval, architecture, and the honest scope notes below
 5. Run the local fixture-backed UI: `DEMO_MODE=true streamlit run frontend/app.py` — [DEMO.md](DEMO.md)
 
@@ -33,7 +29,7 @@ The hosted Streamlit URL is intentionally omitted until anonymous access is veri
 
 ## Eval gate {#eval-gate}
 
-Prompts are code. DocExtract treats extraction quality as a **merge-blocking CI signal**, not a post-hoc dashboard number.
+DocExtract reports extraction quality through passing or failing CI checks. Successful checks do not establish enforced merge protection. The recorded 2026-09-19 repository audit returned `Branch not protected` and an empty branch-rules list; merge blocking was not enforced in that observation. See [CI and merge enforcement](docs/retrieval-extraction-evidence.md#ci-and-merge-enforcement).
 
 | Signal | What runs | When |
 |--------|-----------|------|
@@ -43,28 +39,28 @@ Prompts are code. DocExtract treats extraction quality as a **merge-blocking CI 
 | **Held-out live protocol** | Public or synthetic docs, untouched test partition, `score_extraction` | Unmeasured until a funded run is logged ([protocol](docs/held-out-live-eval-protocol.md)) |
 | **Drift cron** | Golden set vs production prompt version | Daily 13:23 UTC |
 
-**Eval gate proof (red blocked PR):** [#32 — intentional regression (keep open / expect red)](https://github.com/ChunkyTortoise/docextract/pull/32). Executed vs replayed stages: [docs/eval-gate-proof.md](docs/eval-gate-proof.md). See also [docs/eval-methodology.md](docs/eval-methodology.md).
+**Failing CI check demonstration:** [#32, intentional regression (keep open / expect red)](https://github.com/ChunkyTortoise/docextract/pull/32). Executed vs replayed stages: [docs/eval-gate-proof.md](docs/eval-gate-proof.md). See also [docs/eval-methodology.md](docs/eval-methodology.md).
 
 | Metric | Value | Basis |
 |--------|-------|-------|
 | Extraction accuracy (field-level, critical fields weighted 2×) | **95.5%** | Always-on CI offline replay of **28** deterministic fixtures (`scripts/eval_offline_replay.py`); not a paid live grade |
 | Test suite | **80% CI coverage gate** | `--cov-fail-under=80`; the changing collected-test total is intentionally omitted ([portfolio-metrics.yaml](docs/portfolio-metrics.yaml)) |
-| Authoring corpus | **202 cases** (151 golden + 51 adversarial) | `evals/golden_set.jsonl` + `evals/adversarial_set.jsonl` (line counts); separate from the 28-fixture offline replay |
+| Authoring corpus | **200 cases** (150 golden + 50 adversarial) | `evals/golden_set.jsonl` + `evals/adversarial_set.jsonl`: 202 lines including two metadata rows; separate from the 28-fixture offline replay |
 | Cost / latency | See [cost-model.md](docs/cost-model.md) | Modeled only until a funded `scripts/benchmark.py` run is committed |
 
 <details>
-<summary>CI-replayed eval breakdown by document type (from committed <code>autoresearch/baseline.json</code>)</summary>
+<summary>Verified offline replay by document type (RA11, 2026-09-19; weighted field-level accuracy)</summary>
 
 | Document type | Score | Cases |
 |---|---|---|
-| invoice | 0.9731 | 13 |
-| receipt | 0.9107 | 4 |
-| purchase_order | 0.9762 | 3 |
-| bank_statement | 0.9581 | 4 |
+| invoice | 0.9669 | 13 |
+| receipt | 0.9091 | 4 |
+| purchase_order | 0.9745 | 3 |
+| bank_statement | 0.9613 | 4 |
 | medical_record | 0.9923 | 3 |
 | identity_document | 0.8139 | 1 |
 
-Overall: 0.955 across 28 cases, replayed on every eval-gated PR at zero API cost.
+Overall: 0.9555 across 28 committed prediction fixtures, with 44 of 72 lookup cases pending. The historical baseline comparison score is 0.95546. This replay uses no API calls.
 
 </details>
 
@@ -84,7 +80,7 @@ Upload → ARQ worker → classify → extract → validate → embed → search
 
 ## Why this is interesting (engineering)
 
-- **Eval-gated CI**: `eval-gate.yml` offline job replays 28-case deterministic baseline at zero API cost; PRs touching prompts or extraction services must pass before merge
+- **Offline evaluation in CI**: `eval-gate.yml` replays 28 committed prediction fixtures at zero API cost and reports check status; the recorded repository audit did not show enforced merge protection
 - **FastAPI & Strict Type Safety**: End-to-end Pydantic V2 validation contracts, typed error domains, and deterministic schema enforcement preventing malformed extraction persistence
 - **PostgreSQL (pgvector) & ARQ Queue**: Document chunk embeddings indexed via pgvector HNSW vectors, decoupled background document processing via Redis and ARQ worker queue
 - **Agentic RAG**: ReAct Think → Act → Observe over hybrid retrieval tools; primary search story in API and Streamlit ([`agentic_rag.py`](app/services/agentic_rag.py), [`agent_trace.py`](frontend/pages/agent_trace.py))
