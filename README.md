@@ -1,6 +1,6 @@
 # DocExtract AI
 
-Fixture-backed document intelligence with two-pass extraction, agentic retrieval, and an offline CI evaluation check.
+Upload PDFs and images, classify the document, extract structured fields, and search the stored results. Classification uses cost-aware routing. Extraction uses a two-pass Claude pipeline. Embeddings are stored in pgvector. Queries run through agentic RAG. The same flow, with service boundaries, is in [What this does](#what-this-does).
 
 ## Deterministic eval replay
 
@@ -15,11 +15,27 @@ The verified replay scored 28 committed prediction fixtures against 72 lookup ca
 
 ### Reviewer path
 
-1. Replay the committed fixtures: `python scripts/eval_offline_replay.py --floor 0.85`
-2. Compare the replayed field-level score to **95.5%**
-3. Inspect the [two extraction passes](docs/adr/0003-two-pass-extraction.md) and the [offline CI evidence](docs/retrieval-extraction-evidence.md)
-4. Continue to retrieval, architecture, and the honest scope notes below
-5. Run the local fixture-backed UI: `DEMO_MODE=true streamlit run frontend/app.py` — [DEMO.md](DEMO.md)
+Three paths. Run paths 1 and 2 from the repository root. Path 3 is the configured stack in [Install](#install).
+
+**1. Offline fixture replay (no API key).** From the repository root:
+
+```bash
+python scripts/eval_offline_replay.py --floor 0.85
+```
+
+Python 3.10 or newer. The script scores committed prediction fixtures in `autoresearch/golden_responses/` against `autoresearch/eval_dataset_72.json`. Compare the weighted field-level score to **95.5%** (0.9555). Then read the [two extraction passes](docs/adr/0003-two-pass-extraction.md) and the [offline CI evidence](docs/retrieval-extraction-evidence.md).
+
+**2. Fixture-backed UI demo (no API key).** From the repository root, with the env var documented in [DEMO.md](DEMO.md) and read by `frontend/app.py`:
+
+```bash
+DEMO_MODE=true streamlit run frontend/app.py
+```
+
+`DEMO_MODE` serves cached samples from `frontend/demo_data/`. Page order and limits: [DEMO.md](DEMO.md).
+
+**3. Full configured services (API keys).** [Install](#install) is this path: copy `.env.example` to `.env`, set `ANTHROPIC_API_KEY` and `GEMINI_API_KEY`, then `docker compose up -d`.
+
+Retrieval, architecture, and the scope notes below apply after any path.
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
@@ -70,7 +86,7 @@ More: [CASE_STUDY.md](CASE_STUDY.md) · [docs/eval-methodology.md](docs/eval-met
 
 ## What this does
 
-FastAPI document intelligence: upload PDFs and images, classify with cost-aware routing, extract structured fields via a **two-pass Claude pipeline**, embed into **pgvector**, and query with **agentic RAG** (ReAct loop with streaming SSE reasoning).
+Short form: the [opening paragraph](#docextract-ai). FastAPI document intelligence: upload PDFs and images, classify with cost-aware routing, extract structured fields via a **two-pass Claude pipeline**, embed into **pgvector**, and query with **agentic RAG** (ReAct loop with streaming SSE reasoning).
 
 ```
 Upload → ARQ worker → classify → extract → validate → embed → search / agentic RAG
