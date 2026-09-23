@@ -134,10 +134,12 @@ Services: API `:8000` (`/docs` for Swagger) | Frontend `:8501` | PostgreSQL `:54
 ## Tests
 
 ```bash
-pytest tests/ --collect-only -q       # Discover the current suite; count is not a portfolio claim
+# Fresh clone, zero API cost:
+uv venv && uv pip install -e .           # or: uv sync (installs from pyproject.toml)
+pytest tests/ --collect-only -q          # Discover the current suite; count is not a portfolio claim
 python scripts/eval_offline_replay.py --floor 0.85   # Always-on CI offline replay (badge driver)
 python scripts/run_eval_ci.py --ci                    # Wrapper; same 28-case deterministic path
-make eval                             # Optional paid live eval; requires configured credentials
+make eval                                # Optional paid live eval; requires configured credentials
 ```
 
 ## Architecture Decisions

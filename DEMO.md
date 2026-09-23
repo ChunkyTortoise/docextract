@@ -38,6 +38,8 @@ A public 90–120s screen recording is optional proof. Record only with `docs/me
 ## Verification
 
 ```bash
+# Fresh clone, zero API cost:
+uv venv && uv pip install -e .           # or: uv sync (installs from pyproject.toml)
 pytest tests/ --collect-only -q -o addopts=
 python scripts/eval_offline_replay.py --floor 0.85
 python scripts/audit_portfolio_claims.py
