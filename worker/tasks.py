@@ -36,7 +36,7 @@ async def process_document(ctx: dict[str, Any], job_id: str) -> dict[str, Any]:
     8. Store validation errors
     9. Create embedding
     10. Store record to DB
-    11. Update job -> COMPLETED
+    11. Update job -> COMPLETED or NEEDS_REVIEW
     12. Send webhook if configured
 
     Returns dict with status and record_id on success.
@@ -178,6 +178,12 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # 7. Validate -> VALIDATING
     await _update_job_status(db, redis, job, JobStatus.VALIDATING)
     validation_result = validate(doc_type, extraction_result.data, extraction_result.confidence)
+    extraction_validation_errors: list[str] = []
+    if not extraction_result.schema_valid:
+        extraction_validation_errors = extraction_result.validation_errors or [
+            "Extraction output failed schema validation"
+        ]
+        validation_result.needs_review = True
 
     # 7b. Guardrails — PII detection + hallucination grounding
     guardrail_result = None
@@ -208,6 +214,8 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     review_reason = None
     if validation_result.needs_review:
         reasons: list[str] = []
+        if extraction_validation_errors:
+            reasons.append("Extraction output failed schema validation")
         if guardrail_result and guardrail_result.pii_detected:
             pii_types = {m.pattern_type for m in guardrail_result.pii_detected}
             reasons.append(f"PII detected: {', '.join(sorted(pii_types))}")
@@ -290,6 +298,16 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
             severity=err.severity.value.lower(),
         ))
 
+    for message in extraction_validation_errors:
+        db.add(ValidationErrorModel(
+            id=str(uuid.uuid4()),
+            record_id=record.id,
+            field_name="extraction_output",
+            rule_name="SCHEMA_VALIDATION_FAILED",
+            message=message,
+            severity="error",
+        ))
+
     # Store embedding
     db.add(DocumentEmbedding(
         id=str(uuid.uuid4()),
@@ -345,14 +363,14 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
         if job.webhook_secret_encrypted:
             secret = decrypt_secret(job.webhook_secret_encrypted, settings.aes_key)
         await send_webhook(job.webhook_url, {
-            "event": "job.completed",
+            "event": f"job.{job.status}",
             "job_id": job_id,
-            "status": "completed",
+            "status": job.status,
             "document_type": doc_type,
             "record_id": record_id,
         }, secret)
 
-    return {"status": "completed", "record_id": record_id, "document_type": doc_type}
+    return {"status": job.status, "record_id": record_id, "document_type": doc_type}
 
 
 async def _emit_page_events(
