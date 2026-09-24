@@ -13,7 +13,7 @@ Usage
 python scripts/train_dpo.py \\
     --source http://localhost:8000/finetune/export \\
     --api-key $DOCEXTRACT_API_KEY \\
-    --adapter-path adapters/invoice/20260326_143022  # base adapter from QLoRA
+    --adapter-path adapters/invoice/<adapter-id>  # base adapter from QLoRA
 
 python scripts/train_dpo.py --source data/dpo.jsonl --dry-run
 

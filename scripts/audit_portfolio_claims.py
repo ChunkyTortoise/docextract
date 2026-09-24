@@ -158,8 +158,25 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    metrics = load_metrics(args.metrics)
-    findings = validate_metrics(metrics) + scan_docs()
+    try:
+        metrics = load_metrics(args.metrics)
+    except OSError as e:
+        print(f"FAIL: cannot read metrics file {args.metrics}: {e}")
+        print("     Pass --metrics <path> (default: docs/portfolio-metrics.yaml).")
+        return 2
+    except ValueError as e:
+        print(f"FAIL: metrics file {args.metrics} is missing or malformed: {e}")
+        print(
+            "     Expected keys: testing.latest_result, testing.collected_tests, "
+            "testing.latest_coverage_percent, eval_corpus case counts, "
+            "metrics.value_percent."
+        )
+        return 2
+    try:
+        findings = validate_metrics(metrics) + scan_docs()
+    except (OSError, ValueError) as e:
+        print(f"FAIL: audit could not complete: {e}")
+        return 2
     if findings:
         for finding in findings:
             print(f"FAIL: {finding}")

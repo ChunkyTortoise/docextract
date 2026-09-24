@@ -152,7 +152,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # 4. Ingest -> EXTRACTING_TEXT
     await _update_job_status(db, redis, job, JobStatus.EXTRACTING_TEXT)
     try:
-        extracted = ingest(file_bytes, mime_type, doc.original_filename)
+        extracted = await ingest(file_bytes, mime_type, doc.original_filename)
     except UnsupportedMimeType as e:
         raise ValueError(str(e))  # Permanent error
 

@@ -152,6 +152,7 @@ class TestProcessPipeline:
             patch("app.utils.mime.detect_mime_type", return_value="application/pdf"),
             patch(
                 "app.services.ingestion.ingest",
+                new_callable=AsyncMock,
                 return_value=ExtractedContent(
                     text="Invoice #12345\nTotal: $500.00", metadata={}, page_count=1
                 ),
@@ -226,6 +227,59 @@ class TestProcessPipeline:
         finally:
             for p in patches:
                 p.stop()
+
+    @pytest.mark.asyncio
+    async def test_vision_ingestion_in_worker_context_does_not_raise(
+        self, job_id, mock_redis, pipeline_mocks, monkeypatch
+    ):
+        """Real async ingest runs the vision branch inside the worker event loop.
+
+        Regression lock for H1: ``ingest`` used to call ``asyncio.run`` inside
+        the worker's running loop, raising RuntimeError when vision was
+        enabled. The real (unmocked) ``ingest`` must complete the vision path;
+        only the vision API client is mocked.
+        """
+        from app.services.vision_extractor import ExtractedContent as VisionContent
+
+        monkeypatch.setattr(
+            "app.services.ingestion.settings.ocr_engine", "vision", raising=False
+        )
+
+        mock_db, patches, _ = pipeline_mocks
+        # Stop the ingest mock: the real async ingest must run.
+        patches[2].stop()
+        patches.remove(patches[2])
+        # Point MIME detection at an image MIME handled by the vision branch.
+        patches[1].stop()
+        patches.remove(patches[1])
+        image_mime = patch(
+            "app.utils.mime.detect_mime_type", return_value="image/png"
+        )
+        image_mime.start()
+        patches.append(image_mime)
+        # Mock only the vision API call; ingestion's vision branch stays real.
+        vision_mock = patch(
+            "app.services.vision_extractor.extract_vision",
+            new_callable=AsyncMock,
+            return_value=VisionContent(
+                text="Invoice #12345\nTotal: $500.00",
+                metadata={"extraction_method": "vision", "_injection_defended": True},
+                page_count=1,
+            ),
+        )
+        vision_mock.start()
+        patches.append(vision_mock)
+
+        try:
+            from worker.tasks import _process
+
+            result = await _process(mock_db, mock_redis, job_id)
+        finally:
+            for p in patches:
+                p.stop()
+
+        assert result["status"] == "completed"
+        assert result["document_type"] == "invoice"
 
     @pytest.mark.parametrize(
         ("extractor_errors", "expected_message"),
@@ -405,6 +459,7 @@ class TestProcessPipeline:
         )
         ingest_patch = patch(
             "app.services.ingestion.ingest",
+            new_callable=AsyncMock,
             return_value=ExtractedContent(
                 text="Customer SSN 123-45-6789\nTotal: $500.00",
                 metadata={},
