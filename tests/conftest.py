@@ -151,6 +151,9 @@ def _create_tables(conn):
     """Create tables, swapping out PostgreSQL types/defaults for SQLite."""
     if conn.dialect.name == "sqlite":
         _patch_pg_types_for_sqlite()
+    elif conn.dialect.name == "postgresql":
+        # migration 002 enables it in production; create_all bypasses migrations
+        conn.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS vector")
 
     # Clear mapper caches that reference old column defaults
     from sqlalchemy.orm import class_mapper
