@@ -38,7 +38,7 @@ Short verbatim spans from `input_text` that the extraction answer should be grou
 
 ### `tags`
 - `weight_<N>` - scoring weight (default 1.0; critical cases use 2.0)
-- `critical:<field1>,<field2>` - fields that count 2× in extraction_f1
+- `critical:<field1>,<field2>` - fields that count 2× in the field-accuracy score (`field_acc_*` keys)
 - `currency_<code>` - for currency-specific test filtering
 - `needs_review` - auto-derived context that hasn't been manually verified
 

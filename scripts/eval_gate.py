@@ -182,7 +182,7 @@ def build_pr_comment(
         ("faithfulness", "Faithfulness", ABSOLUTE_FLOORS.get("faithfulness")),
         ("answer_relevancy", "Answer Relevancy", ABSOLUTE_FLOORS.get("answer_relevancy")),
         ("context_precision", "Context Precision", ABSOLUTE_FLOORS.get("context_precision")),
-        ("extraction_f1", "Extraction F1", ABSOLUTE_FLOORS.get("extraction_f1")),
+        ("extraction_f1", "Field accuracy", ABSOLUTE_FLOORS.get("extraction_f1")),
         ("judge_pass_rate", "Judge Pass Rate", ABSOLUTE_FLOORS.get("judge_pass_rate")),
         ("promptfoo_pass_rate", "Promptfoo Pass Rate", None),
     ]
