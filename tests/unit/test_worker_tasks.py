@@ -8,6 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from app.config import settings
+from app.services.webhook_sender import RETRY_DELAYS
+
 # ---- Stub out heavy optional dependencies before importing worker.tasks ----
 
 def _ensure_stub(module_name: str) -> None:
@@ -218,30 +221,48 @@ class TestProcessPipeline:
                 p.stop()
 
     @pytest.mark.asyncio
-    async def test_webhook_called_when_configured(
+    async def test_process_document_schedules_delivery_without_awaiting_it(
         self, job_id, mock_job, mock_redis, pipeline_mocks
     ):
+        """process_document enqueues a deferred deliver_webhook job and returns
+        without performing any delivery HTTP itself (lane A P0 acceptance)."""
         mock_db, patches, _ = pipeline_mocks
         mock_job.webhook_url = "https://example.com/hook"
         mock_job.webhook_secret_encrypted = None
 
-        webhook_patch = patch(
-            "app.services.webhook_sender.send_webhook", new_callable=AsyncMock
-        )
-
         try:
-            mock_webhook = webhook_patch.start()
-            from worker.tasks import _process
-            await _process(mock_db, mock_redis, job_id)
+            with (
+                patch("worker.tasks.AsyncSessionLocal") as session_cls,
+                patch("app.services.webhook_sender.httpx.AsyncClient") as http_client,
+            ):
+                session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_db)
+                session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            mock_webhook.assert_called_once()
-            call_args = mock_webhook.call_args
-            assert call_args[0][0] == "https://example.com/hook"
-            assert call_args[0][1]["event"] == "job.completed"
+                from worker.tasks import process_document
+
+                result = await process_document({"redis": mock_redis}, job_id)
         finally:
-            webhook_patch.stop()
             for p in patches:
                 p.stop()
+
+        assert result["status"] == "completed"
+
+        delivery_calls = [
+            c
+            for c in mock_redis.enqueue_job.call_args_list
+            if c.args and c.args[0] == "deliver_webhook"
+        ]
+        assert len(delivery_calls) == 1
+        call = delivery_calls[0]
+        assert call.args[1] == "https://example.com/hook"
+        assert call.args[2]["event"] == "job.completed"
+        assert call.args[2]["record_id"] == result["record_id"]
+        assert call.args[3] == ""  # no encrypted secret configured
+        assert call.kwargs["_defer_by"] == RETRY_DELAYS[0]
+        assert call.kwargs["_queue_name"] == settings.worker_queue
+
+        # Delivery was scheduled, never awaited inline: no HTTP happened here.
+        http_client.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_validation_errors_stored(
@@ -363,6 +384,75 @@ class TestProcessPipeline:
             await _process(mock_db, mock_redis, job_id)
             record = self._added_record(mock_db)
             assert "123-45-6789" in json.dumps(record.extracted_data)
+        finally:
+            ingest_patch.stop()
+            extract_patch.stop()
+            for p in patches:
+                p.stop()
+
+    @pytest.mark.asyncio
+    async def test_pii_redacted_from_embedding_and_graph_text_when_enabled(
+        self, job_id, mock_redis, pipeline_mocks, monkeypatch
+    ):
+        from app.config import settings
+        from app.models.embedding import DocumentEmbedding
+
+        mock_db, patches, _ = pipeline_mocks
+        monkeypatch.setattr(settings, "pii_redaction_enabled", True)
+        monkeypatch.setattr(settings, "graph_retrieval_enabled", True)
+        extract_patch, ingest_patch = self._pii_overrides()
+        graph_patch = patch("app.services.graph_rag.store.index_document")
+        try:
+            extract_patch.start()
+            ingest_patch.start()
+            index_document = graph_patch.start()
+            from worker.tasks import _process
+
+            await _process(mock_db, mock_redis, job_id)
+
+            embeddings = [
+                c.args[0]
+                for c in mock_db.add.call_args_list
+                if isinstance(c.args[0], DocumentEmbedding)
+            ]
+            assert len(embeddings) == 1
+            assert "123-45-6789" not in embeddings[0].content_text
+            assert "[SSN]" in embeddings[0].content_text
+            index_document.assert_called_once()
+            graph_text = index_document.call_args.args[1]
+            assert "123-45-6789" not in graph_text
+            assert "[SSN]" in graph_text
+        finally:
+            graph_patch.stop()
+            ingest_patch.stop()
+            extract_patch.stop()
+            for p in patches:
+                p.stop()
+
+    @pytest.mark.asyncio
+    async def test_embedding_text_stored_raw_when_flag_disabled(
+        self, job_id, mock_redis, pipeline_mocks, monkeypatch
+    ):
+        from app.config import settings
+        from app.models.embedding import DocumentEmbedding
+
+        mock_db, patches, _ = pipeline_mocks
+        monkeypatch.setattr(settings, "pii_redaction_enabled", False)
+        extract_patch, ingest_patch = self._pii_overrides()
+        try:
+            extract_patch.start()
+            ingest_patch.start()
+            from worker.tasks import _process
+
+            await _process(mock_db, mock_redis, job_id)
+
+            embeddings = [
+                c.args[0]
+                for c in mock_db.add.call_args_list
+                if isinstance(c.args[0], DocumentEmbedding)
+            ]
+            assert len(embeddings) == 1
+            assert "123-45-6789" in embeddings[0].content_text
         finally:
             ingest_patch.stop()
             extract_patch.stop()

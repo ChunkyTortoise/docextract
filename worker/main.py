@@ -13,6 +13,7 @@ from arq.cron import cron
 from app.config import settings
 from worker.judge_tasks import judge_extraction_sample
 from worker.tasks import process_document
+from worker.webhook_tasks import deliver_webhook
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,11 @@ signal.signal(signal.SIGTERM, handle_sigterm)
 
 
 async def startup(ctx: dict) -> None:
-    """Called when worker starts."""
-    ctx["redis"] = aioredis.from_url(settings.redis_url, decode_responses=True)
+    """Called when worker starts.
+
+    ARQ seeds ctx["redis"] with its enqueue-capable pool before this runs;
+    keep that client (a plain redis client has no enqueue_job).
+    """
     logger.info("Worker started. Queue: %s", settings.worker_queue)
     await recover_stale_jobs(ctx["redis"])
 
@@ -77,7 +81,7 @@ async def recover_stale_jobs_cron(ctx: dict) -> None:
 
 
 class WorkerSettings:
-    functions = [process_document, judge_extraction_sample]
+    functions = [process_document, judge_extraction_sample, deliver_webhook]
     cron_jobs = [cron(recover_stale_jobs_cron, minute={0, 10, 20, 30, 40, 50})]
     on_startup = startup
     on_shutdown = shutdown

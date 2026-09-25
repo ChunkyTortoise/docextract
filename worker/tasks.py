@@ -37,7 +37,7 @@ async def process_document(ctx: dict[str, Any], job_id: str) -> dict[str, Any]:
     9. Create embedding
     10. Store record to DB
     11. Update job -> COMPLETED
-    12. Send webhook if configured
+    12. Schedule webhook delivery as a deferred ARQ job
 
     Returns dict with status and record_id on success.
     """
@@ -124,8 +124,9 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     from app.services.claude_extractor import extract
     from app.services.embedder import embed
     from app.services.ingestion import UnsupportedMimeType, ingest
+    from app.services.pii_sanitizer import redact_pii
     from app.services.validator import validate
-    from app.services.webhook_sender import decrypt_secret, send_webhook
+    from app.services.webhook_sender import RETRY_DELAYS, decrypt_secret
     from app.utils.mime import detect_mime_type
     from worker.events import publish_event
 
@@ -199,6 +200,10 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # 8. Embed -> EMBEDDING
     await _update_job_status(db, redis, job, JobStatus.EMBEDDING)
     embedding_text = extracted.text[:2000]
+    graph_text = extracted.text
+    if settings.pii_redaction_enabled:
+        embedding_text = redact_pii(embedding_text)
+        graph_text = redact_pii(graph_text)
     embedding_vector = await embed(embedding_text, db=db)
 
     # 9. Store record
@@ -239,8 +244,6 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     raw_text = extracted.text[:5000]
     if settings.pii_redaction_enabled:
-        from app.services.pii_sanitizer import redact_pii
-
         record_data = redact_pii(record_data)
         raw_text = redact_pii(raw_text)
 
@@ -316,7 +319,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
         try:
             from app.services.graph_rag.store import index_document
 
-            index_document(str(record.id), extracted.text)
+            index_document(str(record.id), graph_text)
         except Exception as exc:
             logger.warning("Graph index failed for record %s: %s", record.id, exc)
 
@@ -339,18 +342,26 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
         ),
     })
 
-    # 11. Send webhook if configured
+    # 11. Schedule webhook delivery as its own ARQ job (never awaited inline;
+    # retries re-enqueue deferred so they outlive this job's timeout)
     if job.webhook_url:
         secret = ""
         if job.webhook_secret_encrypted:
             secret = decrypt_secret(job.webhook_secret_encrypted, settings.aes_key)
-        await send_webhook(job.webhook_url, {
-            "event": "job.completed",
-            "job_id": job_id,
-            "status": "completed",
-            "document_type": doc_type,
-            "record_id": record_id,
-        }, secret)
+        await redis.enqueue_job(
+            "deliver_webhook",
+            job.webhook_url,
+            {
+                "event": "job.completed",
+                "job_id": job_id,
+                "status": "completed",
+                "document_type": doc_type,
+                "record_id": record_id,
+            },
+            secret,
+            _defer_by=RETRY_DELAYS[0],
+            _queue_name=settings.worker_queue,
+        )
 
     return {"status": "completed", "record_id": record_id, "document_type": doc_type}
 

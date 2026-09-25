@@ -10,8 +10,9 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
-from app.auth.middleware import get_api_key
+from app.auth.middleware import require_roles
 from app.config import settings
 from app.dependencies import get_arq_pool, get_db, get_redis, get_storage
 from app.models.api_key import APIKey
@@ -71,7 +72,7 @@ async def upload_document(
     storage: StorageBackend = Depends(get_storage),
     redis: aioredis.Redis = Depends(get_redis),
     arq_pool: arq.ArqRedis = Depends(get_arq_pool),
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(require_roles("operator")),
 ) -> UploadResponse:
     """Upload a document for processing."""
     file_bytes = await _read_upload_bounded(file)
@@ -80,20 +81,28 @@ async def upload_document(
     if not is_allowed_mime_type(mime_type):
         raise HTTPException(415, f"Unsupported file type: {mime_type}")
 
+    if webhook_url:
+        from app.api.webhooks import validate_webhook_url
+
+        try:
+            await run_in_threadpool(validate_webhook_url, webhook_url)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
     sha256 = hash_file(file_bytes)
 
     if not force:
         existing = await db.execute(
             select(Document).where(Document.sha256_hash == sha256)
         )
-        doc = existing.scalar_one_or_none()
+        doc = existing.scalars().first()
         if doc:
             job_result = await db.execute(
                 select(ExtractionJob)
                 .where(ExtractionJob.document_id == doc.id)
                 .order_by(ExtractionJob.created_at.desc())
             )
-            job = job_result.scalar_one_or_none()
+            job = job_result.scalars().first()
             return UploadResponse(
                 document_id=str(doc.id),
                 job_id=str(job.id) if job else "",
@@ -128,7 +137,12 @@ async def upload_document(
         webhook_url=webhook_url,
     )
 
-    if webhook_secret and settings.aes_key:
+    if webhook_secret and not settings.aes_key:
+        raise HTTPException(
+            400,
+            "webhook_secret provided but AES_KEY is not configured; refusing to sign with an empty key",
+        )
+    if webhook_secret:
         from app.services.webhook_sender import encrypt_secret
 
         job.webhook_secret_encrypted = encrypt_secret(webhook_secret, settings.aes_key)
@@ -162,7 +176,7 @@ async def batch_upload(
     storage: StorageBackend = Depends(get_storage),
     redis: aioredis.Redis = Depends(get_redis),
     arq_pool: arq.ArqRedis = Depends(get_arq_pool),
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(require_roles("operator")),
 ):
     """Upload multiple documents for processing."""
     job_ids: list[str] = []
@@ -193,7 +207,7 @@ async def batch_upload(
             existing = await db.execute(
                 select(Document).where(Document.sha256_hash == sha256)
             )
-            doc = existing.scalar_one_or_none()
+            doc = existing.scalars().first()
             if doc:
                 duplicates.append(uploaded_file.filename or "unknown")
                 continue
@@ -242,7 +256,7 @@ async def delete_document(
     document_id: str,
     db: AsyncSession = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(require_roles("operator")),
 ) -> Response:
     """Delete a document and its storage file."""
     result = await db.execute(select(Document).where(Document.id == document_id))

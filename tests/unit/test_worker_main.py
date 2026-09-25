@@ -81,6 +81,11 @@ class TestWorkerSettings:
         from worker.tasks import process_document
         assert process_document in WorkerSettings.functions
 
+    def test_functions_include_deliver_webhook(self):
+        from worker.main import WorkerSettings
+        from worker.webhook_tasks import deliver_webhook
+        assert deliver_webhook in WorkerSettings.functions
+
 
 class TestRecoverStaleJobsCron:
     """Tests for the cron wrapper."""
@@ -154,19 +159,19 @@ class TestRecoverStaleJobs:
 
 class TestStartupShutdown:
     @pytest.mark.asyncio
-    async def test_startup_initializes_redis_and_recovers(self):
+    async def test_startup_keeps_arq_pool_and_recovers(self):
         from worker.main import startup
 
-        ctx: dict = {}
+        mock_redis = AsyncMock()
+        ctx: dict = {"redis": mock_redis}
 
         with patch("worker.main.recover_stale_jobs", new_callable=AsyncMock) as mock_recover:
-            with patch("worker.main.aioredis") as mock_aioredis:
-                mock_redis_instance = AsyncMock()
-                mock_aioredis.from_url.return_value = mock_redis_instance
-                await startup(ctx)
+            await startup(ctx)
 
-        assert "redis" in ctx
-        mock_recover.assert_called_once()
+        # ARQ's enqueue-capable pool must not be replaced by a plain client
+        # (a plain redis client has no enqueue_job, breaking deferred jobs).
+        assert ctx["redis"] is mock_redis
+        mock_recover.assert_called_once_with(mock_redis)
 
     @pytest.mark.asyncio
     async def test_shutdown_closes_redis(self):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from unittest.mock import patch
 
 import pytest
 from httpx import AsyncClient
@@ -124,3 +125,121 @@ async def test_viewer_can_read_roi_summary(client: AsyncClient, db_session: Asyn
     resp = await client.get("/api/v1/roi/summary", headers={"X-API-Key": viewer_key})
     assert resp.status_code == 200
     assert "kpis" in resp.json()
+
+
+@pytest.mark.asyncio
+async def test_viewer_denied_on_every_write_route(client: AsyncClient, db_session: AsyncSession):
+    """Viewer keys get 403 on every state-changing route (lane B P0 matrix):
+    upload, batch, delete, cancel, record review/approve, feedback, webhook test."""
+    viewer_key = "dex_viewer_authz_003"
+    await _seed_key(db_session, viewer_key, "viewer")
+    headers = {"X-API-Key": viewer_key}
+
+    upload = await client.post(
+        "/api/v1/documents/upload",
+        files={"file": ("viewer.pdf", b"%PDF-1.4 test", "application/pdf")},
+        headers=headers,
+    )
+    assert upload.status_code == 403
+
+    batch = await client.post(
+        "/api/v1/documents/batch",
+        files=[("files", ("viewer.pdf", b"%PDF-1.4 test", "application/pdf"))],
+        headers=headers,
+    )
+    assert batch.status_code == 403
+
+    delete = await client.delete(
+        "/api/v1/documents/00000000-0000-0000-0000-000000000009",
+        headers=headers,
+    )
+    assert delete.status_code == 403
+
+    cancel = await client.patch(
+        "/api/v1/jobs/00000000-0000-0000-0000-00000000000a",
+        json={"action": "cancel"},
+        headers=headers,
+    )
+    assert cancel.status_code == 403
+
+    review = await client.patch(
+        "/api/v1/records/00000000-0000-0000-0000-00000000000b/review",
+        json={"decision": "approve"},
+        headers=headers,
+    )
+    assert review.status_code == 403
+
+    feedback = await client.post(
+        "/api/v1/feedback",
+        json={"record_id": "rec-viewer-1", "rating": "positive"},
+        headers=headers,
+    )
+    assert feedback.status_code == 403
+
+    hook = await client.post(
+        "/api/v1/webhooks/test",
+        json={"url": "https://example.com/hook"},
+        headers=headers,
+    )
+    assert hook.status_code == 403
+
+    # Reads stay open to viewer keys.
+    jobs = await client.get("/api/v1/jobs", headers=headers)
+    assert jobs.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_operator_allowed_on_document_write_routes(client: AsyncClient, db_session: AsyncSession):
+    """Operator keys pass the matrix on the four named operations plus batch."""
+    operator_key = "dex_operator_authz_003"
+    await _seed_key(db_session, operator_key, "operator")
+    headers = {"X-API-Key": operator_key}
+    record_id = await _seed_review_item(db_session)
+
+    with (
+        patch("app.api.documents.detect_mime_type", return_value="application/pdf"),
+        patch("app.api.documents.is_allowed_mime_type", return_value=True),
+    ):
+        upload = await client.post(
+            "/api/v1/documents/upload",
+            files={"file": ("op.pdf", b"%PDF-1.4 test", "application/pdf")},
+            headers=headers,
+        )
+        batch = await client.post(
+            "/api/v1/documents/batch",
+            files=[("files", ("op.pdf", b"%PDF-1.4 test", "application/pdf"))],
+            headers=headers,
+        )
+    assert upload.status_code == 202
+    assert batch.status_code == 202
+    upload_data = upload.json()
+
+    # Standalone document (no child rows) for the delete route.
+    del_doc_id = str(uuid.uuid4())
+    db_session.add(
+        Document(
+            id=del_doc_id,
+            original_filename="del.pdf",
+            stored_path=f"documents/{del_doc_id}/del.pdf",
+            mime_type="application/pdf",
+            file_size_bytes=10,
+            sha256_hash=uuid.uuid4().hex,
+        )
+    )
+    await db_session.commit()
+    delete = await client.delete(f"/api/v1/documents/{del_doc_id}", headers=headers)
+    assert delete.status_code == 204
+
+    cancel = await client.patch(
+        f"/api/v1/jobs/{upload_data['job_id']}",
+        json={"action": "cancel"},
+        headers=headers,
+    )
+    assert cancel.status_code == 200
+
+    review = await client.patch(
+        f"/api/v1/records/{record_id}/review",
+        json={"decision": "approve"},
+        headers=headers,
+    )
+    assert review.status_code == 200
