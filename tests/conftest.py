@@ -14,7 +14,7 @@ import sklearn.utils.fixes  # noqa: F401 — pre-cache sklearn before any test p
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import JSON, String
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool, StaticPool
 
 # Register UUID adapter so sqlite3 can bind uuid.UUID objects as strings
 sqlite3.register_adapter(uuid.UUID, lambda u: str(u))
@@ -137,6 +137,11 @@ async def test_engine():
             "connect_args": {"check_same_thread": False},
             "poolclass": StaticPool,
         }
+    elif TEST_DB_URL.startswith("postgresql"):
+        # asyncpg connections are bound to the loop that created them; a
+        # fresh connection per checkout keeps fixture setup and test loops
+        # from sharing pooled connections.
+        engine_kwargs = {"poolclass": NullPool}
     engine = create_async_engine(TEST_DB_URL, **engine_kwargs)
 
     # Create tables with SQLite-compatible DDL
