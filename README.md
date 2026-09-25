@@ -39,7 +39,9 @@ Retrieval, architecture, and the scope notes below apply after any path.
 
 [![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
+
+The package requires Python 3.12+ (`pyproject.toml` `requires-python`). The standalone replay script in the Reviewer path above runs on Python 3.10+.
 
 The hosted Streamlit URL is intentionally omitted until anonymous access is verified. Static preview and trace visualizer live in [`site/`](site/) and [`frontend/pages/agent_trace.py`](frontend/pages/agent_trace.py).
 
@@ -103,7 +105,7 @@ Upload → ARQ worker → classify → extract → validate → embed → search
 - **Cost-aware model routing**: Haiku for classification, Sonnet for extraction; prompt caching on system prompts; circuit breaker with Haiku fallback
 - **Independent judge**: Gemini grades extractions to reduce self-grading bias ([ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md))
 - **Optional observability**: Langfuse integration, LangSmith, and OpenTelemetry exporters are available when configured ([`app/observability.py`](app/observability.py))
-- **Prompt-injection defense**: runtime fence + scan + output sanitization ([ADR-0020](docs/adr/0020-indirect-prompt-injection-defense.md))
+- **Prompt-injection defense**: runtime fence + scan + output sanitization, applied to both the text and vision extraction paths with adversarial tests ([ADR-0020](docs/adr/0020-indirect-prompt-injection-defense.md))
 
 ## Architecture
 
@@ -148,6 +150,7 @@ Services: API `:8000` (`/docs` for Swagger) | Frontend `:8501` | PostgreSQL `:54
 ```bash
 # Fresh clone, zero API cost:
 uv venv && uv pip install -e .           # or: uv sync (installs from pyproject.toml)
+source .venv/bin/activate                # or prefix commands with: uv run
 pytest tests/ --collect-only -q          # Discover the current suite; count is not a portfolio claim
 python scripts/eval_offline_replay.py --floor 0.85   # Always-on CI offline replay (badge driver)
 python scripts/run_eval_ci.py --ci                    # Wrapper; same 28-case deterministic path

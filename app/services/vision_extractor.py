@@ -203,7 +203,13 @@ def _sanitize_extracted(extracted_text: str, raw_response: str) -> dict:
 
     if structured:
         cleaned, removed = injection_guard.sanitize_output(structured)
-        parsed["text"] = str(cleaned.get("_raw_text") or extracted_text)
+        if cleaned.get("_raw_text"):
+            parsed["text"] = str(cleaned["_raw_text"])
+        else:
+            # No _raw_text in the model's JSON: serialize the sanitized object.
+            # Falling back to the raw response here would put stripped forbidden
+            # keys back into the text while metadata claims they were removed.
+            parsed["text"] = json.dumps(cleaned)
         parsed["exfil_keys"] = removed
         if isinstance(cleaned.get("tables"), list):
             parsed["tables"] = cleaned["tables"]
