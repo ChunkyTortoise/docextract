@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel
 
+from app.services import injection_guard
 from app.services.cost_tracker import CostTracker
 from app.services.rag_tools import RagTools, SearchResult
 
@@ -208,7 +209,7 @@ class AgenticRAG:
 
         # ---- THINK: which tool to call? ----
         think_response = await self._call_llm(
-            system=_THINK_SYSTEM,
+            system=_THINK_SYSTEM + injection_guard.DEFENSE_SYSTEM_CLAUSE,
             user=self._build_think_prompt(question, state.accumulated_results, doc_ids),
             models=settings.classification_models,
             operation="rag_think",
@@ -240,7 +241,7 @@ class AgenticRAG:
 
         # ---- OBSERVE: self-assess confidence ----
         evaluate_response = await self._call_llm(
-            system=_EVALUATE_SYSTEM,
+            system=_EVALUATE_SYSTEM + injection_guard.DEFENSE_SYSTEM_CLAUSE,
             user=self._build_evaluate_prompt(question, state.accumulated_results),
             models=settings.classification_models,
             operation="rag_evaluate",
@@ -511,13 +512,15 @@ class AgenticRAG:
         context = "\n\n".join(
             f"[{i + 1}] {r.content[:500]}" for i, r in enumerate(results[:5])
         )
+        if context:
+            context = injection_guard.wrap_untrusted(context)
         user_prompt = (
             f"Context passages:\n{context}\n\n"
             f"Question: {question}\n\n"
             "Answer concisely using only the context above."
         )
         return await self._call_llm(
-            system=_ANSWER_SYSTEM,
+            system=_ANSWER_SYSTEM + injection_guard.DEFENSE_SYSTEM_CLAUSE,
             user=user_prompt,
             models=models,
             operation="rag_answer",
@@ -533,7 +536,9 @@ class AgenticRAG:
     ) -> str:
         prior = (
             f"Results collected so far ({len(so_far)} passages):\n"
-            + "\n".join(f"  - {r.content[:150]}" for r in so_far[:3])
+            + injection_guard.wrap_untrusted(
+                "\n".join(f"  - {r.content[:150]}" for r in so_far[:3])
+            )
             if so_far
             else "No results collected yet."
         )
@@ -554,6 +559,8 @@ class AgenticRAG:
             f"[{i + 1}] (score={r.score:.3f}) {r.content[:400]}"
             for i, r in enumerate(results[:5])
         )
+        if context:
+            context = injection_guard.wrap_untrusted(context)
         return (
             f"Question: {question}\n\n"
             f"Retrieved passages:\n{context or 'None'}\n\n"

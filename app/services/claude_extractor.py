@@ -284,7 +284,12 @@ def _parse_json_response(text: str) -> dict[str, Any]:
         except json.JSONDecodeError:
             pass
 
-    logger.warning("Could not parse JSON from response: %s...", text[:100])
+    snippet = text[:100]
+    if settings.pii_redaction_enabled:
+        from app.services.pii_sanitizer import redact_pii
+
+        snippet = redact_pii(snippet)
+    logger.warning("Could not parse JSON from response: %s...", snippet)
     return {}
 
 
@@ -312,7 +317,7 @@ async def _apply_corrections_pass(
         doc_type=doc_type,
         confidence=confidence,
         text_limit=text_limit,
-        text=text[:text_limit],
+        text=injection_guard.wrap_untrusted(text[:text_limit]),
         extraction_json=json.dumps(original, indent=2),
     )
 
@@ -322,6 +327,13 @@ async def _apply_corrections_pass(
                 response = await client.messages.create(
                     model=model,
                     max_tokens=2048,
+                    system=[
+                        {
+                            "type": "text",
+                            "text": prompt_config.extract_system_prompt + injection_guard.DEFENSE_SYSTEM_CLAUSE,
+                            "cache_control": {"type": "ephemeral"},
+                        }
+                    ],
                     messages=[{"role": "user", "content": correction_prompt}],
                     tools=[CORRECTION_TOOL],
                 )
@@ -508,7 +520,7 @@ async def _reflect_and_revise(
     reflection_prompt = REFLECTION_PROMPT.format(
         doc_type=doc_type,
         confidence=confidence,
-        text=text[:4000],
+        text=injection_guard.wrap_untrusted(text[:4000]),
         extraction_json=json.dumps(extracted, indent=2),
     )
 
