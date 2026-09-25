@@ -1,12 +1,14 @@
 """Pytest configuration and shared fixtures."""
 from __future__ import annotations
 
+import os
 import sqlite3
 import uuid
 from datetime import UTC
 
 import fakeredis.aioredis
 import pandas  # noqa: F401 — must import before frontend tests run to prevent sys.modules.setdefault("pandas", MagicMock()) from replacing the real module
+import pytest
 import pytest_asyncio
 import sklearn.utils.fixes  # noqa: F401 — pre-cache sklearn before any test patches sys.modules["pandas"]
 from httpx import ASGITransport, AsyncClient
@@ -42,7 +44,9 @@ def _safe_uuid_bind_processor(self, dialect):  # type: ignore[override]
     return process
 
 
-_PG_UUID.bind_processor = _safe_uuid_bind_processor  # type: ignore[method-assign]
+if not os.environ.get("DATABASE_URL"):
+    # SQLite-only shim: on PostgreSQL the native UUID handling is correct.
+    _PG_UUID.bind_processor = _safe_uuid_bind_processor  # type: ignore[method-assign]
 
 from app.dependencies import get_arq_pool, get_db, get_redis, get_storage
 from app.models import APIKey  # noqa: F401
@@ -50,7 +54,9 @@ from app.models.database import Base
 from app.storage.base import StorageBackend
 from app.utils.hashing import hash_api_key
 
-TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
+# Honor DATABASE_URL when it is set (CI pgvector service runs the pg-marked
+# tests against it); otherwise the suite runs on in-memory SQLite.
+TEST_DB_URL = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 TEST_API_KEY = "test-api-key-12345"
 
 
@@ -115,13 +121,23 @@ class FakeStorageBackend(StorageBackend):
         return [k for k in self._store if k.startswith(prefix)]
 
 
+@pytest.fixture(autouse=True)
+def _reset_shared_model_routers():
+    """Shared breaker state must not leak across tests."""
+    from app.services.model_router import reset_shared_routers
+
+    reset_shared_routers()
+
+
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
-    engine = create_async_engine(
-        TEST_DB_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    engine_kwargs: dict = {}
+    if TEST_DB_URL.startswith("sqlite"):
+        engine_kwargs = {
+            "connect_args": {"check_same_thread": False},
+            "poolclass": StaticPool,
+        }
+    engine = create_async_engine(TEST_DB_URL, **engine_kwargs)
 
     # Create tables with SQLite-compatible DDL
     async with engine.begin() as conn:
@@ -133,7 +149,8 @@ async def test_engine():
 
 def _create_tables(conn):
     """Create tables, swapping out PostgreSQL types/defaults for SQLite."""
-    _patch_pg_types_for_sqlite()
+    if conn.dialect.name == "sqlite":
+        _patch_pg_types_for_sqlite()
 
     # Clear mapper caches that reference old column defaults
     from sqlalchemy.orm import class_mapper

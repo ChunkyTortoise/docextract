@@ -40,6 +40,7 @@ testpaths = ["tests"]
 addopts = "--cov=. --cov-report=term-missing"
 markers = [
     "e2e: end-to-end tests that hit real external services (deselect with '-m not e2e')",
+    "pg: needs a PostgreSQL/pgvector DATABASE_URL (run 'pytest -m pg' against the CI pgvector service)",
 ]
 
 [build-system]
