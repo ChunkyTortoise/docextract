@@ -162,6 +162,6 @@ Those runs should preserve the input population, scoring method, predictions, an
 ## Optional and feature-flagged extras
 
 GraphRAG uses an opt-in regex entity graph backed by files.
-The semantic cache is disabled by default and is not connected to the extraction hot path; RAGAS scoring is also feature-flagged.
+The semantic cache is disabled by default and is not connected to the extraction hot path.
 [Correction export](app/services/finetune_exporter.py) supports DPO pairs and JSONL datasets.
 The separate [MCP tool server](mcp_server.py) exposes extraction and record search to agent clients.

@@ -124,7 +124,6 @@ Query text → Gemini embedding (768-dim)
 | `classifier.py` | `app/services/` | Document type classification |
 | `semantic_cache.py` | `app/services/` | Embedding-based response dedup (feature-flagged) |
 | `cost_tracker.py` | `app/services/` | Per-request USD cost computation from token counts |
-| `ragas_evaluator.py` | `app/services/` | RAG quality metrics (context recall, faithfulness) |
 | `agent_evaluator.py` | `app/services/` | Agentic RAG evaluation (tool selection, iteration efficiency) |
 | `prompt_registry.py` | `app/services/` | Versioned prompt management with frozen registries |
 | `agentic_rag.py` | `app/services/` | ReAct-loop RAG with tool_use for multi-doc synthesis |
