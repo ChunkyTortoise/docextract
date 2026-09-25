@@ -12,15 +12,15 @@
   "reasoning_trace": [
     {
       "step": 1,
-      "thought": "The query asks for a specific dollar amount on an invoice. This looks like a keyword/ID lookup — BM25 keyword search will be more precise than vector similarity for numeric values.",
+      "thought": "The query asks for a specific dollar amount on an invoice. This looks like a keyword/ID lookup - BM25 keyword search will be more precise than vector similarity for numeric values.",
       "action": "search_bm25",
       "action_input": {"query": "invoice total amount due", "top_k": 5},
-      "observation": "Tool 'search_bm25' returned 2 result(s). Top result (score 0.91): 'Total Amount Due: $5,286.50. This includes subtotal of $4,850.00 plus applicable taxes...' — high confidence this directly answers the question.",
+      "observation": "Tool 'search_bm25' returned 2 result(s). Top result (score 0.91): 'Total Amount Due: $5,286.50. This includes subtotal of $4,850.00 plus applicable taxes...' - high confidence this directly answers the question.",
       "confidence": 0.91
     },
     {
       "step": 2,
-      "thought": "BM25 returned a high-confidence result with the exact dollar amount. Confidence 0.91 exceeds the 0.8 threshold. No need for additional retrieval — answer is ready.",
+      "thought": "BM25 returned a high-confidence result with the exact dollar amount. Confidence 0.91 exceeds the 0.8 threshold. No need for additional retrieval - answer is ready.",
       "action": "search_bm25",
       "action_input": {"query": "invoice total amount due", "top_k": 5},
       "observation": "Confidence threshold met (0.94 >= 0.8). Terminating search loop with final answer.",

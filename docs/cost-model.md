@@ -2,7 +2,7 @@
 
 ## Token Cost Comparison
 
-Token cost comparison across models (per 1,000 tokens, as of 2026):
+Token cost comparison across models (per 1,000 tokens, snapshot as of 2026-03; verify against the provider pricing page before citing):
 
 | Model | Input | Output | Best For |
 |-------|-------|--------|----------|
@@ -34,7 +34,7 @@ Modeled estimates (pricing table × typical token counts; not load-tested wall t
 | Multi-page PDF (10p) | Sonnet | ~15,000 | $0.150 | $150.00 |
 | Embedding (any) | Gemini | 768-dim | $0.0004 | $0.40 |
 
-*Costs assume Anthropic March 2026 pricing. Two-pass correction adds ~20% to base cost for low-confidence documents.*
+*Costs assume Anthropic March 2026 pricing (verify before citing). The per-request table is per LLM call; the per-document calculator below also includes classification and embedding. Two-pass correction adds a modeled ~20% to base cost for low-confidence documents; the correction trigger rate is a design target (15-20%), unmeasured.*
 
 ## Monitoring
 

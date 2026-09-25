@@ -15,6 +15,6 @@ Implement a `StorageBackend` abstract base class (`app/storage/base.py`) with tw
 
 **Why:** The abstraction lets the API and Worker services share the same storage interface regardless of backend. Local development uses `local` with no credentials; production uses `r2` with R2 bucket credentials. Switching backends requires changing one environment variable, not the application code. The `base.py` interface (`upload`, `download`, `delete`, `get_url`) is small enough that adding a third backend (S3, GCS) is a one-file addition.
 
-Cloudflare R2 was selected over AWS S3 for the production backend because R2 has zero egress fees — document downloads from the Worker back to the API for processing are free. At DocExtract's target scale, egress costs from S3 would add up quickly.
+Cloudflare R2 was selected over AWS S3 for the production backend because R2 has zero egress fees - document downloads from the Worker back to the API for processing are free. At DocExtract's target scale, egress costs from S3 would add up quickly.
 
 **Tradeoff:** The abstraction adds a layer of indirection that slightly obscures which backend is active during debugging. Accepted because the clarity benefit in tests (always use `LocalStorage`) and the operational flexibility (swap backends without code changes) outweigh the minor indirection cost.
