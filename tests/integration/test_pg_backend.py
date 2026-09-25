@@ -16,7 +16,10 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.pool import NullPool
+
+from app.models.database import Base
 
 REPO = Path(__file__).resolve().parents[2]
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
@@ -30,145 +33,178 @@ pytestmark = [
 ]
 
 
-async def test_pgvector_cosine_search_orders_by_distance(db_session):
+async def _make_session() -> tuple:
+    """Engine + session created on the current loop, schema ready.
+
+    asyncpg connections are bound to their creating loop, so these tests
+    build everything inside the test body instead of sharing fixtures.
+    """
+    engine = create_async_engine(DATABASE_URL, poolclass=NullPool)
+    async with engine.begin() as conn:
+        await conn.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS vector")
+        await conn.run_sync(Base.metadata.create_all)
+    return engine, AsyncSession(engine, expire_on_commit=False)
+
+
+async def test_pgvector_cosine_search_orders_by_distance():
     """Vector rows insert and cosine-distance search returns nearest-first."""
     from app.models.document import Document
     from app.models.embedding import DocumentEmbedding
     from app.models.job import ExtractionJob
     from app.models.record import ExtractedRecord
 
-    doc_id, job_id, job_id_2 = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
-    record_id = uuid.uuid4()
-    db_session.add(
-        Document(
-            id=doc_id,
-            original_filename="a.pdf",
-            stored_path="documents/a/a.pdf",
-            file_size_bytes=10,
-            mime_type="application/pdf",
-            sha256_hash="a" * 64,
+    engine, session = await _make_session()
+    try:
+        doc_id, job_id, job_id_2 = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+        record_id = uuid.uuid4()
+        other_record_id = uuid.uuid4()
+        session.add(
+            Document(
+                id=doc_id,
+                original_filename="a.pdf",
+                stored_path="documents/a/a.pdf",
+                file_size_bytes=10,
+                mime_type="application/pdf",
+                sha256_hash="a" * 64,
+            )
         )
-    )
-    db_session.add(ExtractionJob(id=job_id, document_id=doc_id, status="completed"))
-    db_session.add(ExtractionJob(id=job_id_2, document_id=doc_id, status="completed"))
-    db_session.add(
-        ExtractedRecord(
-            id=record_id,
-            job_id=job_id,
-            document_id=doc_id,
-            document_type="invoice",
-            extracted_data={"invoice_number": "INV-1"},
-            confidence_score=0.9,
+        session.add(ExtractionJob(id=job_id, document_id=doc_id, status="completed"))
+        session.add(ExtractionJob(id=job_id_2, document_id=doc_id, status="completed"))
+        session.add(
+            ExtractedRecord(
+                id=record_id,
+                job_id=job_id,
+                document_id=doc_id,
+                document_type="invoice",
+                extracted_data={"invoice_number": "INV-1"},
+                confidence_score=0.9,
+            )
         )
-    )
-    near = [1.0] + [0.0] * 767
-    far = [0.0] * 767 + [1.0]
-    db_session.add(
-        DocumentEmbedding(
-            id=uuid.uuid4(),
-            record_id=record_id,
-            content_text="near",
-            embedding=near,
+        session.add(
+            ExtractedRecord(
+                id=other_record_id,
+                job_id=job_id_2,
+                document_id=doc_id,
+                document_type="invoice",
+                extracted_data={"invoice_number": "INV-2"},
+                confidence_score=0.9,
+            )
         )
-    )
-    other_record_id = uuid.uuid4()
-    db_session.add(
-        ExtractedRecord(
-            id=other_record_id,
-            job_id=job_id_2,
-            document_id=doc_id,
-            document_type="invoice",
-            extracted_data={"invoice_number": "INV-2"},
-            confidence_score=0.9,
-        )
-    )
-    db_session.add(
-        DocumentEmbedding(
-            id=uuid.uuid4(),
-            record_id=other_record_id,
-            content_text="far",
-            embedding=far,
-        )
-    )
-    await db_session.flush()
+        await session.flush()  # records first: embeddings carry the FK
 
-    distance = DocumentEmbedding.embedding.cosine_distance(near)
-    rows = (
-        await db_session.execute(
-            select(DocumentEmbedding.content_text, distance).order_by(distance)
+        near = [1.0] + [0.0] * 767
+        far = [0.0] * 767 + [1.0]
+        session.add(
+            DocumentEmbedding(
+                id=uuid.uuid4(),
+                record_id=record_id,
+                content_text="near",
+                embedding=near,
+            )
         )
-    ).all()
-    assert [r[0] for r in rows] == ["near", "far"]
+        session.add(
+            DocumentEmbedding(
+                id=uuid.uuid4(),
+                record_id=other_record_id,
+                content_text="far",
+                embedding=far,
+            )
+        )
+        await session.flush()
+
+        distance = DocumentEmbedding.embedding.cosine_distance(near)
+        rows = (
+            await session.execute(
+                select(DocumentEmbedding.content_text, distance).order_by(distance)
+            )
+        ).all()
+        assert [r[0] for r in rows] == ["near", "far"]
+    finally:
+        await session.close()
+        await engine.dispose()
 
 
-async def test_record_per_job_unique_constraint(db_session):
+async def test_record_per_job_unique_constraint():
     """Redelivery can never create a second record for one job."""
     from app.models.document import Document
     from app.models.job import ExtractionJob
     from app.models.record import ExtractedRecord
 
-    doc_id, job_id = uuid.uuid4(), uuid.uuid4()
-    db_session.add(
-        Document(
-            id=doc_id,
-            original_filename="b.pdf",
-            stored_path="documents/b/b.pdf",
-            file_size_bytes=10,
-            mime_type="application/pdf",
-            sha256_hash="b" * 64,
+    engine, session = await _make_session()
+    try:
+        doc_id, job_id = uuid.uuid4(), uuid.uuid4()
+        session.add(
+            Document(
+                id=doc_id,
+                original_filename="b.pdf",
+                stored_path="documents/b/b.pdf",
+                file_size_bytes=10,
+                mime_type="application/pdf",
+                sha256_hash="b" * 64,
+            )
         )
-    )
-    db_session.add(ExtractionJob(id=job_id, document_id=doc_id, status="completed"))
-    db_session.add(
-        ExtractedRecord(
-            id=uuid.uuid4(),
-            job_id=job_id,
-            document_id=doc_id,
-            document_type="invoice",
-            extracted_data={},
-            confidence_score=0.5,
+        session.add(ExtractionJob(id=job_id, document_id=doc_id, status="completed"))
+        session.add(
+            ExtractedRecord(
+                id=uuid.uuid4(),
+                job_id=job_id,
+                document_id=doc_id,
+                document_type="invoice",
+                extracted_data={},
+                confidence_score=0.5,
+            )
         )
-    )
-    await db_session.flush()
+        await session.flush()
 
-    db_session.add(
-        ExtractedRecord(
-            id=uuid.uuid4(),
-            job_id=job_id,
-            document_id=doc_id,
-            document_type="invoice",
-            extracted_data={},
-            confidence_score=0.5,
+        session.add(
+            ExtractedRecord(
+                id=uuid.uuid4(),
+                job_id=job_id,
+                document_id=doc_id,
+                document_type="invoice",
+                extracted_data={},
+                confidence_score=0.5,
+            )
         )
-    )
-    with pytest.raises(IntegrityError):
-        await db_session.flush()
-    await db_session.rollback()
+        with pytest.raises(IntegrityError):
+            await session.flush()
+        await session.rollback()
+    finally:
+        await session.close()
+        await engine.dispose()
 
 
-async def test_document_soft_dedup_handles_duplicate_hashes(db_session):
+async def test_document_soft_dedup_handles_duplicate_hashes():
     """The soft dedup lookup must tolerate duplicate hashes (no 500)."""
     from app.models.document import Document
 
-    for i in range(2):
-        db_session.add(
-            Document(
-                id=uuid.uuid4(),
-                original_filename=f"dup_{i}.pdf",
-                stored_path=f"documents/dup_{i}/f.pdf",
-                file_size_bytes=10,
-                mime_type="application/pdf",
-                sha256_hash="c" * 64,
+    engine, session = await _make_session()
+    try:
+        hash_val = uuid.uuid4().hex  # unique per run: the CI DB persists rows
+        for i in range(2):
+            session.add(
+                Document(
+                    id=uuid.uuid4(),
+                    original_filename=f"dup_{i}.pdf",
+                    stored_path=f"documents/dup_{i}/f.pdf",
+                    file_size_bytes=10,
+                    mime_type="application/pdf",
+                    sha256_hash=hash_val,
+                )
+            )
+        await session.flush()
+
+        result = await session.execute(
+            Document.__table__.select().where(
+                Document.__table__.c.sha256_hash == hash_val
             )
         )
-    await db_session.flush()
-
-    result = await db_session.execute(
-        Document.__table__.select().where(Document.__table__.c.sha256_hash == "c" * 64)
-    )
-    rows = result.all()
-    assert len(rows) == 2
-    assert rows[0][0] is not None  # first() semantics: a row is always returned
+        rows = result.all()
+        assert len(rows) == 2
+        assert rows[0][0] is not None  # first() semantics: a row is always returned
+    finally:
+        await session.close()
+        await engine.dispose()
 
 
 async def test_alembic_upgrade_head_and_fk_types():
