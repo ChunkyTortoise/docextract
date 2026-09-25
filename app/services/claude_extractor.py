@@ -85,15 +85,13 @@ async def extract(
     if schema_class is None:
         schema_class = DOCUMENT_TYPE_MAP.get(doc_type)
 
-    from app.services.model_router import ModelRouter
+    from app.services.model_router import get_shared_router
 
     # instructor.from_anthropic wraps the client transparently and adds
     # automatic retry on schema validation failure (Pydantic-backed).
     client = instructor.from_anthropic(AsyncAnthropic(api_key=settings.anthropic_api_key))
-    router = ModelRouter(
-        failure_threshold=settings.circuit_breaker_failure_threshold,
-        recovery_timeout=settings.circuit_breaker_recovery_seconds,
-    )
+    # Shared router: breaker cooldowns persist across requests and jobs.
+    router = get_shared_router("extract")
 
     # Inject few-shot correction examples if active learning enabled
     few_shot_prefix = ""
@@ -304,13 +302,10 @@ async def _apply_corrections_pass(
 ) -> tuple[dict[str, Any], bool]:
     """Pass 2: Use tool_use to correct low-confidence extractions."""
     from app.services.llm_tracer import trace_llm_call
-    from app.services.model_router import ModelRouter
+    from app.services.model_router import get_shared_router
 
     if router is None:
-        router = ModelRouter(
-            failure_threshold=settings.circuit_breaker_failure_threshold,
-            recovery_timeout=settings.circuit_breaker_recovery_seconds,
-        )
+        router = get_shared_router("extract")
 
     text_limit = prompt_config.params.correction_text_limit
     correction_prompt = prompt_config.correction_prompt.format(

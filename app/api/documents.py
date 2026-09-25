@@ -1,6 +1,7 @@
 """Document upload and management endpoints."""
 from __future__ import annotations
 
+import logging
 import uuid
 from pathlib import Path
 
@@ -22,6 +23,8 @@ from app.schemas.responses import UploadResponse
 from app.storage.base import StorageBackend
 from app.utils.hashing import hash_file
 from app.utils.mime import detect_mime_type, is_allowed_mime_type
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -150,20 +153,29 @@ async def upload_document(
     db.add(job)
     await db.commit()
 
-    # Enqueue ARQ job
-    await arq_pool.enqueue_job(
-        "process_document",
-        str(job_id),
-        _queue_name=settings.worker_queue,
-        _job_id=str(job_id),
-    )
+    # Commit before enqueue so the queue never sees invisible rows; an enqueue
+    # failure leaves committed, recoverable work (the recovery cron re-enqueues
+    # queued jobs) instead of a half-recorded upload.
+    queued_message = "Document queued for processing."
+    try:
+        await arq_pool.enqueue_job(
+            "process_document",
+            str(job_id),
+            _queue_name=settings.worker_queue,
+            _job_id=str(job_id),
+        )
+    except Exception as exc:
+        logger.warning("Enqueue failed for job %s; deferring to recovery: %s", job_id, exc)
+        job.error_message = f"Queue submission deferred to recovery: {exc}"[:500]
+        await db.commit()
+        queued_message = "Document stored; queue submission deferred to the recovery worker."
 
     return UploadResponse(
         document_id=str(doc_id),
         job_id=str(job_id),
         filename=safe_name,
         duplicate=False,
-        message="Document queued for processing.",
+        message=queued_message,
     )
 
 
@@ -237,18 +249,28 @@ async def batch_upload(
         db.add(job)
         await db.flush()
 
-        # Enqueue ARQ job
-        await arq_pool.enqueue_job(
-            "process_document",
-            str(job_id),
-            _queue_name=settings.worker_queue,
-            _job_id=str(job_id),
-        )
-
         job_ids.append(str(job_id))
 
     await db.commit()
-    return {"job_ids": job_ids, "duplicates": duplicates, "errors": errors}
+
+    # Enqueue only after the commit: workers can never observe invisible rows,
+    # and a mid-batch failure can never leave queued-but-deleted work behind.
+    deferred: list[str] = []
+    for job_id in job_ids:
+        try:
+            await arq_pool.enqueue_job(
+                "process_document",
+                job_id,
+                _queue_name=settings.worker_queue,
+                _job_id=job_id,
+            )
+        except Exception as exc:
+            # Committed and recoverable: the recovery cron re-enqueues it.
+            logger.warning("Enqueue failed for batch job %s; deferring: %s", job_id, exc)
+            deferred.append(job_id)
+            errors.append({"job_id": job_id, "reason": "enqueue_deferred_to_recovery"})
+
+    return {"job_ids": job_ids, "duplicates": duplicates, "errors": errors, "deferred": deferred}
 
 
 @router.delete("/{document_id}")

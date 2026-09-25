@@ -1,6 +1,7 @@
 """ARQ worker task: orchestrates the full document processing pipeline."""
 from __future__ import annotations
 
+import asyncio
 import time
 import uuid
 from datetime import UTC, datetime
@@ -136,6 +137,23 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     if not job:
         raise ValueError(f"Job {job_id} not found")
 
+    # Idempotency guard: a re-delivered job that already reached a terminal
+    # state is not reprocessed — one logical extraction record per job.
+    if job.status in (
+        JobStatus.COMPLETED.value,
+        JobStatus.NEEDS_REVIEW.value,
+        JobStatus.CANCELLED.value,
+    ):
+        existing = await db.execute(
+            select(ExtractedRecord).where(ExtractedRecord.job_id == job.id)
+        )
+        record = existing.scalars().first()
+        return {
+            "status": "duplicate_ignored",
+            "record_id": str(record.id) if record else "",
+            "document_type": job.document_type_detected or "",
+        }
+
     # Load document
     doc_result = await db.execute(select(Document).where(Document.id == job.document_id))
     doc = doc_result.scalar_one()
@@ -150,12 +168,20 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # 3. Detect MIME type
     mime_type = detect_mime_type(file_bytes) or doc.mime_type
 
-    # 4. Ingest -> EXTRACTING_TEXT
+    # 4. Ingest -> EXTRACTING_TEXT. Parsing is blocking (fitz/cv2/tesseract),
+    # so it runs in a thread with an explicit wall-clock budget (lane B B8).
     await _update_job_status(db, redis, job, JobStatus.EXTRACTING_TEXT)
     try:
-        extracted = ingest(file_bytes, mime_type, doc.original_filename)
+        extracted = await asyncio.wait_for(
+            asyncio.to_thread(ingest, file_bytes, mime_type, doc.original_filename),
+            timeout=settings.parser_time_budget_seconds,
+        )
     except UnsupportedMimeType as e:
         raise ValueError(str(e))  # Permanent error
+    except TimeoutError as e:
+        raise ValueError(
+            f"Parsing exceeded the {settings.parser_time_budget_seconds}s time budget"
+        ) from e
 
     # 5. Classify -> CLASSIFYING
     await _update_job_status(db, redis, job, JobStatus.CLASSIFYING)
@@ -171,6 +197,14 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
         await _emit_page_events(redis, job_id, extracted.text, extracted.page_count)
 
     extraction_result = await extract(extracted.text, doc_type, schema_class, db=db)
+
+    # Propagate explicit extraction failure: exhausted or invalid parsing must
+    # never reach a successful completion contract.
+    if not extraction_result.schema_valid:
+        raise ValueError(
+            "Extraction failed schema validation: "
+            + "; ".join(str(e) for e in extraction_result.validation_errors[:5])
+        )
 
     # Merge structured tables from ingestion into extraction result
     if extracted.tables:
@@ -323,45 +357,56 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
         except Exception as exc:
             logger.warning("Graph index failed for record %s: %s", record.id, exc)
 
-    # 10% LLM-judge quality sampling — fire-and-forget, non-blocking
+    # 10% LLM-judge quality sampling — fire-and-forget, non-blocking.
+    # Post-commit side effects: a queue hiccup here must never turn a committed
+    # success into a job failure.
     if hash(job_id) % 10 == 0:
-        await redis.enqueue_job("judge_extraction_sample", job_id=job_id)
-        logger.debug("Enqueued LLM judge sampling for job %s", job_id)
+        try:
+            await redis.enqueue_job("judge_extraction_sample", job_id=job_id)
+            logger.debug("Enqueued LLM judge sampling for job %s", job_id)
+        except Exception as exc:
+            logger.warning("Judge sampling enqueue failed for job %s: %s", job_id, exc)
 
     # Publish completion event
-    await publish_event(redis, job_id, {
-        "job_id": job_id,
-        "status": job.status,
-        "progress": JOB_STATUS_PROGRESS[
-            JobStatus.NEEDS_REVIEW if validation_result.needs_review else JobStatus.COMPLETED
-        ],
-        "message": (
-            f"Extraction complete and queued for review. Document type: {doc_type}"
-            if validation_result.needs_review
-            else f"Extraction complete. Document type: {doc_type}"
-        ),
-    })
+    try:
+        await publish_event(redis, job_id, {
+            "job_id": job_id,
+            "status": job.status,
+            "progress": JOB_STATUS_PROGRESS[
+                JobStatus.NEEDS_REVIEW if validation_result.needs_review else JobStatus.COMPLETED
+            ],
+            "message": (
+                f"Extraction complete and queued for review. Document type: {doc_type}"
+                if validation_result.needs_review
+                else f"Extraction complete. Document type: {doc_type}"
+            ),
+        })
+    except Exception as exc:
+        logger.warning("Completion event publish failed for job %s: %s", job_id, exc)
 
     # 11. Schedule webhook delivery as its own ARQ job (never awaited inline;
     # retries re-enqueue deferred so they outlive this job's timeout)
     if job.webhook_url:
-        secret = ""
-        if job.webhook_secret_encrypted:
-            secret = decrypt_secret(job.webhook_secret_encrypted, settings.aes_key)
-        await redis.enqueue_job(
-            "deliver_webhook",
-            job.webhook_url,
-            {
-                "event": "job.completed",
-                "job_id": job_id,
-                "status": "completed",
-                "document_type": doc_type,
-                "record_id": record_id,
-            },
-            secret,
-            _defer_by=RETRY_DELAYS[0],
-            _queue_name=settings.worker_queue,
-        )
+        try:
+            secret = ""
+            if job.webhook_secret_encrypted:
+                secret = decrypt_secret(job.webhook_secret_encrypted, settings.aes_key)
+            await redis.enqueue_job(
+                "deliver_webhook",
+                job.webhook_url,
+                {
+                    "event": "job.completed",
+                    "job_id": job_id,
+                    "status": job.status,
+                    "document_type": doc_type,
+                    "record_id": record_id,
+                },
+                secret,
+                _defer_by=RETRY_DELAYS[0],
+                _queue_name=settings.worker_queue,
+            )
+        except Exception as exc:
+            logger.warning("Webhook delivery enqueue failed for job %s: %s", job_id, exc)
 
     return {"status": "completed", "record_id": record_id, "document_type": doc_type}
 
@@ -415,6 +460,8 @@ async def _fail_job(db: AsyncSession, redis: aioredis.Redis, job_id: str, error:
     from worker.events import publish_event
 
     try:
+        # The calling transaction may have failed; clear it before reuse.
+        await db.rollback()
         job_result = await db.execute(select(ExtractionJob).where(ExtractionJob.id == job_id))
         job = job_result.scalar_one_or_none()
         if job:
