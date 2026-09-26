@@ -6,6 +6,10 @@ Upload PDFs and images, classify the document, extract structured fields, and se
 
 > **95.5% field-level score from a deterministic 28-fixture replay**
 
+<p align="center">
+  <img src="./docs/screenshots/demo-hero.png" width="720" alt="DocExtract fixture-backed demo: uploaded invoice, classified document, structured fields with confidence, and the 95.5% offline replay score." />
+</p>
+
 | Evidence | What it is | What it is not |
 |----------|------------|----------------|
 | **28 fixtures** | Deterministic replay behind the 95.5% field-level score (`scripts/eval_offline_replay.py`, `autoresearch/baseline.json`) | Not the authoring-corpus size |
@@ -81,8 +85,6 @@ Overall: 0.9555 across 28 committed prediction fixtures, with 44 of 72 lookup ca
 </details>
 
 More: [CASE_STUDY.md](CASE_STUDY.md) · [docs/eval-methodology.md](docs/eval-methodology.md) · [docs/eval-boundary.md](docs/eval-boundary.md) · [docs/held-out-live-eval-protocol.md](docs/held-out-live-eval-protocol.md) · [evals/](evals/)
-
-![DocExtract AI fixture-backed demo with evaluation scores, agent trace, and cost analysis](docs/screenshots/demo-hero.png)
 
 ## What this does
 
