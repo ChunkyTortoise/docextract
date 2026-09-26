@@ -83,38 +83,76 @@ class TestPdfRenderBudget:
             pdf_extractor.extract_pdf(b"%PDF-1.4 broken")
 
 
-class TestEmailAttachmentBudget:
-    def _eml(self, attachment_sizes: list[int]) -> bytes:
-        import email.message
+def _eml(attachment_sizes: list[int]) -> bytes:
+    import email.message
 
-        msg = email.message.EmailMessage()
-        msg["From"] = "sender@example.com"
-        msg["To"] = "rcpt@example.com"
-        msg["Subject"] = "invoices"
-        msg.set_content("see attachments")
-        for i, size in enumerate(attachment_sizes):
-            msg.add_attachment(
-                b"x" * size,
-                maintype="application",
-                subtype="pdf",
-                filename=f"att_{i}.pdf",
-            )
-        return msg.as_bytes()
+    msg = email.message.EmailMessage()
+    msg["From"] = "sender@example.com"
+    msg["To"] = "rcpt@example.com"
+    msg["Subject"] = "invoices"
+    msg.set_content("see attachments")
+    for i, size in enumerate(attachment_sizes):
+        msg.add_attachment(
+            b"x" * size,
+            maintype="application",
+            subtype="pdf",
+            filename=f"att_{i}.pdf",
+        )
+    return msg.as_bytes()
+
+
+class TestEmailAttachmentBudget:
 
     def test_attachment_heavy_input_fails_on_shared_budget(self, monkeypatch):
         from app.config import settings
 
         monkeypatch.setattr(settings, "parser_attachment_budget_bytes", 100)
         with pytest.raises(ParserBudgetError, match="budget exceeded"):
-            extract_eml(self._eml([60, 60]))
+            extract_eml(_eml([60, 60]))
 
     def test_single_oversized_attachment_fails(self, monkeypatch):
         from app.config import settings
 
         monkeypatch.setattr(settings, "parser_max_attachment_bytes", 10)
         with pytest.raises(ParserBudgetError, match="per-attachment decoded budget"):
-            extract_eml(self._eml([60]))
+            extract_eml(_eml([60]))
 
     def test_small_attachments_pass_the_budget(self):
-        content = extract_eml(self._eml([10, 10]))
+        content = extract_eml(_eml([10, 10]))
         assert "see attachments" in content.text
+
+
+class TestParseTimeDeadline:
+    def test_pdf_stops_at_page_boundary_when_deadline_passed(self, monkeypatch):
+        import time
+
+        import app.services.pdf_extractor as pdf_extractor
+
+        page_touches: list[int] = []
+
+        class _FakePage:
+            def get_text(self, kind):
+                page_touches.append(1)
+                return [(0, 0, 0, 0, "text", 0, 0)]
+
+        class _FakeDoc:
+            is_encrypted = False
+            page_count = 3
+
+            def __getitem__(self, i):
+                return _FakePage()
+
+            def close(self):
+                pass
+
+        monkeypatch.setattr(pdf_extractor.fitz, "open", lambda **kwargs: _FakeDoc())
+
+        with pytest.raises(TimeoutError):
+            pdf_extractor.extract_pdf(b"%PDF-1.4 fake", deadline=time.monotonic() - 1)
+        assert page_touches == []  # fail-fast before per-page work
+
+    def test_eml_stops_at_attachment_boundary_when_deadline_passed(self):
+        import time
+
+        with pytest.raises(TimeoutError):
+            extract_eml(_eml([10, 10]), deadline=time.monotonic() - 1)

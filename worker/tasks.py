@@ -172,8 +172,11 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # so it runs in a thread with an explicit wall-clock budget (lane B B8).
     await _update_job_status(db, redis, job, JobStatus.EXTRACTING_TEXT)
     try:
+        deadline = time.monotonic() + settings.parser_time_budget_seconds
         extracted = await asyncio.wait_for(
-            asyncio.to_thread(ingest, file_bytes, mime_type, doc.original_filename),
+            asyncio.to_thread(
+                ingest, file_bytes, mime_type, doc.original_filename, deadline
+            ),
             timeout=settings.parser_time_budget_seconds,
         )
     except UnsupportedMimeType as e:

@@ -19,7 +19,7 @@ def test_pdf_routing(mock_extract: MagicMock) -> None:
 
     result = ingest(b"pdf-bytes", "application/pdf", "doc.pdf")
 
-    mock_extract.assert_called_once_with(b"pdf-bytes")
+    mock_extract.assert_called_once_with(b"pdf-bytes", deadline=None)
     assert result.text == "pdf text"
 
 
@@ -63,7 +63,7 @@ def test_eml_routing(mock_extract: MagicMock) -> None:
 
     result = ingest(b"eml-bytes", "message/rfc822", "mail.eml")
 
-    mock_extract.assert_called_once_with(b"eml-bytes")
+    mock_extract.assert_called_once_with(b"eml-bytes", deadline=None)
     assert result.text == "email text"
 
 
@@ -74,8 +74,22 @@ def test_msg_routing(mock_extract: MagicMock) -> None:
 
     result = ingest(b"msg-bytes", "application/vnd.ms-outlook", "mail.msg")
 
-    mock_extract.assert_called_once_with(b"msg-bytes")
+    mock_extract.assert_called_once_with(b"msg-bytes", deadline=None)
     assert result.text == "msg text"
+
+
+def test_deadline_forwarded_to_extractors(monkeypatch) -> None:
+    seen: dict = {}
+
+    def fake_extract_pdf(data, deadline=None):
+        seen["deadline"] = deadline
+        return _mock_result("pdf text")
+
+    monkeypatch.setattr("app.services.ingestion.extract_pdf", fake_extract_pdf)
+
+    ingest(b"pdf-bytes", "application/pdf", "doc.pdf", deadline=123.0)
+
+    assert seen["deadline"] == 123.0
 
 
 def test_unsupported_mime_raises() -> None:

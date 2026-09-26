@@ -23,7 +23,7 @@ class ExtractedContent:
     tables: list[dict] = field(default_factory=list)
 
 
-def extract_pdf(data: bytes) -> ExtractedContent:
+def extract_pdf(data: bytes, deadline: float | None = None) -> ExtractedContent:
     """Extract text and tables from a PDF.
 
     Uses PyMuPDF for text extraction, falls back to pdfplumber for tables.
@@ -38,6 +38,8 @@ def extract_pdf(data: bytes) -> ExtractedContent:
     Raises:
         ValueError: If PDF is corrupt or encrypted
     """
+    from app.services.preprocessor import check_parse_deadline
+
     try:
         doc = fitz.open(stream=data, filetype="pdf")
     except Exception as exc:
@@ -56,6 +58,7 @@ def extract_pdf(data: bytes) -> ExtractedContent:
     rendered_pixels = 0
 
     for page_num in range(total_pages):
+        check_parse_deadline(deadline)
         page = doc[page_num]
         blocks = page.get_text("blocks")
 
@@ -104,6 +107,7 @@ def extract_pdf(data: bytes) -> ExtractedContent:
     try:
         with pdfplumber.open(io.BytesIO(data)) as pdf:
             for page_num, page in enumerate(pdf.pages[:total_pages]):
+                check_parse_deadline(deadline)
                 raw_tables = page.extract_tables()
                 if raw_tables:
                     has_tables = True
@@ -112,6 +116,8 @@ def extract_pdf(data: bytes) -> ExtractedContent:
                         structured = _table_to_structured(table, page=page_num + 1)
                         if structured:
                             structured_tables.append(structured)
+    except TimeoutError:
+        raise
     except Exception:
         logger.warning("pdfplumber table extraction failed", exc_info=True)
 

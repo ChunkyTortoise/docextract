@@ -2,6 +2,7 @@
 No app.* imports - standalone module.
 """
 import struct
+import time
 
 import cv2
 import numpy as np
@@ -9,6 +10,12 @@ import numpy as np
 
 class ParserBudgetError(ValueError):
     """Raised when input exceeds an explicit decoded-resource budget."""
+
+
+def check_parse_deadline(deadline: float | None) -> None:
+    """Raise TimeoutError once the cooperative parse deadline has passed."""
+    if deadline is not None and time.monotonic() > deadline:
+        raise TimeoutError("Parsing time budget exhausted")
 
 
 def image_size_from_header(data: bytes) -> tuple[int, int] | None:
