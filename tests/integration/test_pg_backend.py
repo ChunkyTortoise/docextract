@@ -457,3 +457,67 @@ async def test_alembic_014_repairs_legacy_eval_log_columns():
         assert "eval_log_job_id_fkey" in fks
     finally:
         await _drop_scratch(admin_url, scratch_name)
+
+
+async def test_alembic_015_default_validation_status_is_in_domain():
+    """A raw insert relying on the default must satisfy the domain check.
+
+    Migration 001's server default 'pending' was outside the 005 domain, so a
+    bare insert violated ck_extracted_records_validation_status_domain; the
+    default is now 'pending_review'.
+    """
+    if not DATABASE_URL.startswith("postgresql+asyncpg"):
+        pytest.skip("needs an asyncpg DATABASE_URL")
+
+    base = DATABASE_URL.rsplit("/", 1)[0]
+    scratch_name = "docextract_test_alembic_015"
+    admin_url = f"{base}/postgres"
+    scratch_url = f"{base}/{scratch_name}"
+
+    await _make_scratch(admin_url, scratch_name)
+    try:
+        await _run_alembic(scratch_url, "upgrade", "head")
+
+        doc_id, job_id = uuid.uuid4(), uuid.uuid4()
+        seed = create_async_engine(scratch_url, poolclass=NullPool)
+        async with seed.begin() as conn:
+            await conn.execute(text(
+                "INSERT INTO documents (id, original_filename, stored_path, "
+                "file_size_bytes, mime_type, sha256_hash) VALUES "
+                f"('{doc_id}', 'd.pdf', 'documents/d/d.pdf', 10, "
+                f"'application/pdf', '{'e' * 64}')"
+            ))
+            await conn.execute(text(
+                f"INSERT INTO extraction_jobs (id, document_id) VALUES ('{job_id}', '{doc_id}')"
+            ))
+            # Bare insert: no validation_status, the server default must land
+            # inside the domain.
+            await conn.execute(text(
+                "INSERT INTO extracted_records (id, job_id, document_id, "
+                "document_type, extracted_data, confidence_score) VALUES "
+                f"('{uuid.uuid4()}', '{job_id}', '{doc_id}', 'invoice', '{{}}', 0.5)"
+            ))
+            status = (
+                await conn.execute(
+                    text(
+                        "SELECT validation_status FROM extracted_records "
+                        "WHERE job_id = :job"
+                    ),
+                    {"job": str(job_id)},
+                )
+            ).scalar_one()
+            column_default = (
+                await conn.execute(
+                    text(
+                        "SELECT column_default FROM information_schema.columns "
+                        "WHERE table_name = 'extracted_records' "
+                        "AND column_name = 'validation_status'"
+                    )
+                )
+            ).scalar_one()
+        await seed.dispose()
+
+        assert status == "pending_review"
+        assert "pending_review" in (column_default or "")
+    finally:
+        await _drop_scratch(admin_url, scratch_name)
