@@ -265,6 +265,41 @@ class TestProcessPipeline:
         http_client.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_delivery_enqueue_passes_secret_ciphertext_untouched(
+        self, job_id, mock_job, mock_redis, pipeline_mocks
+    ):
+        """The secret reaches the queue as ciphertext; enqueue never decrypts."""
+        mock_db, patches, _ = pipeline_mocks
+        mock_job.webhook_url = "https://example.com/hook"
+        mock_job.webhook_secret_encrypted = "b64-ciphertext"
+
+        try:
+            with (
+                patch("worker.tasks.AsyncSessionLocal") as session_cls,
+                patch("app.services.webhook_sender.httpx.AsyncClient") as http_client,
+            ):
+                session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_db)
+                session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+                from worker.tasks import process_document
+
+                result = await process_document({"redis": mock_redis}, job_id)
+        finally:
+            for p in patches:
+                p.stop()
+
+        assert result["status"] == "completed"
+
+        delivery_calls = [
+            c
+            for c in mock_redis.enqueue_job.call_args_list
+            if c.args and c.args[0] == "deliver_webhook"
+        ]
+        assert len(delivery_calls) == 1
+        assert delivery_calls[0].args[3] == "b64-ciphertext"
+        http_client.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_validation_errors_stored(
         self, job_id, mock_job, mock_redis, pipeline_mocks
     ):

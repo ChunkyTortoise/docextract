@@ -127,7 +127,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     from app.services.ingestion import UnsupportedMimeType, ingest
     from app.services.pii_sanitizer import redact_pii
     from app.services.validator import validate
-    from app.services.webhook_sender import RETRY_DELAYS, decrypt_secret
+    from app.services.webhook_sender import RETRY_DELAYS
     from app.utils.mime import detect_mime_type
     from worker.events import publish_event
 
@@ -388,9 +388,8 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # retries re-enqueue deferred so they outlive this job's timeout)
     if job.webhook_url:
         try:
-            secret = ""
-            if job.webhook_secret_encrypted:
-                secret = decrypt_secret(job.webhook_secret_encrypted, settings.aes_key)
+            # The secret crosses the queue as ciphertext; deliver_webhook
+            # decrypts only inside the attempt that signs with it.
             await redis.enqueue_job(
                 "deliver_webhook",
                 job.webhook_url,
@@ -401,7 +400,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
                     "document_type": doc_type,
                     "record_id": record_id,
                 },
-                secret,
+                job.webhook_secret_encrypted or "",
                 _defer_by=RETRY_DELAYS[0],
                 _queue_name=settings.worker_queue,
             )
