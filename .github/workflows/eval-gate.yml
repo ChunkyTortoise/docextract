@@ -95,7 +95,7 @@ jobs:
       - name: Generate Promptfoo test cases from golden set
         run: python scripts/generate_promptfoo_tests.py
       - name: Cache golden fixtures
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: eval_artifacts/cache
           key: golden-${{ hashFiles('evals/golden_set.jsonl') }}
