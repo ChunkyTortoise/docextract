@@ -9,6 +9,8 @@ import importlib.util
 import sqlite3
 from pathlib import Path
 
+import sqlalchemy as sa
+
 REPO = Path(__file__).resolve().parents[2]
 
 
@@ -69,3 +71,18 @@ class TestDedupeKeepFirst:
         ]
         conn.close()
         assert remaining == ["r-1", "r-2"]
+
+
+class TestEvalLogTypeRepairGate:
+    def test_legacy_string_columns_are_detected(self):
+        migration = _load_migration("014_eval_log_type_repair.py")
+        assert migration._is_legacy_string(sa.String(36)) is True
+        assert migration._is_legacy_string(sa.CHAR(36)) is True
+
+    def test_uuid_columns_are_not_touched(self):
+        from sqlalchemy.dialects.postgresql import UUID
+
+        migration = _load_migration("014_eval_log_type_repair.py")
+        assert migration._is_legacy_string(UUID(as_uuid=False)) is False
+        assert migration._is_legacy_string(sa.Uuid()) is False
+        assert migration._is_legacy_string(None) is False

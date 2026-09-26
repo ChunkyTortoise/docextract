@@ -268,3 +268,188 @@ async def test_alembic_upgrade_head_and_fk_types():
         async with admin.connect() as conn:
             await conn.execute(text(f"DROP DATABASE IF EXISTS {scratch_name}"))
         await admin.dispose()
+
+
+async def _run_alembic(scratch_url: str, *args: str) -> None:
+    proc = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-m",
+        "alembic",
+        *args,
+        cwd=str(REPO),
+        env={**os.environ, "DATABASE_URL": scratch_url},
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
+    )
+    out, _ = await proc.communicate()
+    assert proc.returncode == 0, out.decode()
+
+
+async def _make_scratch(admin_url: str, scratch_name: str) -> None:
+    admin = create_async_engine(admin_url, isolation_level="AUTOCOMMIT")
+    async with admin.connect() as conn:
+        await conn.execute(text(f"DROP DATABASE IF EXISTS {scratch_name}"))
+        await conn.execute(text(f"CREATE DATABASE {scratch_name}"))
+    await admin.dispose()
+
+
+async def _drop_scratch(admin_url: str, scratch_name: str) -> None:
+    admin = create_async_engine(admin_url, isolation_level="AUTOCOMMIT")
+    async with admin.connect() as conn:
+        await conn.execute(text(f"DROP DATABASE IF EXISTS {scratch_name}"))
+    await admin.dispose()
+
+
+async def test_alembic_013_reconciles_duplicates_before_unique_index():
+    """Pre-existing redelivery duplicates upgrade cleanly into the constraint.
+
+    Review P1 on PR #56: CREATE UNIQUE INDEX must not fail on rows left by the
+    pre-guard worker; migration 013 keeps the earliest record per job first.
+    """
+    if not DATABASE_URL.startswith("postgresql+asyncpg"):
+        pytest.skip("needs an asyncpg DATABASE_URL")
+
+    base = DATABASE_URL.rsplit("/", 1)[0]
+    scratch_name = "docextract_test_alembic_013"
+    admin_url = f"{base}/postgres"
+    scratch_url = f"{base}/{scratch_name}"
+
+    await _make_scratch(admin_url, scratch_name)
+    try:
+        await _run_alembic(scratch_url, "upgrade", "012_eval_log")
+
+        doc_id, job_id, keep_id, drop_id = (uuid.uuid4() for _ in range(4))
+        seed = create_async_engine(scratch_url)
+        async with seed.begin() as conn:
+            await conn.execute(text(
+                "INSERT INTO documents (id, original_filename, stored_path, "
+                "file_size_bytes, mime_type, sha256_hash) VALUES "
+                f"('{doc_id}', 'dup.pdf', 'documents/d/dup.pdf', 10, "
+                f"'application/pdf', '{'c' * 64}')"
+            ))
+            await conn.execute(text(
+                f"INSERT INTO extraction_jobs (id, document_id) VALUES ('{job_id}', '{doc_id}')"
+            ))
+            await conn.execute(text(
+                "INSERT INTO extracted_records (id, job_id, document_id, "
+                "document_type, extracted_data, confidence_score, created_at) VALUES "
+                f"('{keep_id}', '{job_id}', '{doc_id}', 'invoice', '{{}}', 0.5, "
+                "'2026-09-01T00:00:00+00')"
+            ))
+            await conn.execute(text(
+                "INSERT INTO extracted_records (id, job_id, document_id, "
+                "document_type, extracted_data, confidence_score, created_at) VALUES "
+                f"('{drop_id}', '{job_id}', '{doc_id}', 'invoice', '{{}}', 0.6, "
+                "'2026-09-02T00:00:00+00')"
+            ))
+        await seed.dispose()
+
+        await _run_alembic(scratch_url, "upgrade", "head")
+
+        check = create_async_engine(scratch_url)
+        async with check.connect() as conn:
+            kept = (
+                await conn.execute(
+                    text("SELECT id::text FROM extracted_records WHERE job_id = :job"),
+                    {"job": str(job_id)},
+                )
+            ).scalars().all()
+        with pytest.raises(IntegrityError):
+            async with check.begin() as conn:
+                await conn.execute(text(
+                    "INSERT INTO extracted_records (id, job_id, document_id, "
+                    "document_type, extracted_data, confidence_score) VALUES "
+                    f"('{uuid.uuid4()}', '{job_id}', '{doc_id}', 'invoice', '{{}}', 0.5)"
+                ))
+        await check.dispose()
+
+        assert kept == [str(keep_id)], "earliest record per job must survive"
+    finally:
+        await _drop_scratch(admin_url, scratch_name)
+
+
+async def test_alembic_014_repairs_legacy_eval_log_columns():
+    """A database carrying the original 012 shape is repaired forward.
+
+    Review P1 on PR #56: applied migration bodies are never rewritten; the
+    varchar -> uuid conversion and FK rebuild live in forward revision 014.
+    """
+    if not DATABASE_URL.startswith("postgresql+asyncpg"):
+        pytest.skip("needs an asyncpg DATABASE_URL")
+
+    base = DATABASE_URL.rsplit("/", 1)[0]
+    scratch_name = "docextract_test_alembic_014"
+    admin_url = f"{base}/postgres"
+    scratch_url = f"{base}/{scratch_name}"
+
+    await _make_scratch(admin_url, scratch_name)
+    try:
+        await _run_alembic(scratch_url, "upgrade", "013_record_job_unique")
+
+        doc_id, job_id, eval_id = (uuid.uuid4() for _ in range(3))
+        seed = create_async_engine(scratch_url)
+        async with seed.begin() as conn:
+            await conn.execute(text(
+                "INSERT INTO documents (id, original_filename, stored_path, "
+                "file_size_bytes, mime_type, sha256_hash) VALUES "
+                f"('{doc_id}', 'e.pdf', 'documents/e/e.pdf', 10, "
+                f"'application/pdf', '{'d' * 64}')"
+            ))
+            await conn.execute(text(
+                f"INSERT INTO extraction_jobs (id, document_id) VALUES ('{job_id}', '{doc_id}')"
+            ))
+            await conn.execute(text(
+                "INSERT INTO eval_log (id, job_id, completeness, field_accuracy, "
+                "hallucination_absence, format_compliance, composite) VALUES "
+                f"('{eval_id}', '{job_id}', 1, 1, 1, 1, 0.9)"
+            ))
+            # Reshape to the original 012 body: varchar columns, no FK.
+            await conn.execute(text(
+                "ALTER TABLE eval_log DROP CONSTRAINT IF EXISTS eval_log_job_id_fkey"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE eval_log ALTER COLUMN id DROP DEFAULT"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE eval_log ALTER COLUMN id TYPE varchar(36) "
+                "USING id::varchar(36)"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE eval_log ALTER COLUMN job_id TYPE varchar(36) "
+                "USING job_id::varchar(36)"
+            ))
+        await seed.dispose()
+
+        await _run_alembic(scratch_url, "upgrade", "head")
+
+        check = create_async_engine(scratch_url)
+        async with check.connect() as conn:
+            job_id_type = (
+                await conn.execute(
+                    text(
+                        "SELECT data_type FROM information_schema.columns "
+                        "WHERE table_name = 'eval_log' AND column_name = 'job_id'"
+                    )
+                )
+            ).scalar_one()
+            row_job = (
+                await conn.execute(
+                    text("SELECT job_id::text FROM eval_log WHERE id = :id"),
+                    {"id": str(eval_id)},
+                )
+            ).scalar_one_or_none()
+            fks = (
+                await conn.execute(
+                    text(
+                        "SELECT conname FROM pg_constraint "
+                        "WHERE confrelid = 'extraction_jobs'::regclass"
+                    )
+                )
+            ).scalars().all()
+        await check.dispose()
+
+        assert job_id_type == "uuid"
+        assert row_job == str(job_id), "existing rows must survive the type repair"
+        assert "eval_log_job_id_fkey" in fks
+    finally:
+        await _drop_scratch(admin_url, scratch_name)
