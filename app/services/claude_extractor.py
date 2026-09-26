@@ -85,15 +85,13 @@ async def extract(
     if schema_class is None:
         schema_class = DOCUMENT_TYPE_MAP.get(doc_type)
 
-    from app.services.model_router import ModelRouter
+    from app.services.model_router import get_shared_router
 
     # instructor.from_anthropic wraps the client transparently and adds
     # automatic retry on schema validation failure (Pydantic-backed).
     client = instructor.from_anthropic(AsyncAnthropic(api_key=settings.anthropic_api_key))
-    router = ModelRouter(
-        failure_threshold=settings.circuit_breaker_failure_threshold,
-        recovery_timeout=settings.circuit_breaker_recovery_seconds,
-    )
+    # Shared router: breaker cooldowns persist across requests and jobs.
+    router = get_shared_router("extract")
 
     # Inject few-shot correction examples if active learning enabled
     few_shot_prefix = ""
@@ -284,7 +282,12 @@ def _parse_json_response(text: str) -> dict[str, Any]:
         except json.JSONDecodeError:
             pass
 
-    logger.warning("Could not parse JSON from response: %s...", text[:100])
+    snippet = text[:100]
+    if settings.pii_redaction_enabled:
+        from app.services.pii_sanitizer import redact_pii
+
+        snippet = redact_pii(snippet)
+    logger.warning("Could not parse JSON from response: %s...", snippet)
     return {}
 
 
@@ -299,20 +302,17 @@ async def _apply_corrections_pass(
 ) -> tuple[dict[str, Any], bool]:
     """Pass 2: Use tool_use to correct low-confidence extractions."""
     from app.services.llm_tracer import trace_llm_call
-    from app.services.model_router import ModelRouter
+    from app.services.model_router import get_shared_router
 
     if router is None:
-        router = ModelRouter(
-            failure_threshold=settings.circuit_breaker_failure_threshold,
-            recovery_timeout=settings.circuit_breaker_recovery_seconds,
-        )
+        router = get_shared_router("extract")
 
     text_limit = prompt_config.params.correction_text_limit
     correction_prompt = prompt_config.correction_prompt.format(
         doc_type=doc_type,
         confidence=confidence,
         text_limit=text_limit,
-        text=text[:text_limit],
+        text=injection_guard.wrap_untrusted(text[:text_limit]),
         extraction_json=json.dumps(original, indent=2),
     )
 
@@ -322,6 +322,13 @@ async def _apply_corrections_pass(
                 response = await client.messages.create(
                     model=model,
                     max_tokens=2048,
+                    system=[
+                        {
+                            "type": "text",
+                            "text": prompt_config.extract_system_prompt + injection_guard.DEFENSE_SYSTEM_CLAUSE,
+                            "cache_control": {"type": "ephemeral"},
+                        }
+                    ],
                     messages=[{"role": "user", "content": correction_prompt}],
                     tools=[CORRECTION_TOOL],
                 )
@@ -508,7 +515,7 @@ async def _reflect_and_revise(
     reflection_prompt = REFLECTION_PROMPT.format(
         doc_type=doc_type,
         confidence=confidence,
-        text=text[:4000],
+        text=injection_guard.wrap_untrusted(text[:4000]),
         extraction_json=json.dumps(extracted, indent=2),
     )
 

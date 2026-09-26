@@ -63,6 +63,6 @@ datasets>=2.14.0
 opentelemetry-instrumentation-anthropic>=0.48b0
 structlog>=24.0.0
 
-# Experiment tracking (optional — set WANDB_API_KEY to enable)
+# Experiment tracking (optional - set WANDB_API_KEY to enable)
 wandb>=0.16.0
 fpdf2>=2.7.0

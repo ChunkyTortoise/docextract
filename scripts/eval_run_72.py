@@ -89,9 +89,9 @@ async def main() -> None:
         "dataset": str(DATASET.relative_to(REPO)),
         "case_count": len(results),
         "errors": [r["id"] for r in results if r["error"]],
-        "extraction_f1_combined": round(weighted(results), 6),
-        "extraction_f1_golden": round(weighted(golden), 6),
-        "extraction_f1_adversarial": round(weighted(adv), 6),
+        "field_acc_combined": round(weighted(results), 6),
+        "field_acc_golden": round(weighted(golden), 6),
+        "field_acc_adversarial": round(weighted(adv), 6),
         "n_golden": len(golden),
         "n_adversarial": len(adv),
         "per_doc_type": {

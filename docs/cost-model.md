@@ -2,7 +2,7 @@
 
 ## Token Cost Comparison
 
-Token cost comparison across models (per 1,000 tokens, as of 2026):
+Token cost comparison across models (per 1,000 tokens, snapshot as of 2026-03; verify against the provider pricing page before citing):
 
 | Model | Input | Output | Best For |
 |-------|-------|--------|----------|
@@ -10,7 +10,7 @@ Token cost comparison across models (per 1,000 tokens, as of 2026):
 | Claude Haiku 4.5 | $0.00025 | $0.00125 | Classification, simple queries |
 | Claude Opus 4.6 | $0.015 | $0.075 | Evaluation, edge cases |
 
-Classification defaults to Haiku-first (failover chain in config); extraction uses Sonnet. A z-test A/B tool lives in `app/services/model_ab_test.py` for offline model comparison; it is not wired as a live traffic split.
+Classification defaults to Haiku-first (failover chain in config); extraction uses Sonnet.
 
 ## Per-Operation Costs
 
@@ -22,7 +22,7 @@ Modeled estimates (pricing table × typical token counts; not load-tested wall t
 | claude-haiku-4-5 | Classification | $0.0003-$0.001 | 0.4s |
 | claude-sonnet-4-6 | LLM Judge | $0.002-$0.006 | 1.2s |
 
-**Model routing strategy:** Classification and re-ranking use Haiku (cheaper primary). Full extraction uses Sonnet. LLM judge uses Sonnet for accuracy. Use `model_ab_test.py` to compare models offline; do not treat allocation as a measured live split until an experiment is recorded.
+**Model routing strategy:** Classification and re-ranking use Haiku (cheaper primary). Full extraction uses Sonnet. LLM judge uses Sonnet for accuracy. Do not treat model allocation as a measured live split until an experiment is recorded.
 
 ## Cost Calculator
 
@@ -34,7 +34,7 @@ Modeled estimates (pricing table × typical token counts; not load-tested wall t
 | Multi-page PDF (10p) | Sonnet | ~15,000 | $0.150 | $150.00 |
 | Embedding (any) | Gemini | 768-dim | $0.0004 | $0.40 |
 
-*Costs assume Anthropic March 2026 pricing. Two-pass correction adds ~20% to base cost for low-confidence documents.*
+*Costs assume Anthropic March 2026 pricing (verify before citing). The per-request table is per LLM call; the per-document calculator below also includes classification and embedding. Two-pass correction adds a modeled ~20% to base cost for low-confidence documents; the correction trigger rate is a design target (15-20%), unmeasured.*
 
 ## Monitoring
 

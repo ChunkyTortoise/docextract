@@ -8,6 +8,7 @@ Create Date: 2026-04-06
 from __future__ import annotations
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import UUID
 
 from alembic import op
 
@@ -22,11 +23,11 @@ def upgrade() -> None:
         "eval_log",
         sa.Column(
             "id",
-            sa.String(36),
+            UUID(as_uuid=False),
             primary_key=True,
             server_default=sa.text("gen_random_uuid()"),
         ),
-        sa.Column("job_id", sa.String(36), nullable=True),
+        sa.Column("job_id", UUID(as_uuid=False), nullable=True),
         sa.Column("completeness", sa.Integer, nullable=False),
         sa.Column("field_accuracy", sa.Integer, nullable=False),
         sa.Column("hallucination_absence", sa.Integer, nullable=False),

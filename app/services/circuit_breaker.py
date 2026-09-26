@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Callable
 from enum import Enum
 from types import TracebackType
 
@@ -44,10 +45,12 @@ class AsyncCircuitBreaker:
         failure_threshold: int = 5,
         recovery_timeout: float = 60.0,
         half_open_max_calls: int = 1,
+        failure_filter: Callable[[Exception], bool] | None = None,
     ) -> None:
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.half_open_max_calls = half_open_max_calls
+        self._failure_filter = failure_filter
 
         self._state: CircuitState = CircuitState.CLOSED
         self._failure_count: int = 0
@@ -115,6 +118,16 @@ class AsyncCircuitBreaker:
             elif exc_type is CircuitOpenError:
                 # Rejection — not a real failure, don't count
                 pass
+            elif (
+                self._failure_filter is not None
+                and isinstance(exc_val, Exception)
+                and not self._failure_filter(exc_val)
+            ):
+                # Not an upstream-availability failure (e.g. a 4xx any request
+                # would hit): it leaves breaker state untouched, only the
+                # HALF_OPEN probe slot is released.
+                if self._state == CircuitState.HALF_OPEN:
+                    self._half_open_in_flight = max(0, self._half_open_in_flight - 1)
             else:
                 # Real failure
                 if self._state == CircuitState.HALF_OPEN:

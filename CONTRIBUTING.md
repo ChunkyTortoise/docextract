@@ -87,7 +87,7 @@ Never edit an existing version file in place. Always create a new version.
    # edit v1.2.0.txt
    ```
 
-2. Update `prompts/CHANGELOG.md` with the version, date, rationale, and eval delta table (required — the pre-commit hook blocks commits without it).
+2. Update `prompts/CHANGELOG.md` with the version, date, rationale, and eval delta table (required - the pre-commit hook blocks commits without it).
 
 3. Iterate with the fast eval loop:
    ```bash
@@ -124,4 +124,4 @@ All PRs must pass:
 - One logical change per PR
 - Add tests for new behavior
 - Update relevant docs in `docs/`
-- Follow existing patterns (see [ARCHITECTURE.md](ARCHITECTURE.md))
+- Follow existing patterns (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md))

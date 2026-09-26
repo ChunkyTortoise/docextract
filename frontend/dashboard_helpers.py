@@ -8,7 +8,7 @@ import streamlit as st
 _DEMO_TRUTHY = frozenset({"1", "true", "yes"})
 
 SYNTHETIC_SEED_LABEL = (
-    "Synthetic seed — not measured production telemetry. "
+    "Synthetic seed - not measured production telemetry. "
     "Connect the API and run extraction jobs to populate live metrics."
 )
 
@@ -35,7 +35,7 @@ def render_demo_mode_eval_proof_panel(page_name: str) -> None:
 
 
 def guard_demo_mode_dashboard(page_name: str) -> bool:
-    """Return True when render should stop (demo mode — no synthetic charts)."""
+    """Return True when render should stop (demo mode - no synthetic charts)."""
     if is_demo_mode():
         render_demo_mode_eval_proof_panel(page_name)
         return True

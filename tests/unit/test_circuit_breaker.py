@@ -131,6 +131,50 @@ class TestCircuitBreakerReset:
         assert cb.failure_count == 0
 
 
+class TestCircuitBreakerFailureFilter:
+    @pytest.mark.asyncio
+    async def test_filtered_errors_do_not_count(self):
+        cb = AsyncCircuitBreaker(
+            failure_threshold=1,
+            failure_filter=lambda e: isinstance(e, TimeoutError),
+        )
+        with pytest.raises(ValueError):
+            async with cb:
+                raise ValueError("bad request")
+        assert cb.failure_count == 0
+        assert cb.state == CircuitState.CLOSED
+
+    @pytest.mark.asyncio
+    async def test_counted_errors_still_open(self):
+        cb = AsyncCircuitBreaker(
+            failure_threshold=1,
+            failure_filter=lambda e: isinstance(e, TimeoutError),
+        )
+        with pytest.raises(TimeoutError):
+            async with cb:
+                raise TimeoutError("upstream down")
+        assert cb.state == CircuitState.OPEN
+
+    @pytest.mark.asyncio
+    async def test_filtered_error_in_half_open_releases_probe_slot(self):
+        cb = AsyncCircuitBreaker(
+            failure_threshold=1,
+            recovery_timeout=0.01,
+            failure_filter=lambda e: isinstance(e, TimeoutError),
+        )
+        with pytest.raises(TimeoutError):
+            async with cb:
+                raise TimeoutError("upstream down")
+        await asyncio.sleep(0.05)
+        with pytest.raises(ValueError):
+            async with cb:
+                raise ValueError("bad request")
+        assert cb.state == CircuitState.HALF_OPEN
+        async with cb:
+            pass  # probe slot was released; a later call can succeed
+        assert cb.state == CircuitState.CLOSED
+
+
 class TestCircuitBreakerConcurrency:
     @pytest.mark.asyncio
     async def test_concurrent_access_is_safe(self):
