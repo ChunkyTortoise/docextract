@@ -52,3 +52,6 @@ results/
 
 # GraphRAG corpus (runtime)
 data/knowledge_graph.json
+
+# Private implementation planning
+docs/specs/

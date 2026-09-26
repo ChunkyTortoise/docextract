@@ -8,12 +8,12 @@ Usage
 python scripts/eval_adapter.py \\
     --source http://localhost:8000/finetune/export \\
     --api-key $DOCEXTRACT_API_KEY \\
-    --adapter-path adapters/invoice/20260326_143022 \\
+    --adapter-path adapters/invoice/<adapter-id> \\
     --doc-type invoice
 
 python scripts/eval_adapter.py \\
     --source data/eval.jsonl \\
-    --adapter-path adapters/invoice/20260326_143022 \\
+    --adapter-path adapters/invoice/<adapter-id> \\
     --dry-run   # uses stub predictions (all correct) to test pipeline logic
 """
 

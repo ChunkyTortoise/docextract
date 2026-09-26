@@ -156,9 +156,9 @@ variable "demo_mode" {
 }
 
 variable "demo_api_key" {
-  description = "API key used when DEMO_MODE=true."
+  description = "Explicit read-only demo API key. Empty disables demo API access."
   type        = string
-  default     = "demo-key-docextract-2026"
+  default     = ""
 }
 
 variable "stub_extraction" {

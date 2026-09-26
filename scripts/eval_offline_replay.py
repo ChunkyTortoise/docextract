@@ -14,8 +14,8 @@ hard floor and a regression check vs `autoresearch/baseline.json`.
 
 Fails (exit 1) if:
   - fewer than --min-cases fixtures are present (the committed corpus must not shrink)
-  - replayed combined weighted F1 falls below --floor
-  - replayed combined F1 regresses more than --tolerance below baseline.json
+  - replayed combined weighted field accuracy falls below --floor
+  - replayed combined field accuracy regresses more than --tolerance below baseline.json
 
 Run:  .venv/bin/python scripts/eval_offline_replay.py
 """
@@ -46,8 +46,8 @@ def _weighted(rows: list[dict]) -> float:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--floor", type=float, default=0.85, help="hard minimum combined weighted F1")
-    ap.add_argument("--tolerance", type=float, default=0.03, help="max F1 drop vs baseline.json")
+    ap.add_argument("--floor", type=float, default=0.85, help="hard minimum combined weighted field accuracy")
+    ap.add_argument("--tolerance", type=float, default=0.03, help="max field-accuracy drop vs baseline.json")
     ap.add_argument("--min-cases", type=int, default=28, help="min fixtures required (corpus must not shrink)")
     ap.add_argument("--out", default="eval_artifacts/offline_replay.json")
     args = ap.parse_args()
@@ -85,13 +85,13 @@ def main() -> int:
         "replayed": len(rows),
         "pending_fixtures": len(pending),
         "pending_ids_sample": sorted(pending)[:8],
-        "extraction_f1_combined": combined,
-        "extraction_f1_golden": round(_weighted(golden), 4),
-        "extraction_f1_adversarial": round(_weighted(adv), 4),
+        "field_acc_combined": combined,
+        "field_acc_golden": round(_weighted(golden), 4),
+        "field_acc_adversarial": round(_weighted(adv), 4),
         "baseline_score": baseline_score,
         "floor": args.floor,
         "per_doc_type": {
-            dt: {"f1": round(_weighted(rs), 4), "count": len(rs)} for dt, rs in sorted(per_doc.items())
+            dt: {"field_acc": round(_weighted(rs), 4), "count": len(rs)} for dt, rs in sorted(per_doc.items())
         },
     }
     out = REPO / args.out
@@ -103,14 +103,14 @@ def main() -> int:
         print(f"\nFAIL: only {len(rows)} fixtures present; corpus must keep >= {args.min_cases}")
         return 1
     if combined < args.floor:
-        print(f"\nFAIL: combined F1 {combined} < floor {args.floor}")
+        print(f"\nFAIL: combined field accuracy {combined} < floor {args.floor}")
         return 1
     if baseline_score is not None and combined < baseline_score - args.tolerance:
-        print(f"\nFAIL: combined F1 {combined} regressed > {args.tolerance} below baseline {baseline_score}")
+        print(f"\nFAIL: combined field accuracy {combined} regressed > {args.tolerance} below baseline {baseline_score}")
         return 1
 
     print(
-        f"\nPASS: replayed {len(rows)}/{len(dataset)} corpus cases — combined F1 {combined} "
+        f"\nPASS: replayed {len(rows)}/{len(dataset)} corpus cases — combined field accuracy {combined} "
         f"(baseline {baseline_score}, floor {args.floor}); {len(pending)} fixtures pending live recording"
     )
     return 0

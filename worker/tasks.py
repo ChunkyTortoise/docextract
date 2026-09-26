@@ -1,6 +1,7 @@
 """ARQ worker task: orchestrates the full document processing pipeline."""
 from __future__ import annotations
 
+import asyncio
 import time
 import uuid
 from datetime import UTC, datetime
@@ -36,8 +37,8 @@ async def process_document(ctx: dict[str, Any], job_id: str) -> dict[str, Any]:
     8. Store validation errors
     9. Create embedding
     10. Store record to DB
-    11. Update job -> COMPLETED
-    12. Send webhook if configured
+    11. Update job -> COMPLETED or NEEDS_REVIEW
+    12. Schedule webhook delivery as a deferred ARQ job
 
     Returns dict with status and record_id on success.
     """
@@ -124,16 +125,37 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     from app.services.claude_extractor import extract
     from app.services.embedder import embed
     from app.services.ingestion import UnsupportedMimeType, ingest
+    from app.services.pii_sanitizer import redact_pii
     from app.services.validator import validate
-    from app.services.webhook_sender import decrypt_secret, send_webhook
+    from app.services.webhook_sender import RETRY_DELAYS
     from app.utils.mime import detect_mime_type
     from worker.events import publish_event
 
-    # 1. Load job
-    job_result = await db.execute(select(ExtractionJob).where(ExtractionJob.id == job_id))
+    # Lock before checking status: concurrent redelivery must observe the first
+    # worker's committed terminal state, not a stale queued snapshot.
+    job_result = await db.execute(
+        select(ExtractionJob).where(ExtractionJob.id == job_id).with_for_update()
+    )
     job = job_result.scalar_one_or_none()
     if not job:
         raise ValueError(f"Job {job_id} not found")
+
+    # Idempotency guard: a re-delivered job that already reached a terminal
+    # state is not reprocessed — one logical extraction record per job.
+    if job.status in (
+        JobStatus.COMPLETED.value,
+        JobStatus.NEEDS_REVIEW.value,
+        JobStatus.CANCELLED.value,
+    ):
+        existing = await db.execute(
+            select(ExtractedRecord).where(ExtractedRecord.job_id == job.id)
+        )
+        record = existing.scalars().first()
+        return {
+            "status": "duplicate_ignored",
+            "record_id": str(record.id) if record else "",
+            "document_type": job.document_type_detected or "",
+        }
 
     # Load document
     doc_result = await db.execute(select(Document).where(Document.id == job.document_id))
@@ -149,12 +171,20 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # 3. Detect MIME type
     mime_type = detect_mime_type(file_bytes) or doc.mime_type
 
-    # 4. Ingest -> EXTRACTING_TEXT
+    # 4. Ingest -> EXTRACTING_TEXT. Async ingestion offloads blocking parsers;
+    # bound the await without wrapping the coroutine in another thread.
     await _update_job_status(db, redis, job, JobStatus.EXTRACTING_TEXT)
     try:
-        extracted = ingest(file_bytes, mime_type, doc.original_filename)
+        extracted = await asyncio.wait_for(
+            ingest(file_bytes, mime_type, doc.original_filename),
+            timeout=settings.parser_time_budget_seconds,
+        )
     except UnsupportedMimeType as e:
         raise ValueError(str(e))  # Permanent error
+    except TimeoutError as e:
+        raise ValueError(
+            f"Parsing exceeded the {settings.parser_time_budget_seconds}s time budget"
+        ) from e
 
     # 5. Classify -> CLASSIFYING
     await _update_job_status(db, redis, job, JobStatus.CLASSIFYING)
@@ -171,6 +201,8 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     extraction_result = await extract(extracted.text, doc_type, schema_class, db=db)
 
+    # Schema-invalid results remain inspectable in the review lifecycle.
+    # Provider/parser exceptions still fail the job at the worker boundary.
     # Merge structured tables from ingestion into extraction result
     if extracted.tables:
         extraction_result.data["tables"] = extracted.tables
@@ -178,6 +210,12 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # 7. Validate -> VALIDATING
     await _update_job_status(db, redis, job, JobStatus.VALIDATING)
     validation_result = validate(doc_type, extraction_result.data, extraction_result.confidence)
+    extraction_validation_errors: list[str] = []
+    if not extraction_result.schema_valid:
+        extraction_validation_errors = extraction_result.validation_errors or [
+            "Extraction output failed schema validation"
+        ]
+        validation_result.needs_review = True
 
     # 7b. Guardrails — PII detection + hallucination grounding
     guardrail_result = None
@@ -199,6 +237,10 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # 8. Embed -> EMBEDDING
     await _update_job_status(db, redis, job, JobStatus.EMBEDDING)
     embedding_text = extracted.text[:2000]
+    graph_text = extracted.text
+    if settings.pii_redaction_enabled:
+        embedding_text = redact_pii(embedding_text)
+        graph_text = redact_pii(graph_text)
     embedding_vector = await embed(embedding_text, db=db)
 
     # 9. Store record
@@ -208,6 +250,8 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     review_reason = None
     if validation_result.needs_review:
         reasons: list[str] = []
+        if extraction_validation_errors:
+            reasons.append("Extraction output failed schema validation")
         if guardrail_result and guardrail_result.pii_detected:
             pii_types = {m.pattern_type for m in guardrail_result.pii_detected}
             reasons.append(f"PII detected: {', '.join(sorted(pii_types))}")
@@ -239,8 +283,6 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     raw_text = extracted.text[:5000]
     if settings.pii_redaction_enabled:
-        from app.services.pii_sanitizer import redact_pii
-
         record_data = redact_pii(record_data)
         raw_text = redact_pii(raw_text)
 
@@ -290,6 +332,16 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
             severity=err.severity.value.lower(),
         ))
 
+    for message in extraction_validation_errors:
+        db.add(ValidationErrorModel(
+            id=str(uuid.uuid4()),
+            record_id=record.id,
+            field_name="extraction_output",
+            rule_name="SCHEMA_VALIDATION_FAILED",
+            message=message,
+            severity="error",
+        ))
+
     # Store embedding
     db.add(DocumentEmbedding(
         id=str(uuid.uuid4()),
@@ -316,43 +368,61 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
         try:
             from app.services.graph_rag.store import index_document
 
-            index_document(str(record.id), extracted.text)
+            index_document(str(record.id), graph_text)
         except Exception as exc:
             logger.warning("Graph index failed for record %s: %s", record.id, exc)
 
-    # 10% LLM-judge quality sampling — fire-and-forget, non-blocking
+    # 10% LLM-judge quality sampling — fire-and-forget, non-blocking.
+    # Post-commit side effects: a queue hiccup here must never turn a committed
+    # success into a job failure.
     if hash(job_id) % 10 == 0:
-        await redis.enqueue_job("judge_extraction_sample", job_id=job_id)
-        logger.debug("Enqueued LLM judge sampling for job %s", job_id)
+        try:
+            await redis.enqueue_job("judge_extraction_sample", job_id=job_id)
+            logger.debug("Enqueued LLM judge sampling for job %s", job_id)
+        except Exception as exc:
+            logger.warning("Judge sampling enqueue failed for job %s: %s", job_id, exc)
 
     # Publish completion event
-    await publish_event(redis, job_id, {
-        "job_id": job_id,
-        "status": job.status,
-        "progress": JOB_STATUS_PROGRESS[
-            JobStatus.NEEDS_REVIEW if validation_result.needs_review else JobStatus.COMPLETED
-        ],
-        "message": (
-            f"Extraction complete and queued for review. Document type: {doc_type}"
-            if validation_result.needs_review
-            else f"Extraction complete. Document type: {doc_type}"
-        ),
-    })
-
-    # 11. Send webhook if configured
-    if job.webhook_url:
-        secret = ""
-        if job.webhook_secret_encrypted:
-            secret = decrypt_secret(job.webhook_secret_encrypted, settings.aes_key)
-        await send_webhook(job.webhook_url, {
-            "event": "job.completed",
+    try:
+        await publish_event(redis, job_id, {
             "job_id": job_id,
-            "status": "completed",
-            "document_type": doc_type,
-            "record_id": record_id,
-        }, secret)
+            "status": job.status,
+            "progress": JOB_STATUS_PROGRESS[
+                JobStatus.NEEDS_REVIEW if validation_result.needs_review else JobStatus.COMPLETED
+            ],
+            "message": (
+                f"Extraction complete and queued for review. Document type: {doc_type}"
+                if validation_result.needs_review
+                else f"Extraction complete. Document type: {doc_type}"
+            ),
+        })
+    except Exception as exc:
+        logger.warning("Completion event publish failed for job %s: %s", job_id, exc)
 
-    return {"status": "completed", "record_id": record_id, "document_type": doc_type}
+    # 11. Schedule webhook delivery as its own ARQ job (never awaited inline;
+    # retries re-enqueue deferred so they outlive this job's timeout)
+    if job.webhook_url:
+        try:
+            # The secret crosses the queue as ciphertext; deliver_webhook
+            # decrypts only inside the attempt that signs with it.
+            await redis.enqueue_job(
+                "deliver_webhook",
+                job.webhook_url,
+                {
+                    "event": f"job.{job.status}",
+                    "job_id": job_id,
+                    "status": job.status,
+                    "document_type": doc_type,
+                    "record_id": record_id,
+                },
+                job.webhook_secret_encrypted or "",
+                _defer_by=RETRY_DELAYS[0],
+                _queue_name=settings.worker_queue,
+            )
+        except Exception as exc:
+            logger.warning("Webhook delivery enqueue failed for job %s: %s", job_id, exc)
+
+    return {"status": job.status, "record_id": record_id, "document_type": doc_type}
 
 
 async def _emit_page_events(
@@ -404,9 +474,19 @@ async def _fail_job(db: AsyncSession, redis: aioredis.Redis, job_id: str, error:
     from worker.events import publish_event
 
     try:
-        job_result = await db.execute(select(ExtractionJob).where(ExtractionJob.id == job_id))
+        # The calling transaction may have failed; clear it before reuse.
+        await db.rollback()
+        job_result = await db.execute(
+            select(ExtractionJob).where(ExtractionJob.id == job_id).with_for_update()
+        )
         job = job_result.scalar_one_or_none()
         if job:
+            if job.status in (
+                JobStatus.COMPLETED.value,
+                JobStatus.NEEDS_REVIEW.value,
+                JobStatus.CANCELLED.value,
+            ):
+                return
             job.status = JobStatus.FAILED.value
             job.error_message = error[:500]
             job.completed_at = datetime.now(UTC)

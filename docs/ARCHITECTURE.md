@@ -124,7 +124,6 @@ Query text → Gemini embedding (768-dim)
 | `classifier.py` | `app/services/` | Document type classification |
 | `semantic_cache.py` | `app/services/` | Embedding-based response dedup (feature-flagged) |
 | `cost_tracker.py` | `app/services/` | Per-request USD cost computation from token counts |
-| `ragas_evaluator.py` | `app/services/` | RAG quality metrics (context recall, faithfulness) |
 | `agent_evaluator.py` | `app/services/` | Agentic RAG evaluation (tool selection, iteration efficiency) |
 | `prompt_registry.py` | `app/services/` | Versioned prompt management with frozen registries |
 | `agentic_rag.py` | `app/services/` | ReAct-loop RAG with tool_use for multi-doc synthesis |
@@ -149,7 +148,7 @@ Query text → Gemini embedding (768-dim)
 |-----|----------|-----|
 | [001](adr/0001-arq-over-celery.md) | ARQ over Celery | Async-native, no GIL contention, smaller footprint |
 | [002](adr/0002-pgvector-over-dedicated-vector-db.md) | pgvector over Pinecone | Single storage dependency, ACID transactions, scales to ~100M vectors |
-| [003](adr/0003-two-pass-extraction.md) | Two-pass extraction | Catches ~15-20% low-confidence extractions without per-document cost |
+| [003](adr/0003-two-pass-extraction.md) | Two-pass extraction | Structured corrections for low-confidence extractions (catch rate unmeasured; design target 15-20%) |
 | [004](adr/0004-gemini-embeddings.md) | Gemini embeddings | 6% MRR advantage over ada-002, free tier eliminates per-embedding cost |
 | [005](adr/0005-sse-over-websocket.md) | SSE over WebSocket | Unidirectional pattern, works through standard proxies |
 | [006](adr/0006-circuit-breaker-model-fallback.md) | Circuit breaker fallback | Availability over marginal cost; fails fast during outages |

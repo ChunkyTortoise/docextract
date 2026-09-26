@@ -12,19 +12,19 @@ DEMO_MODE=true streamlit run frontend/app.py
 
 Local `DEMO_MODE` uses cached data under `frontend/demo_data/` and does not call Anthropic, Gemini, PostgreSQL, or Redis.
 
-## 90–120 second path
+## 90-120 second path
 
 In `DEMO_MODE`, Evaluation / Cost Dashboard / Quality Monitor are **hidden** (they fall back to synthetic seed without a live API). Stay on the pages below.
 
-1. **Demo sandbox** — start on **Demo**; pick the invoice, contract, or receipt sample; note structured fields and confidence.
+1. **Demo sandbox** - start on **Demo**; pick the invoice, contract, or receipt sample; note structured fields and confidence.
 2. **SSE progress** - watch stage updates at `/jobs/{id}/events` when the API is up.
-3. **Retrieval** — open **Agent Trace** for retrieval and reasoning output.
-4. **Human review** — open **Review** for low-confidence handoff.
-5. **Eval proof** — skim the README metrics table and [docs/eval-methodology.md](docs/eval-methodology.md) (95.5% = 28-case offline CI replay, not a paid live run). Optional: public red blocked eval-gate PR linked from the README.
+3. **Retrieval** - open **Agent Trace** for retrieval and reasoning output.
+4. **Human review** - open **Review** for low-confidence handoff.
+5. **Eval proof** - skim the README metrics table and [docs/eval-methodology.md](docs/eval-methodology.md) (95.5% = 28-case offline CI replay, not a paid live run). Optional: public intentionally failing CI check (PR #32) linked from the README.
 
 ## Recording (owner)
 
-A public 90–120s screen recording is optional proof. Record only with `docs/media/VIDEO-HUMAN-CHECKLIST.md`, verify in a clean browser, then add the stable URL here and on the README first screen. Do not invent a URL.
+A public 90-120s screen recording is optional proof. Record only with `docs/media/VIDEO-HUMAN-CHECKLIST.md`, verify in a clean browser, then add the stable URL here and on the README first screen. Do not invent a URL.
 
 ## Proof points
 
@@ -38,6 +38,8 @@ A public 90–120s screen recording is optional proof. Record only with `docs/me
 ## Verification
 
 ```bash
+# Fresh clone, zero API cost:
+uv venv && uv pip install -e .           # or: uv sync (installs from pyproject.toml)
 pytest tests/ --collect-only -q -o addopts=
 python scripts/eval_offline_replay.py --floor 0.85
 python scripts/audit_portfolio_claims.py

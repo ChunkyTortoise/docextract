@@ -34,7 +34,7 @@ jobs:
       - name: Dependency check
         run: python -m pip check
       - name: Ruff check
-        run: ruff check app/ worker/ scripts/ frontend/
+        run: ruff check app/ worker/ scripts/ frontend/ tests/
       - name: mypy (strict on ratchet modules; advisory elsewhere)
         run: |
           # Strict gate: only the modules listed in pyproject.toml's mypy override block.
@@ -76,11 +76,17 @@ jobs:
         run: python scripts/check_metrics_ledger.py README.md
       - name: Run tests
         env:
+          REDIS_URL: redis://localhost:6379/0
+          ANTHROPIC_API_KEY: test-key
+          API_KEY_SECRET: test-secret-32-chars-minimum-here
+        run: pytest tests/ -m "not e2e and not pg" --cov=. --cov-report=xml --cov-fail-under=80 -v --tb=short
+      - name: pg-marked tests (pgvector service)
+        env:
           DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/docextract_test
           REDIS_URL: redis://localhost:6379/0
           ANTHROPIC_API_KEY: test-key
           API_KEY_SECRET: test-secret-32-chars-minimum-here
-        run: pytest tests/ -m "not e2e" --cov=. --cov-report=xml --cov-fail-under=80 -v --tb=short
+        run: pytest tests/ -m pg -v --tb=short
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
         with:

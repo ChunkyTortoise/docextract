@@ -11,6 +11,8 @@ async def test_demo_page_returns_html(demo_client: AsyncClient):
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert b"DocExtract AI" in response.content
+    assert b"synthetic cached fixtures" in response.content
+    assert b"demo-key-docextract-2026" not in response.content
 
 
 @pytest.mark.asyncio
@@ -53,3 +55,18 @@ async def test_demo_key_allows_get_roi_summary(demo_client: AsyncClient):
     response = await demo_client.get("/api/v1/roi/summary")
     assert response.status_code == 200
     assert "kpis" in response.json()
+
+
+@pytest.mark.asyncio
+async def test_unconfigured_demo_key_does_not_accept_old_public_default(
+    demo_client: AsyncClient, monkeypatch
+):
+    from pydantic import SecretStr
+
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "demo_api_key", SecretStr(""))
+    response = await demo_client.get(
+        "/api/v1/records", headers={"X-API-Key": "demo-key-docextract-2026"}
+    )
+    assert response.status_code == 403

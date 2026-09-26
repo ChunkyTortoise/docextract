@@ -8,6 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from app.config import settings
+from app.services.webhook_sender import RETRY_DELAYS
+
 # ---- Stub out heavy optional dependencies before importing worker.tasks ----
 
 def _ensure_stub(module_name: str) -> None:
@@ -152,6 +155,7 @@ class TestProcessPipeline:
             patch("app.utils.mime.detect_mime_type", return_value="application/pdf"),
             patch(
                 "app.services.ingestion.ingest",
+                new_callable=AsyncMock,
                 return_value=ExtractedContent(
                     text="Invoice #12345\nTotal: $500.00", metadata={}, page_count=1
                 ),
@@ -202,6 +206,216 @@ class TestProcessPipeline:
                 p.stop()
 
     @pytest.mark.asyncio
+    async def test_worker_entrypoint_completes_valid_extraction(
+        self, job_id, mock_job, mock_redis, pipeline_mocks
+    ):
+        """The ARQ entry point commits and reports a valid extraction as completed."""
+        mock_db, patches, _ = pipeline_mocks
+        session = MagicMock()
+        session.__aenter__ = AsyncMock(return_value=mock_db)
+        session.__aexit__ = AsyncMock(return_value=False)
+
+        try:
+            with (
+                patch("worker.tasks.AsyncSessionLocal", return_value=session),
+                patch("worker.tasks._start_task_span", return_value=None),
+            ):
+                from worker.tasks import process_document
+
+                result = await process_document({"redis": mock_redis}, job_id)
+
+            assert result["status"] == "completed"
+            assert mock_job.status == "completed"
+            mock_db.commit.assert_awaited_once()
+        finally:
+            for p in patches:
+                p.stop()
+
+    @pytest.mark.asyncio
+    async def test_vision_ingestion_in_worker_context_does_not_raise(
+        self, job_id, mock_redis, pipeline_mocks, monkeypatch
+    ):
+        """Real async ingest runs the vision branch inside the worker event loop.
+
+        Regression lock for H1: ``ingest`` used to call ``asyncio.run`` inside
+        the worker's running loop, raising RuntimeError when vision was
+        enabled. The real (unmocked) ``ingest`` must complete the vision path;
+        only the vision API client is mocked.
+        """
+        from app.services.vision_extractor import ExtractedContent as VisionContent
+
+        monkeypatch.setattr(
+            "app.services.ingestion.settings.ocr_engine", "vision", raising=False
+        )
+
+        mock_db, patches, _ = pipeline_mocks
+        # Stop the ingest mock: the real async ingest must run.
+        patches[2].stop()
+        patches.remove(patches[2])
+        # Point MIME detection at an image MIME handled by the vision branch.
+        patches[1].stop()
+        patches.remove(patches[1])
+        image_mime = patch(
+            "app.utils.mime.detect_mime_type", return_value="image/png"
+        )
+        image_mime.start()
+        patches.append(image_mime)
+        # Mock only the vision API call; ingestion's vision branch stays real.
+        vision_mock = patch(
+            "app.services.vision_extractor.extract_vision",
+            new_callable=AsyncMock,
+            return_value=VisionContent(
+                text="Invoice #12345\nTotal: $500.00",
+                metadata={"extraction_method": "vision", "_injection_defended": True},
+                page_count=1,
+            ),
+        )
+        vision_mock.start()
+        patches.append(vision_mock)
+
+        try:
+            from worker.tasks import _process
+
+            result = await _process(mock_db, mock_redis, job_id)
+        finally:
+            for p in patches:
+                p.stop()
+
+        assert result["status"] == "completed"
+        assert result["document_type"] == "invoice"
+
+    @pytest.mark.parametrize(
+        ("extractor_errors", "expected_message"),
+        [
+            (
+                ["Instructor retry exhausted after 3 attempts: invalid output"],
+                "Instructor retry exhausted after 3 attempts: invalid output",
+            ),
+            ([], "Extraction output failed schema validation"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_worker_entrypoint_routes_schema_invalid_output_to_review(
+        self,
+        job_id,
+        mock_job,
+        mock_redis,
+        pipeline_mocks,
+        extractor_errors,
+        expected_message,
+    ):
+        """A schema-invalid extractor result remains visible at the worker boundary."""
+        from app.models.record import ExtractedRecord
+        from app.models.validation_error import ValidationError as ValidationErrorModel
+        from app.services.claude_extractor import ExtractionResult
+
+        mock_db, patches, started = pipeline_mocks
+        publish_event = started[-1]
+        mock_job.webhook_url = "https://example.com/hook"
+        session = MagicMock()
+        session.__aenter__ = AsyncMock(return_value=mock_db)
+        session.__aexit__ = AsyncMock(return_value=False)
+
+        try:
+            with (
+                patch("worker.tasks.AsyncSessionLocal", return_value=session),
+                patch("worker.tasks._start_task_span", return_value=None),
+                patch(
+                    "app.services.claude_extractor.extract",
+                    new_callable=AsyncMock,
+                    return_value=ExtractionResult(
+                        data={},
+                        confidence=0.0,
+                        schema_valid=False,
+                        validation_errors=extractor_errors,
+                    ),
+                ),
+            ):
+                from worker.tasks import process_document
+
+                result = await process_document({"redis": mock_redis}, job_id)
+
+            records = [
+                call.args[0]
+                for call in mock_db.add.call_args_list
+                if isinstance(call.args[0], ExtractedRecord)
+            ]
+            extraction_errors = [
+                call.args[0]
+                for call in mock_db.add.call_args_list
+                if isinstance(call.args[0], ValidationErrorModel)
+                and call.args[0].rule_name == "SCHEMA_VALIDATION_FAILED"
+            ]
+
+            assert result["status"] == "needs_review"
+            assert mock_job.status == "needs_review"
+            assert len(records) == 1
+            assert records[0].validation_status == "pending_review"
+            assert records[0].needs_review is True
+            assert len(extraction_errors) == 1
+            assert extraction_errors[0].message == expected_message
+            mock_db.commit.assert_awaited_once()
+            assert publish_event.await_args_list[-1].args[2]["status"] == "needs_review"
+            deliveries = [
+                call for call in mock_redis.enqueue_job.await_args_list
+                if call.args[0] == "deliver_webhook"
+            ]
+            assert len(deliveries) == 1
+            webhook_payload = deliveries[0].args[2]
+            assert webhook_payload["event"] == "job.needs_review"
+            assert webhook_payload["status"] == "needs_review"
+        finally:
+            for p in patches:
+                p.stop()
+
+    @pytest.mark.parametrize("schema_valid", [True, False])
+    @pytest.mark.asyncio
+    async def test_post_commit_notifications_cannot_fail_persisted_result(
+        self, job_id, mock_job, mock_redis, pipeline_mocks, schema_valid
+    ):
+        from app.services.claude_extractor import ExtractionResult
+        from worker.tasks import process_document
+
+        mock_db, patches, started = pipeline_mocks
+        expected_status = "completed" if schema_valid else "needs_review"
+        mock_job.webhook_url = "https://example.com/hook"
+        mock_redis.enqueue_job.side_effect = ConnectionError("queue unavailable")
+
+        async def fail_terminal_event(redis, event_job_id, payload):
+            if payload["status"] in {"completed", "needs_review"}:
+                raise ConnectionError("event bus unavailable")
+
+        started[-1].side_effect = fail_terminal_event
+        session = MagicMock()
+        session.__aenter__ = AsyncMock(return_value=mock_db)
+        session.__aexit__ = AsyncMock(return_value=False)
+        try:
+            with (
+                patch("worker.tasks.AsyncSessionLocal", return_value=session),
+                patch("worker.tasks.hash", return_value=0, create=True),
+                patch("worker.tasks._start_task_span", return_value=None),
+                patch("worker.tasks._fail_job", new_callable=AsyncMock) as fail_job,
+                patch(
+                    "app.services.claude_extractor.extract",
+                    new=AsyncMock(return_value=ExtractionResult(
+                        data={}, confidence=0.0, schema_valid=schema_valid,
+                        validation_errors=[] if schema_valid else ["invalid shape"],
+                    )),
+                ),
+            ):
+                result = await process_document({"redis": mock_redis}, job_id)
+            assert result["status"] == expected_status
+            assert mock_job.status == expected_status
+            mock_db.commit.assert_awaited_once()
+            fail_job.assert_not_awaited()
+            assert [c.args[0] for c in mock_redis.enqueue_job.await_args_list] == [
+                "judge_extraction_sample", "deliver_webhook",
+            ]
+        finally:
+            for p in patches:
+                p.stop()
+
+    @pytest.mark.asyncio
     async def test_job_not_found_raises(self, mock_redis, pipeline_mocks):
         mock_db, patches, _ = pipeline_mocks
         try:
@@ -218,30 +432,83 @@ class TestProcessPipeline:
                 p.stop()
 
     @pytest.mark.asyncio
-    async def test_webhook_called_when_configured(
+    async def test_process_document_schedules_delivery_without_awaiting_it(
         self, job_id, mock_job, mock_redis, pipeline_mocks
     ):
+        """process_document enqueues a deferred deliver_webhook job and returns
+        without performing any delivery HTTP itself (lane A P0 acceptance)."""
         mock_db, patches, _ = pipeline_mocks
         mock_job.webhook_url = "https://example.com/hook"
         mock_job.webhook_secret_encrypted = None
 
-        webhook_patch = patch(
-            "app.services.webhook_sender.send_webhook", new_callable=AsyncMock
-        )
-
         try:
-            mock_webhook = webhook_patch.start()
-            from worker.tasks import _process
-            await _process(mock_db, mock_redis, job_id)
+            with (
+                patch("worker.tasks.AsyncSessionLocal") as session_cls,
+                patch("app.services.webhook_sender.httpx.AsyncClient") as http_client,
+            ):
+                session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_db)
+                session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            mock_webhook.assert_called_once()
-            call_args = mock_webhook.call_args
-            assert call_args[0][0] == "https://example.com/hook"
-            assert call_args[0][1]["event"] == "job.completed"
+                from worker.tasks import process_document
+
+                result = await process_document({"redis": mock_redis}, job_id)
         finally:
-            webhook_patch.stop()
             for p in patches:
                 p.stop()
+
+        assert result["status"] == "completed"
+
+        delivery_calls = [
+            c
+            for c in mock_redis.enqueue_job.call_args_list
+            if c.args and c.args[0] == "deliver_webhook"
+        ]
+        assert len(delivery_calls) == 1
+        call = delivery_calls[0]
+        assert call.args[1] == "https://example.com/hook"
+        assert call.args[2]["event"] == "job.completed"
+        assert call.args[2]["record_id"] == result["record_id"]
+        assert call.args[3] == ""  # no encrypted secret configured
+        assert call.kwargs["_defer_by"] == RETRY_DELAYS[0]
+        assert call.kwargs["_queue_name"] == settings.worker_queue
+
+        # Delivery was scheduled, never awaited inline: no HTTP happened here.
+        http_client.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_delivery_enqueue_passes_secret_ciphertext_untouched(
+        self, job_id, mock_job, mock_redis, pipeline_mocks
+    ):
+        """The secret reaches the queue as ciphertext; enqueue never decrypts."""
+        mock_db, patches, _ = pipeline_mocks
+        mock_job.webhook_url = "https://example.com/hook"
+        mock_job.webhook_secret_encrypted = "b64-ciphertext"
+
+        try:
+            with (
+                patch("worker.tasks.AsyncSessionLocal") as session_cls,
+                patch("app.services.webhook_sender.httpx.AsyncClient") as http_client,
+            ):
+                session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_db)
+                session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+                from worker.tasks import process_document
+
+                result = await process_document({"redis": mock_redis}, job_id)
+        finally:
+            for p in patches:
+                p.stop()
+
+        assert result["status"] == "completed"
+
+        delivery_calls = [
+            c
+            for c in mock_redis.enqueue_job.call_args_list
+            if c.args and c.args[0] == "deliver_webhook"
+        ]
+        assert len(delivery_calls) == 1
+        assert delivery_calls[0].args[3] == "b64-ciphertext"
+        http_client.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_validation_errors_stored(
@@ -274,7 +541,7 @@ class TestProcessPipeline:
             from worker.tasks import _process
             result = await _process(mock_db, mock_redis, job_id)
 
-            assert result["status"] == "completed"
+            assert result["status"] == "needs_review"
             # db.add called for: record + audit_log + validation_error + embedding = 4
             assert mock_db.add.call_count == 4
         finally:
@@ -296,6 +563,7 @@ class TestProcessPipeline:
         )
         ingest_patch = patch(
             "app.services.ingestion.ingest",
+            new_callable=AsyncMock,
             return_value=ExtractedContent(
                 text="Customer SSN 123-45-6789\nTotal: $500.00",
                 metadata={},
@@ -369,8 +637,92 @@ class TestProcessPipeline:
             for p in patches:
                 p.stop()
 
+    @pytest.mark.asyncio
+    async def test_pii_redacted_from_embedding_and_graph_text_when_enabled(
+        self, job_id, mock_redis, pipeline_mocks, monkeypatch
+    ):
+        from app.config import settings
+        from app.models.embedding import DocumentEmbedding
+
+        mock_db, patches, _ = pipeline_mocks
+        monkeypatch.setattr(settings, "pii_redaction_enabled", True)
+        monkeypatch.setattr(settings, "graph_retrieval_enabled", True)
+        extract_patch, ingest_patch = self._pii_overrides()
+        graph_patch = patch("app.services.graph_rag.store.index_document")
+        try:
+            extract_patch.start()
+            ingest_patch.start()
+            index_document = graph_patch.start()
+            from worker.tasks import _process
+
+            await _process(mock_db, mock_redis, job_id)
+
+            embeddings = [
+                c.args[0]
+                for c in mock_db.add.call_args_list
+                if isinstance(c.args[0], DocumentEmbedding)
+            ]
+            assert len(embeddings) == 1
+            assert "123-45-6789" not in embeddings[0].content_text
+            assert "[SSN]" in embeddings[0].content_text
+            index_document.assert_called_once()
+            graph_text = index_document.call_args.args[1]
+            assert "123-45-6789" not in graph_text
+            assert "[SSN]" in graph_text
+        finally:
+            graph_patch.stop()
+            ingest_patch.stop()
+            extract_patch.stop()
+            for p in patches:
+                p.stop()
+
+    @pytest.mark.asyncio
+    async def test_embedding_text_stored_raw_when_flag_disabled(
+        self, job_id, mock_redis, pipeline_mocks, monkeypatch
+    ):
+        from app.config import settings
+        from app.models.embedding import DocumentEmbedding
+
+        mock_db, patches, _ = pipeline_mocks
+        monkeypatch.setattr(settings, "pii_redaction_enabled", False)
+        extract_patch, ingest_patch = self._pii_overrides()
+        try:
+            extract_patch.start()
+            ingest_patch.start()
+            from worker.tasks import _process
+
+            await _process(mock_db, mock_redis, job_id)
+
+            embeddings = [
+                c.args[0]
+                for c in mock_db.add.call_args_list
+                if isinstance(c.args[0], DocumentEmbedding)
+            ]
+            assert len(embeddings) == 1
+            assert "123-45-6789" in embeddings[0].content_text
+        finally:
+            ingest_patch.stop()
+            extract_patch.stop()
+            for p in patches:
+                p.stop()
+
 
 class TestFailJob:
+    @pytest.mark.parametrize("status", ["completed", "needs_review", "cancelled"])
+    async def test_late_failure_preserves_terminal_job(self, job_id, mock_redis, status):
+        from worker.tasks import _fail_job
+
+        job = MagicMock(status=status)
+        db = AsyncMock()
+        db.execute.return_value.scalar_one_or_none = MagicMock(return_value=job)
+        with patch("worker.events.publish_event", new_callable=AsyncMock) as publish:
+            await _fail_job(db, mock_redis, job_id, "late redelivery failure")
+
+        assert job.status == status
+        db.rollback.assert_awaited_once()
+        db.commit.assert_not_awaited()
+        publish.assert_not_awaited()
+
     @pytest.mark.asyncio
     async def test_fail_job_updates_status(self, job_id, mock_redis):
         """Test _fail_job sets status to FAILED and publishes event."""

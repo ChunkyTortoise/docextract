@@ -1,6 +1,6 @@
 # DocExtract MCP Integration
 
-DocExtract exposes document extraction and semantic search as [MCP (Model Context Protocol)](https://modelcontextprotocol.io) tools, allowing any MCP-compatible agent — Claude Desktop, custom agent frameworks — to process documents and query knowledge bases without custom integration code.
+DocExtract exposes document extraction and semantic search as [MCP (Model Context Protocol)](https://modelcontextprotocol.io) tools, allowing any MCP-compatible agent - Claude Desktop, custom agent frameworks - to process documents and query knowledge bases without custom integration code.
 
 ## Available MCP Tools
 
@@ -40,7 +40,7 @@ export DOCEXTRACT_API_URL="http://localhost:8000/api/v1"
 export DOCEXTRACT_API_KEY="your-api-key"
 ```
 
-Use the public demo key for read-only access: `demo-key-docextract-2026`
+For read-only demo access, configure `DEMO_API_KEY` on a demo-only API deployment and pass the same value to the client. There is no built-in demo credential.
 
 ### 3. Configure Claude Desktop
 

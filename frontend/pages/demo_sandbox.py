@@ -1,4 +1,4 @@
-"""Interactive demo sandbox — works without API keys using cached results."""
+"""Interactive demo sandbox - works without API keys using cached results."""
 from __future__ import annotations
 
 import streamlit as st
@@ -14,7 +14,7 @@ from frontend.demo_mode import (
 
 
 def _proof_snapshot() -> None:
-    """Above-the-fold proof — real pre-cached pipeline numbers, zero interaction."""
+    """Above-the-fold proof - real pre-cached pipeline numbers, zero interaction."""
     inv = load_demo_extraction("invoice")
     eval_r = load_demo_eval()["summary"]
     cost_r = load_demo_cost()["summary"]
@@ -30,7 +30,7 @@ def _proof_snapshot() -> None:
     cols[2].metric(
         "Cache hit rate",
         f"{cost_r['cache_hit_rate']:.0%}",
-        f"${cost_r['cache_savings_usd']:.2f} saved",
+        f"sample: ${cost_r['cache_savings_usd']:.2f} saved",
     )
     cols[3].metric(
         "Agentic RAG",
@@ -40,10 +40,10 @@ def _proof_snapshot() -> None:
 
 
 def show() -> None:
-    st.title("Try DocExtract — Live Demo")
+    st.title("Try DocExtract (fixture demo)")
     st.info(
         "This sandbox uses pre-cached results so you can explore the full pipeline "
-        "without uploading real documents or API credentials.",
+        "without uploading real documents or API credentials. All metrics shown are sample values from fixtures, not live telemetry.",
         icon="ℹ️",
     )
 
@@ -62,13 +62,13 @@ def show() -> None:
     with tab_extract:
         st.subheader("Document Extraction")
         doc_type = st.selectbox(
-            "Select document type — result updates instantly (cached)",
+            "Select document type - result updates instantly (cached)",
             list_demo_doc_types(),
             format_func=str.title,
         )
         result = load_demo_extraction(doc_type)
         confidence = result.get("confidence", 0)
-        st.success(f"Extracted **{result['document_type'].title()}** — confidence {confidence:.0%}")
+        st.success(f"Extracted **{result['document_type'].title()}** - confidence {confidence:.0%}")
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("**Extracted Fields**")
@@ -99,11 +99,11 @@ def show() -> None:
             with st.spinner("Searching…"):
                 result = load_demo_search()
             st.caption(
-                f"Retrieval mode: **{result['retrieval_mode']}** — "
+                f"Retrieval mode: **{result['retrieval_mode']}** - "
                 f"latency: {result['latency_ms']} ms"
             )
             for i, r in enumerate(result["results"], 1):
-                with st.expander(f"Result {i} — score {r['score']:.2f} ({r['source']})"):
+                with st.expander(f"Result {i} - score {r['score']:.2f} ({r['source']})"):
                     st.write(r["content"])
                     st.caption(f"Document: {r['doc_id']} | Chunk: {r['chunk_id']}")
 
@@ -112,7 +112,7 @@ def show() -> None:
         st.subheader("RAGAS Evaluation Scores")
         result = load_demo_eval()
         summary = result["summary"]
-        st.caption(f"Run: {result['run_id']} — {result['fixtures_evaluated']} fixtures evaluated")
+        st.caption(f"Run: {result['run_id']} - {result['fixtures_evaluated']} fixtures evaluated")
         cols = st.columns(4)
         metrics = [
             ("Context Recall", "context_recall"),
@@ -125,17 +125,17 @@ def show() -> None:
             delta = "Pass" if summary["passed"] else "Fail"
             col.metric(label, f"{score:.0%}", delta if key == "overall" else None)
         if not result.get("regression_detected", False):
-            st.success("No regression detected — all golden fixtures within threshold.")
+            st.success("No regression detected - all golden fixtures within threshold.")
         else:
-            st.error("Regression detected — CI gate would block this merge.")
+            st.error("Regression detected - CI gate would block this merge.")
 
     # --- Agent Trace tab ---
     with tab_agent:
-        st.subheader("Agentic RAG — ReAct Trace")
+        st.subheader("Agentic RAG - ReAct Trace")
         trace = load_demo_agent_trace()
 
         st.caption(
-            f"Question: *{trace['question']}* — "
+            f"Question: *{trace['question']}* - "
             f"{trace['iterations']} iterations, "
             f"tools: {', '.join(trace['tools_used'])}, "
             f"confidence: {trace['confidence']:.0%}"
@@ -151,7 +151,7 @@ def show() -> None:
         # Reasoning steps
         for step in trace["reasoning_trace"]:
             with st.expander(
-                f"Step {step['step']}: {step['action']} — confidence {step['confidence']:.0%}",
+                f"Step {step['step']}: {step['action']} - confidence {step['confidence']:.0%}",
                 expanded=(step["step"] == 1),
             ):
                 st.markdown(f"**Think:** {step['thought']}")
@@ -184,10 +184,10 @@ def show() -> None:
         kpi_cols[3].metric(
             "Cache Savings",
             f"${summary['cache_savings_usd']:.2f}",
-            delta=f"-{summary['cache_savings_usd'] / (summary['total_cost_usd'] + summary['cache_savings_usd']) * 100:.0f}% cost avoided",
+            delta=f"sample: -{summary['cache_savings_usd'] / (summary['total_cost_usd'] + summary['cache_savings_usd']) * 100:.0f}% cost avoided",
         )
 
-        st.caption(f"Period: last {summary['period_hours']} hours")
+        st.caption(f"Sample data. Period: last {summary['period_hours']} hours")
 
         # Cost by model table
         st.markdown("**Cost by Model & Operation**")
@@ -213,7 +213,7 @@ def show() -> None:
         st.divider()
         ab = cost["ab_test"]
         st.markdown("**Model A/B Test Result**")
-        st.caption(f"Test: {ab['name']} — Status: **{ab['status']}** (p={ab['p_value']:.3f})")
+        st.caption(f"Test: {ab['name']} - Status: **{ab['status']}** (p={ab['p_value']:.3f})")
 
         ab_cols = st.columns(2)
         with ab_cols[0]:

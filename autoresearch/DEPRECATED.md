@@ -1,25 +1,16 @@
-# autoresearch/ -- Deprecated
+# autoresearch/: legacy runner, active replay data
 
-This directory contains the legacy eval runner used before the modern `evals/` pipeline was established.
+The command-line runner is legacy. Several data files and scoring functions remain dependencies of the current offline replay and regression gate; keep them with the repository.
 
-**Do not add new cases here.** Use `evals/golden_set.jsonl` and `evals/adversarial_set.jsonl` instead.
-
-## What's here
-
-| File | Purpose |
+| Path | Current use |
 |---|---|
-| `baseline.json` | 28-case golden set from the original eval run. Still referenced as a historical baseline in README. |
-| `eval_dataset.json` | Source data that was migrated to `evals/golden_set.jsonl` via `scripts/migrate_fixtures_to_jsonl.py`. |
-| `eval.py` | Legacy eval runner. Superseded by `scripts/run_eval_ci.py` and `promptfooconfig.yaml`. |
-| `reporter.py`, `fixtures.py` | Support modules for the legacy runner. |
+| `baseline.json` | Historical weighted field-accuracy baseline used by the replay and `scripts/eval_gate.py` |
+| `golden_responses/` | 28 frozen prediction fixtures replayed by `scripts/eval_offline_replay.py` |
+| `eval_dataset_72.json` | 72 lookup cases used by the replay, including cases without prediction fixtures |
+| `eval.py` | Scoring helpers imported by the replay; its standalone runner is legacy |
+| `fixtures.py`, `reporter.py` | Support code for the legacy runner |
+| `eval_dataset.json` | Historical source for the initial authoring-corpus migration |
 
-## Current eval system
+Author new cases in `evals/golden_set.jsonl` and `evals/adversarial_set.jsonl`: 150 golden and 50 adversarial cases, plus two metadata rows. This authoring inventory is separate from the frozen replay population. Changes to replay fixtures or the baseline require their own reviewed evidence update.
 
-| Component | Location |
-|---|---|
-| Golden cases | `evals/golden_set.jsonl` (52 cases) |
-| Adversarial cases | `evals/adversarial_set.jsonl` (22 cases) |
-| Promptfoo CI gate | `promptfooconfig.yaml` + `.github/workflows/eval-gate.yml` |
-| Online sampling | `worker/judge_tasks.py` (10% of jobs via ARQ) |
-| Full eval command | `make eval` |
-| Fast eval command | `make eval-fast` |
+Use `python scripts/eval_offline_replay.py` for the zero-API-cost check. `make eval` invokes optional live evaluation and requires funded credentials. See [evaluation methodology](../docs/eval-methodology.md).

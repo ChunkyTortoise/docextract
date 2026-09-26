@@ -13,8 +13,10 @@ Run two Claude passes per document: Pass 1 extracts data and emits a `_confidenc
 
 ## Consequences
 
-**Why:** A single extraction pass conflates data extraction quality with quality measurement. Separating them lets the system measure confidence independently. Pass 2 receives the original text *and* the Pass 1 result so the model focuses on fixing specific fields rather than re-extracting the whole document. High-confidence documents (majority) skip Pass 2 entirely — reducing token usage.
+**Why:** A single extraction pass conflates data extraction quality with quality measurement. Separating them lets the system measure confidence independently. Pass 2 receives the original text *and* the Pass 1 result so the model focuses on fixing specific fields rather than re-extracting the whole document. High-confidence documents (majority) skip Pass 2 entirely - reducing token usage.
 
-**Measured improvement:** Evaluated on 120 fixture documents across invoice, bank-statement, and receipt types. Pass 2 triggered for 21% of documents (confidence < threshold). Of those, 89% showed field-level improvement in at least one required field. Overall extraction accuracy improved from 84% to 91% with Pass 2 enabled — a 7-point gain concentrated in the low-confidence tail.
+**Evaluation status:** No committed live comparison establishes the correction trigger rate or a before/after accuracy gain. The 28-fixture replay does not measure the effect of a second model call.
 
-**Tradeoff:** Two API calls per low-confidence document increases latency by ~3-4s and doubles token usage for those documents. Accepted because accuracy improvement for the low-confidence tail justifies the cost. Pass 2 fires on only 21% of documents, keeping median-path performance unaffected.
+**Review contract:** Schema-invalid results, including exhausted structured-output retries, are persisted with validation errors and queued for human review. Provider or parser exceptions that produce no result fail the job. Review webhooks use `job.needs_review`.
+
+**Tradeoff:** A second call adds tokens and latency on low-confidence documents. The size of that overhead and any quality improvement require a funded comparison with recorded predictions.
