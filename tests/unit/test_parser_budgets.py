@@ -29,6 +29,15 @@ class TestImagePixelBudget:
         with pytest.raises(ParserBudgetError, match="decoded-pixel budget"):
             preprocess_bytes(_png_header(50_000, 50_000), max_pixels=1_000_000)
 
+    def test_top_level_image_route_enforces_pixel_budget(self, monkeypatch):
+        from app.config import settings
+        from app.services.ingestion import ingest
+
+        monkeypatch.setattr(settings, "ocr_engine", "tesseract")
+        monkeypatch.setattr(settings, "vision_extraction_enabled", False)
+        with pytest.raises(ParserBudgetError, match="decoded-pixel budget"):
+            ingest(_png_header(50_000, 50_000), "image/png", "big.png")
+
 
 class TestPdfRenderBudget:
     def test_oversized_scanned_page_fails_before_render(self, monkeypatch):

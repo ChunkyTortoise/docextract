@@ -63,10 +63,14 @@ def ingest(file_bytes: bytes, mime_type: str, filename: str) -> ExtractedContent
                     tables=vision_result.tables,
                 )
             else:
-                image = preprocess_bytes(file_bytes)
+                image = preprocess_bytes(
+                    file_bytes, max_pixels=settings.parser_max_image_pixels
+                )
                 result = extract_image(image, engine=settings.ocr_engine)
         else:
-            image = preprocess_bytes(file_bytes)
+            image = preprocess_bytes(
+                file_bytes, max_pixels=settings.parser_max_image_pixels
+            )
             result = extract_image(image, engine=settings.ocr_engine)
     elif mime_type == "message/rfc822":
         result = extract_eml(file_bytes)

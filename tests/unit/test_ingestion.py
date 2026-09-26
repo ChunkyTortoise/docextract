@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.config import settings
 from app.services.ingestion import UnsupportedMimeType, ingest
 from app.services.pdf_extractor import ExtractedContent
 
@@ -33,7 +34,9 @@ def test_jpeg_routing(mock_preprocess: MagicMock, mock_extract: MagicMock) -> No
 
     result = ingest(b"jpeg-bytes", "image/jpeg", "photo.jpg")
 
-    mock_preprocess.assert_called_once_with(b"jpeg-bytes")
+    mock_preprocess.assert_called_once_with(
+        b"jpeg-bytes", max_pixels=settings.parser_max_image_pixels
+    )
     mock_extract.assert_called_once()
     assert result.text == "image text"
 
