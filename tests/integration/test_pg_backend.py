@@ -319,7 +319,7 @@ async def test_alembic_013_reconciles_duplicates_before_unique_index():
         await _run_alembic(scratch_url, "upgrade", "012_eval_log")
 
         doc_id, job_id, keep_id, drop_id = (uuid.uuid4() for _ in range(4))
-        seed = create_async_engine(scratch_url)
+        seed = create_async_engine(scratch_url, poolclass=NullPool)
         async with seed.begin() as conn:
             await conn.execute(text(
                 "INSERT INTO documents (id, original_filename, stored_path, "
@@ -332,21 +332,23 @@ async def test_alembic_013_reconciles_duplicates_before_unique_index():
             ))
             await conn.execute(text(
                 "INSERT INTO extracted_records (id, job_id, document_id, "
-                "document_type, extracted_data, confidence_score, created_at) VALUES "
+                "document_type, extracted_data, confidence_score, validation_status, "
+                "created_at) VALUES "
                 f"('{keep_id}', '{job_id}', '{doc_id}', 'invoice', '{{}}', 0.5, "
-                "'2026-09-01T00:00:00+00')"
+                "'pending_review', '2026-09-01T00:00:00+00')"
             ))
             await conn.execute(text(
                 "INSERT INTO extracted_records (id, job_id, document_id, "
-                "document_type, extracted_data, confidence_score, created_at) VALUES "
+                "document_type, extracted_data, confidence_score, validation_status, "
+                "created_at) VALUES "
                 f"('{drop_id}', '{job_id}', '{doc_id}', 'invoice', '{{}}', 0.6, "
-                "'2026-09-02T00:00:00+00')"
+                "'pending_review', '2026-09-02T00:00:00+00')"
             ))
         await seed.dispose()
 
         await _run_alembic(scratch_url, "upgrade", "head")
 
-        check = create_async_engine(scratch_url)
+        check = create_async_engine(scratch_url, poolclass=NullPool)
         async with check.connect() as conn:
             kept = (
                 await conn.execute(
@@ -358,8 +360,10 @@ async def test_alembic_013_reconciles_duplicates_before_unique_index():
             async with check.begin() as conn:
                 await conn.execute(text(
                     "INSERT INTO extracted_records (id, job_id, document_id, "
-                    "document_type, extracted_data, confidence_score) VALUES "
-                    f"('{uuid.uuid4()}', '{job_id}', '{doc_id}', 'invoice', '{{}}', 0.5)"
+                    "document_type, extracted_data, confidence_score, "
+                    "validation_status) VALUES "
+                    f"('{uuid.uuid4()}', '{job_id}', '{doc_id}', 'invoice', '{{}}', "
+                    "0.5, 'pending_review')"
                 ))
         await check.dispose()
 
@@ -387,7 +391,7 @@ async def test_alembic_014_repairs_legacy_eval_log_columns():
         await _run_alembic(scratch_url, "upgrade", "013_record_job_unique")
 
         doc_id, job_id, eval_id = (uuid.uuid4() for _ in range(3))
-        seed = create_async_engine(scratch_url)
+        seed = create_async_engine(scratch_url, poolclass=NullPool)
         async with seed.begin() as conn:
             await conn.execute(text(
                 "INSERT INTO documents (id, original_filename, stored_path, "
@@ -422,7 +426,7 @@ async def test_alembic_014_repairs_legacy_eval_log_columns():
 
         await _run_alembic(scratch_url, "upgrade", "head")
 
-        check = create_async_engine(scratch_url)
+        check = create_async_engine(scratch_url, poolclass=NullPool)
         async with check.connect() as conn:
             job_id_type = (
                 await conn.execute(
