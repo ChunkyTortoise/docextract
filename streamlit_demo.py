@@ -18,6 +18,8 @@ os.environ["DEMO_MODE"] = "true"
 
 import streamlit as st
 
+from frontend.pages.demo_sandbox import show
+
 st.set_page_config(
     page_title="DocExtract AI — Live Demo",
     page_icon="📄",
@@ -65,8 +67,6 @@ with col_links[2]:
 st.divider()
 
 # Run the demo sandbox
-from frontend.pages.demo_sandbox import show
-
 show()
 
 st.divider()

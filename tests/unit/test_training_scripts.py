@@ -1,4 +1,4 @@
-"""Unit tests for QLoRA/DPO training scripts and eval pipeline.
+"""Unit tests for the QLoRA training/adapter registry and eval pipeline.
 
 All tests run without GPU, torch, peft, or trl — only pure Python logic is
 exercised. ML-heavy functions are covered by dry-run integration tests.
@@ -10,7 +10,6 @@ import json
 from pathlib import Path
 
 from scripts.eval_adapter import calculate_metrics, format_comparison_table, parse_ground_truth
-from scripts.train_dpo import build_dpo_pairs, validate_dpo_pairs
 from scripts.train_qlora import (
     LORA_CONFIG,
     QUANT_CONFIG,
@@ -88,43 +87,6 @@ def test_build_training_texts_mistral_instruct_format():
     assert text.startswith("<s>[INST]")
     assert "[/INST]" in text
     assert text.endswith("</s>")
-
-
-# ---------------------------------------------------------------------------
-# build_dpo_pairs and validate_dpo_pairs
-# ---------------------------------------------------------------------------
-
-
-def test_build_dpo_pairs_extracts_fields():
-    records = [
-        {"prompt": "classify", "chosen": "invoice", "rejected": "receipt", "doc_type": "invoice"},
-    ]
-    pairs = build_dpo_pairs(records)
-    assert len(pairs) == 1
-    assert pairs[0]["chosen"] == "invoice"
-    assert pairs[0]["rejected"] == "receipt"
-
-
-def test_build_dpo_pairs_skips_incomplete_records():
-    records = [
-        {"prompt": "classify", "chosen": "invoice"},  # missing rejected
-        {"prompt": "classify", "chosen": "invoice", "rejected": "receipt"},
-    ]
-    pairs = build_dpo_pairs(records)
-    assert len(pairs) == 1
-
-
-def test_validate_dpo_pairs_detects_identical():
-    pairs = [{"prompt": "p", "chosen": "same", "rejected": "same"}]
-    errors = validate_dpo_pairs(pairs)
-    assert len(errors) == 1
-    assert "identical" in errors[0]
-
-
-def test_validate_dpo_pairs_valid_pairs_no_errors():
-    pairs = [{"prompt": "classify", "chosen": "invoice", "rejected": "receipt"}]
-    errors = validate_dpo_pairs(pairs)
-    assert errors == []
 
 
 # ---------------------------------------------------------------------------
@@ -260,7 +222,7 @@ def test_lora_config_has_expected_keys():
 
 
 def test_lora_config_scale():
-    """alpha/r should equal 2.0 (standard setting from notebook)."""
+    """alpha/r should equal 2.0 (standard setting)."""
     assert LORA_CONFIG["lora_alpha"] / LORA_CONFIG["r"] == 2.0
 
 

@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.middleware import get_api_key
+from app.auth.middleware import get_api_key, require_roles
 from app.dependencies import get_db
 from app.models.api_key import APIKey
 
@@ -45,7 +45,7 @@ class FeedbackSummary(BaseModel):
 async def submit_feedback(
     request: FeedbackRequest,
     db: AsyncSession = Depends(get_db),
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(require_roles("operator")),
 ) -> FeedbackResponse:
     """Record user feedback on an extraction result."""
     await db.execute(

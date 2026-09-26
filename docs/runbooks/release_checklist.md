@@ -1,4 +1,4 @@
-# DocExtract AI — Release Checklist
+# DocExtract AI - Release Checklist
 
 ## Pre-Release
 
@@ -19,7 +19,7 @@
 ## Deploy
 
 1. Merge PR to `main` (Render auto-deploys on push to main)
-2. Monitor Render deploy logs — watch for `Alembic upgrade complete` and `Application startup complete`
+2. Monitor Render deploy logs - watch for `Alembic upgrade complete` and `Application startup complete`
 3. Render runs `buildCommand` → `startCommand` in sequence
 
 ## Post-Deploy Verification

@@ -46,6 +46,13 @@ class Settings(BaseSettings):
     ocr_engine: str = "tesseract"  # "tesseract", "paddle", or "vision"
     vision_extraction_enabled: bool = False  # when True, route image MIMEs to vision_extractor
 
+    # Parser decoded-resource budgets (checked before allocation, lane B B8)
+    parser_max_image_pixels: int = 40_000_000  # per decoded image / rendered page
+    parser_max_document_pixels: int = 200_000_000  # per document (pages + attachments)
+    parser_max_attachment_bytes: int = 50 * 1024 * 1024  # per email attachment (decoded)
+    parser_attachment_budget_bytes: int = 150 * 1024 * 1024  # shared per email
+    parser_time_budget_seconds: float = 120.0  # wall clock for blocking parsing
+
     # Worker
     worker_queue: str = "docextract"
     worker_max_jobs: int = 10

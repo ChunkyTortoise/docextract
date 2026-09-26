@@ -5,10 +5,10 @@ FastAPI | SQLAlchemy | pgvector | ARQ (async queue) | Redis | Anthropic | google
 
 ## Architecture
 3-service document extraction platform: API (FastAPI) + Worker (ARQ) + Frontend (Streamlit). Documents → extract → embed (pgvector) → semantic search. Migrations: `alembic/`. Key fix: migration `002_pgvector_extension.py` uses `sa.Text()` (not `Vector(384)`); `WorkerSettings.redis_settings` must be `RedisSettings.from_dsn(settings.redis_url)`.
-- `app/` — FastAPI routes and services
-- `worker/` — ARQ job processor
-- `frontend/` — Streamlit UI
-- `alembic/` — DB migrations (001-012 applied)
+- `app/` - FastAPI routes and services
+- `worker/` - ARQ job processor
+- `frontend/` - Streamlit UI
+- `alembic/` - DB migrations (001-012 applied)
 
 ## Deploy
 Self-hosted via `docker compose up`:

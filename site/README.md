@@ -1,6 +1,6 @@
-# Marketing site (`site/`)
+# Project page (static preview, `site/`)
 
-Static front door for DocExtract AI — plain HTML + CSS, no build step required.
+Static preview page for DocExtract AI. Not the live app. Plain HTML + CSS, no build step.
 
 ## Serve locally
 
@@ -28,4 +28,4 @@ Upload the `site/` directory to any static host (GitHub Pages, Cloudflare Pages,
 
 Copy and metrics on the page mirror the README and `docs/portfolio-metrics.yaml`. Update those sources first, then refresh `site/index.html` if numbers or links change.
 
-The hero proof image is `site/eval-proof.svg`, kept in lockstep with `docs/assets/eval-proof.svg`. The 1280×640 social card lives at `docs/assets/social-preview.svg` and is not uploaded to GitHub Settings from this change.
+The hero proof image is `site/eval-proof.svg`, kept in lockstep with `docs/assets/eval-proof.svg`. The 1280×640 social card lives at `docs/assets/social-preview.svg`; it has not been uploaded to GitHub Settings.

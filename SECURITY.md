@@ -37,3 +37,15 @@ DocExtract AI implements defense-in-depth across authentication, transport, stor
 ## Reporting Security Issues
 
 Open a private GitHub Security Advisory at [github.com/ChunkyTortoise/docextract/security/advisories](https://github.com/ChunkyTortoise/docextract/security/advisories).
+
+## PII and data handling
+
+- Document text and extracted records are stored in your configured PostgreSQL instance and object storage. Treat both as containing personal data.
+- `pii_redaction_enabled` defaults to **off** (a deployment decision). When enabled, the worker redacts record fields and raw text before persistence.
+- Webhook payloads contain extracted record data. Deliveries are signed with HMAC-SHA256; signing secrets are encrypted at rest with AES-GCM when `AES_KEY` is set.
+- No automatic data retention or deletion is implemented. Older docs mentioned `DATA_RETENTION_DAYS` and `STORE_DOCUMENTS`; those have no implementation. Enforce retention at the database and storage layer.
+
+## Known limitations (internal audit, 2026-09-23)
+
+- Deduplication is a soft check with no unique constraint. `?force=true` creates duplicates, and a later normal upload of the same bytes returns 500 until the duplicates are cleaned up.
+- With PII redaction enabled, the embedding text and the optional entity graph still receive original text, and error logs can include fragments of raw model output.

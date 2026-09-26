@@ -47,7 +47,7 @@ Three Kubernetes deployments, each with its own HPA:
 - Image: `docextract-api:latest`
 - Port: 8000
 - Replicas: 2 min, 8 max
-- Resources: 100m–500m CPU, 256Mi–512Mi memory
+- Resources: 100m-500m CPU, 256Mi-512Mi memory
 - Health checks: `/api/v1/health` (readiness + liveness)
 - Rolling update: `maxUnavailable: 0` (zero-downtime deploys)
 
@@ -109,8 +109,8 @@ kubectl scale deployment/docextract-worker --replicas=4 -n docextract
 | S3 bucket | Standard | Document storage (AES-256, versioning enabled) |
 | ECR (x2) | One per service | Container image registry for API + Worker |
 | EC2 | t3.small (default) | Application host |
-| IAM role + profile | — | EC2 → ECR pull + S3 read/write |
-| Security groups | — | API port 8000, SSH, RDS 5432, Redis 6379 |
+| IAM role + profile | - | EC2 → ECR pull + S3 read/write |
+| Security groups | - | API port 8000, SSH, RDS 5432, Redis 6379 |
 
 ### Key Configuration
 

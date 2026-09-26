@@ -1,5 +1,5 @@
 schema_version: 2
-updated: "2026-09-07"
+updated: "2026-09-23"
 testing:
   command: "pytest tests/ --collect-only -q"
   latest_coverage_percent: 81.55
@@ -7,12 +7,13 @@ testing:
   count_status: "omitted pending a clean default-main collection"
   source: "Coverage from main CI 29566414192; collected-test count is not a public claim. Historical collect-only 1,366 (feat/evalgate-w1 2026-07-18) is superseded / not a public claim — do not cite on README, resume, or site."
 eval_corpus:
-  golden_cases: 151
-  adversarial_cases: 51
-  total_cases: 202
-  promptfoo_cases: 202
+  golden_cases: 150
+  adversarial_cases: 50
+  total_cases: 200
+  jsonl_lines: 202
+  promptfoo_cases: 200
   fixtures_recorded: 28
-  source: "Line counts in evals/*.jsonl; the separate 28-fixture deterministic replay lives in autoresearch/golden_responses/."
+  source: "ID counts in evals/*.jsonl (202 JSONL lines including two _meta rows); the separate 28-fixture deterministic replay lives in autoresearch/golden_responses/."
 metrics:
   - id: extraction_accuracy
     value: "95.5%"

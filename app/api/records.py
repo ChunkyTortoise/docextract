@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.middleware import get_api_key
+from app.auth.middleware import get_api_key, require_roles
 from app.config import settings
 from app.dependencies import get_db
 from app.models.api_key import APIKey
@@ -260,7 +260,7 @@ async def review_record(
     record_id: str,
     review: ReviewRequest,
     db: AsyncSession = Depends(get_db),
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(require_roles("operator")),
 ):
     """Submit human review decision for a record."""
     result = await db.execute(

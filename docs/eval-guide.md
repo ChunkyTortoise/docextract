@@ -45,7 +45,7 @@ eval_dataset.json ──► eval.py loads cases
 # Golden eval (no API calls, uses recorded responses)
 python -m autoresearch.eval --golden
 
-# Dry-run (mock extractions for testing harness changes)
+# Dry-run (mock extractions for testing runner changes)
 python -m autoresearch.eval --dry-run
 
 # Live eval (calls Claude API, requires ANTHROPIC_API_KEY)

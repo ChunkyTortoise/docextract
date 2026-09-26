@@ -287,3 +287,45 @@ class TestTraceLlmCallTriggersLangSmith:
         assert len(traces) == 1
         assert traces[0]["operation"] == "embed"
         assert traces[0]["status"] == "success"
+
+
+class TestErrorExportSanitization:
+    """Lane B P1: LangSmith error exports must not carry PII when redaction
+    is enabled."""
+
+    def test_error_message_redacted_when_enabled(self):
+        import app.langsmith_tracing as ls
+
+        ls._reset_for_testing()
+        mock_client = MagicMock()
+        ls._client = mock_client
+        try:
+            with patch("app.langsmith_tracing.settings") as mock_settings:
+                mock_settings.langsmith_enabled = True
+                mock_settings.pii_redaction_enabled = True
+                ls.emit_rag_trace(
+                    _make_ctx(status="error", error_message="boom SSN 123-45-6789")
+                )
+            outputs = mock_client.create_run.call_args.kwargs["outputs"]
+            assert "123-45-6789" not in outputs["error"]
+            assert "[SSN]" in outputs["error"]
+        finally:
+            ls._reset_for_testing()
+
+    def test_error_message_raw_when_disabled(self):
+        import app.langsmith_tracing as ls
+
+        ls._reset_for_testing()
+        mock_client = MagicMock()
+        ls._client = mock_client
+        try:
+            with patch("app.langsmith_tracing.settings") as mock_settings:
+                mock_settings.langsmith_enabled = True
+                mock_settings.pii_redaction_enabled = False
+                ls.emit_rag_trace(
+                    _make_ctx(status="error", error_message="boom SSN 123-45-6789")
+                )
+            outputs = mock_client.create_run.call_args.kwargs["outputs"]
+            assert outputs["error"] == "boom SSN 123-45-6789"
+        finally:
+            ls._reset_for_testing()

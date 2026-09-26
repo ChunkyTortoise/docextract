@@ -1,23 +1,23 @@
-# Eval Boundary: 28-Fixture Replay vs 202-Case Authoring Corpus
+# Eval Boundary: 28-Fixture Replay vs 200-Case Authoring Corpus
 
 This note states what the published **Measured 95.5%** result is, how it is scored, and what it does not prove. It does not introduce a new accuracy number.
 
-Related: [eval-methodology.md](eval-methodology.md) (always-on vs paid live paths), [eval-guide.md](eval-guide.md) (harness runbook).
+Related: [eval-methodology.md](eval-methodology.md) (always-on vs paid live paths), [eval-guide.md](eval-guide.md) (eval runner runbook).
 
 ## The two denominators
 
 | Asset | Size | Role | Scored by the CI badge? |
 |---|---:|---|---|
-| Authoring corpus | 202 lines | Hand-authored inputs and expected outputs | No |
+| Authoring corpus | 200 cases (202 lines) | Hand-authored inputs and expected outputs | No |
 | Offline replay fixtures | 28 JSON files | Committed predictions scored in CI | Yes |
 | Accepted baseline | 95.5% | Weighted field-level accuracy on those 28 | Yes (compared, not recomputed as a live grade) |
 
-Public README and `docs/portfolio-metrics.yaml` count **202** as the line counts of:
+The authoring corpus is **200 cases** (150 golden + 50 adversarial) stored in 202 JSONL lines:
 
-- `evals/golden_set.jsonl` (151 lines)
-- `evals/adversarial_set.jsonl` (51 lines)
+- `evals/golden_set.jsonl` (151 lines: 150 cases plus one `_meta` row)
+- `evals/adversarial_set.jsonl` (51 lines: 50 cases plus one `_meta` row)
 
-Each JSONL file starts with a `_meta` object (`version: 2.0.0`). The 202 figure is authoring coverage, not the measured denominator.
+Each JSONL file starts with a `_meta` object (`version: 2.0.0`). The 200-case figure is authoring coverage, not the measured denominator.
 
 The 28-fixture score lives in `autoresearch/baseline.json`:
 
@@ -37,11 +37,11 @@ python scripts/eval_offline_replay.py --floor 0.85
 ## How the three eval files relate
 
 ```text
-evals/golden_set.jsonl          151 lines  (authoring; golden)
-evals/adversarial_set.jsonl      51 lines  (authoring; adversarial)
+evals/golden_set.jsonl          151 lines  (150 cases + _meta)
+evals/adversarial_set.jsonl      51 lines  (50 cases + _meta)
         \______________________________/
                       |
-              202-line authoring corpus
+              200-case authoring corpus (202 lines)
               (labels, Promptfoo/Ragas inputs)
                       |
                       |  IDs overlap, separate files
@@ -207,7 +207,7 @@ Do not describe CI replay as a live two-pass Claude grade.
 
 ## What this does NOT prove
 
-- **A 202-case score.** The authoring corpus is not the replay denominator. There is no published 202-case accuracy figure here.
+- **A 200-case score.** The authoring corpus is not the replay denominator. There is no published 200-case accuracy figure here.
 - **Live model grade.** CI replay does not call Anthropic (or any other provider). A change to prompts or the extractor can still pass offline replay until fixtures are re-recorded.
 - **Held-out freshness.** The 28 predictions are committed files. They are not a fresh sample drawn at eval time. Procedure for a funded live run on an untouched partition (performance unmeasured until that run is logged): [held-out-live-eval-protocol.md](held-out-live-eval-protocol.md).
 - **The 44 pending cases in `eval_dataset_72.json`.** No fixture means not scored, not failed.
@@ -223,4 +223,4 @@ When citing eval results:
 2. Name the artifact: `autoresearch/baseline.json` (`overall_score` 0.95546, `case_count` 28)
 3. Name the metric: weighted field-level accuracy (critical fields 2x)
 4. Name the denominator: 28 committed fixtures
-5. Keep the 202-line corpus labeled as authoring coverage, not the measured population
+5. Keep the 200-case (202-line) corpus labeled as authoring coverage, not the measured population

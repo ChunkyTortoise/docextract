@@ -14,7 +14,7 @@ Build a native `LLMJudge` class that calls Claude with a 4-dimension rubric (com
 ## Alternatives Considered
 
 - **TruLens**: Provides prebuilt feedback functions and a dashboard. Requires a separate TruLens server or cloud account, and its feedback functions are designed for RAG pipelines, not structured document extraction. The schema mismatch would require wrapping every extraction call in TruLens instrumentation.
-- **RAGAS**: Excellent for RAG faithfulness/context recall metrics. Requires a reference corpus per query — DocExtract has no ground-truth corpus in production. RAGAS metrics are not directly applicable to extraction tasks (field presence, value accuracy).
+- **RAGAS**: Excellent for RAG faithfulness/context recall metrics. Requires a reference corpus per query - DocExtract has no ground-truth corpus in production. RAGAS metrics are not directly applicable to extraction tasks (field presence, value accuracy).
 - **DeepEval**: Requires running a test suite with expected outputs. Useful for offline eval but does not provide online sampling.
 - **Promptfoo**: Already integrated for CI golden-file regression testing (`promptfooconfig.yaml`). Not designed for production sampling.
 

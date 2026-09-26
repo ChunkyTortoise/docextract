@@ -71,7 +71,7 @@ aws-deploy:
 	cd deploy/aws && terraform init && terraform apply -auto-approve
 
 test:
-	pytest -v
+	pytest -v --cov-fail-under=80
 
 lint:
 	ruff check app/ worker/ tests/ scripts/ frontend/

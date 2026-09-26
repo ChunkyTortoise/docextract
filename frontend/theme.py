@@ -77,7 +77,7 @@ _CSS = f"""
         background-attachment: fixed;
     }}
 
-    /* Tab affordance — make the demo's proof tabs read as tabs, not links */
+    /* Tab affordance - make the demo's proof tabs read as tabs, not links */
     [data-testid="stTabs"] button[role="tab"] {{
         font-family: 'Space Mono', monospace;
         font-weight: 700;

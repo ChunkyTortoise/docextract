@@ -13,6 +13,6 @@ Use regex pattern matching for PII detection and string containment for hallucin
 
 ## Consequences
 
-**Why:** Guardrails run on every extraction. Adding another LLM call per document would double latency and cost. Regex PII detection covers the patterns that carry legal liability (SSN, credit card, phone, email) at zero marginal cost and with deterministic output. The hallucination boundary check uses string containment rather than semantic similarity — simpler, faster, and zero API cost.
+**Why:** Guardrails run on every extraction. Adding another LLM call per document would double latency and cost. Regex PII detection covers the patterns that carry legal liability (SSN, credit card, phone, email) at zero marginal cost and with deterministic output. The hallucination boundary check uses string containment rather than semantic similarity - simpler, faster, and zero API cost.
 
-**Tradeoff:** Regex misses unstructured PII (e.g., "born in Springfield on March 4th"). String containment misses paraphrased but grounded facts. Accepted because the goal is a first guardrail layer, not comprehensive safety — and the structured patterns (SSN, credit card numbers) are the ones that carry legal liability. If false-positive rates become a problem, upgrade to LLM-based checking only for flagged documents.
+**Tradeoff:** Regex misses unstructured PII (e.g., "born in Springfield on March 4th"). String containment misses paraphrased but grounded facts. Accepted because the goal is a first guardrail layer, not comprehensive safety - and the structured patterns (SSN, credit card numbers) are the ones that carry legal liability. If false-positive rates become a problem, upgrade to LLM-based checking only for flagged documents.

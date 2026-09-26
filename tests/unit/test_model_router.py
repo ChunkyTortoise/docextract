@@ -67,8 +67,8 @@ class TestModelRouterFallback:
         for _ in range(router.failure_threshold):
             try:
                 async with cb:
-                    raise RuntimeError("trip")
-            except RuntimeError:
+                    raise _rate_limit_error()
+            except Exception:
                 pass
 
         assert cb.is_open is True
@@ -120,3 +120,19 @@ class TestModelRouterCircuitBreakerIntegration:
         await router.call_with_fallback("op", ["failing-model", "backup"], call_fn)
 
         assert cb.failure_count > initial_failures
+
+    @pytest.mark.asyncio
+    async def test_non_transient_errors_do_not_count_toward_breaker(self):
+        """A 4xx must not open a shared breaker for unrelated jobs."""
+        router = ModelRouter(failure_threshold=1)
+        cb = router.get_circuit_breaker("m")
+        mock_resp = MagicMock()
+        mock_resp.status_code = 400
+        bad = APIStatusError("bad request", response=mock_resp, body={})
+        call_fn = AsyncMock(side_effect=bad)
+
+        with pytest.raises(APIStatusError):
+            await router.call_with_fallback("op", ["m"], call_fn)
+
+        assert cb.failure_count == 0
+        assert cb.is_open is False

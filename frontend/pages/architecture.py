@@ -4,7 +4,7 @@ import streamlit as st
 
 def show() -> None:
     st.title("Architecture Overview")
-    st.caption("DocExtract AI — eval-gated document intelligence")
+    st.caption("DocExtract AI - eval-gated document intelligence")
 
     st.markdown("""
 ```mermaid
@@ -21,7 +21,7 @@ graph TD
     I --> J[Agentic RAG - ReAct Loop]
     J --> G
 
-    subgraph Offline CI — not on request path
+    subgraph Offline CI - not on request path
         K[28-case offline replay]
         L[eval-gate.yml]
         M[(baseline.json)]

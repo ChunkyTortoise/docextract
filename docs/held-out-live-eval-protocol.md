@@ -1,7 +1,7 @@
 # Held-out live eval protocol
 
 ```text
-STATUS: PROTOCOL ONLY — PERFORMANCE UNMEASURED
+STATUS: PROTOCOL ONLY - PERFORMANCE UNMEASURED
 ```
 
 This document is a procedure. It does not contain a held-out live accuracy number. Do not cite this file as a measured result.
@@ -114,7 +114,7 @@ Manifest fields (minimum):
   "test_sha256": "<hex>",
   "test_case_count": "<integer; set only when the partition is declared>",
   "sources": [],
-  "status": "PROTOCOL ONLY — PERFORMANCE UNMEASURED"
+  "status": "PROTOCOL ONLY - PERFORMANCE UNMEASURED"
 }
 ```
 
@@ -155,7 +155,7 @@ Follow [metering-runbook.md](metering-runbook.md). The metering smoke historical
 .venv/bin/python scripts/benchmark.py --limit 1
 ```
 
-That command loads `autoresearch/eval_dataset_72.json` and is **not** the held-out test. Use it only as a credit/harness check. A credit-balance error means stop; do not invent numbers.
+That command loads `autoresearch/eval_dataset_72.json` and is **not** the held-out test. Use it only as a credit/runner check. A credit-balance error means stop; do not invent numbers.
 
 Record:
 
@@ -218,13 +218,13 @@ After the artifact exists:
 Until those three happen, every surface keeps:
 
 ```text
-STATUS: PROTOCOL ONLY — PERFORMANCE UNMEASURED
+STATUS: PROTOCOL ONLY - PERFORMANCE UNMEASURED
 ```
 
 ## 7. Explicit status
 
 ```text
-STATUS: PROTOCOL ONLY — PERFORMANCE UNMEASURED
+STATUS: PROTOCOL ONLY - PERFORMANCE UNMEASURED
 ```
 
 True until all of the following:

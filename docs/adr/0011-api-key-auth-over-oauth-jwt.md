@@ -13,8 +13,8 @@ Implement API key authentication using PBKDF2-HMAC-SHA256 hashed keys stored in 
 
 ## Consequences
 
-**Why:** OAuth 2.0 and JWT are designed for delegated authorization in user-facing flows — they require an authorization server, client registration, token refresh flows, and audience validation. DocExtract's consumers are server processes that never involve a human authorization step. API keys are a better fit: one static credential per integration, revocable without re-authorizing a human user, and auditable at the key level in the `api_keys` table.
+**Why:** OAuth 2.0 and JWT are designed for delegated authorization in user-facing flows - they require an authorization server, client registration, token refresh flows, and audience validation. DocExtract's consumers are server processes that never involve a human authorization step. API keys are a better fit: one static credential per integration, revocable without re-authorizing a human user, and auditable at the key level in the `api_keys` table.
 
-PBKDF2-HMAC-SHA256 hashing means the raw key is never stored — a compromised database does not expose usable credentials. Per-key Redis rate limiting (sliding window) prevents any single key from causing API abuse.
+PBKDF2-HMAC-SHA256 hashing means the raw key is never stored - a compromised database does not expose usable credentials. Per-key Redis rate limiting (sliding window) prevents any single key from causing API abuse.
 
-**Tradeoff:** API keys do not expire automatically and must be manually rotated. They also cannot encode scoped permissions as richly as OAuth scopes or JWT claims. Accepted because DocExtract's permission model is binary (authenticated vs. unauthenticated) — there are no user-level resource ownership boundaries that would require OAuth's delegated authorization model.
+**Tradeoff:** API keys do not expire automatically and must be manually rotated. They also cannot encode scoped permissions as richly as OAuth scopes or JWT claims. Accepted because DocExtract's permission model is binary (authenticated vs. unauthenticated) - there are no user-level resource ownership boundaries that would require OAuth's delegated authorization model.
