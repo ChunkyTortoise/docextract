@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.database import AsyncSessionLocal
 from app.schemas.events import JOB_STATUS_PROGRESS, JobStatus
+from app.services.parse_runner import run_parse_subprocess
 
 logger = structlog.get_logger(__name__)
 
@@ -124,7 +125,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     from app.services.classifier import classify
     from app.services.claude_extractor import extract
     from app.services.embedder import embed
-    from app.services.ingestion import UnsupportedMimeType, ingest
+    from app.services.ingestion import UnsupportedMimeType
     from app.services.pii_sanitizer import redact_pii
     from app.services.validator import validate
     from app.services.webhook_sender import RETRY_DELAYS
@@ -175,7 +176,11 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
         deadline = time.monotonic() + settings.parser_time_budget_seconds
         extracted = await asyncio.wait_for(
             asyncio.to_thread(
-                ingest, file_bytes, mime_type, doc.original_filename, deadline
+                run_parse_subprocess,
+                file_bytes,
+                mime_type,
+                doc.original_filename,
+                deadline,
             ),
             timeout=settings.parser_time_budget_seconds,
         )

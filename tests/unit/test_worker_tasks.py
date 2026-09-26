@@ -154,7 +154,7 @@ class TestProcessPipeline:
             patch("app.dependencies.get_storage", AsyncMock(return_value=mock_storage)),
             patch("app.utils.mime.detect_mime_type", return_value="application/pdf"),
             patch(
-                "app.services.ingestion.ingest",
+                "worker.tasks.run_parse_subprocess",
                 return_value=ExtractedContent(
                     text="Invoice #12345\nTotal: $500.00", metadata={}, page_count=1
                 ),
@@ -351,7 +351,7 @@ class TestProcessPipeline:
             ),
         )
         ingest_patch = patch(
-            "app.services.ingestion.ingest",
+            "worker.tasks.run_parse_subprocess",
             return_value=ExtractedContent(
                 text="Customer SSN 123-45-6789\nTotal: $500.00",
                 metadata={},

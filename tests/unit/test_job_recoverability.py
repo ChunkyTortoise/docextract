@@ -13,6 +13,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 
+def _slow_ingest(*args, **kwargs):
+    time.sleep(0.5)
+    from app.services.pdf_extractor import ExtractedContent
+
+    return ExtractedContent(text="doc")
+
+
 @pytest.fixture
 def mock_redis():
     return AsyncMock()
@@ -94,7 +101,7 @@ class TestExplicitExtractionFailure:
             patch("worker.tasks.AsyncSessionLocal") as mock_session_cls,
             patch("app.dependencies.get_storage", AsyncMock(return_value=mock_storage)),
             patch(
-                "app.services.ingestion.ingest",
+                "worker.tasks.run_parse_subprocess",
                 return_value=ExtractedContent(text="doc"),
             ),
             patch(
@@ -129,7 +136,6 @@ class TestParseTimeBudget:
     async def test_slow_parsing_fails_within_time_budget(self, mock_redis, monkeypatch):
         """Blocking parsing runs off-loop and fails within the explicit budget."""
         from app.config import settings
-        from app.services.pdf_extractor import ExtractedContent
         from worker.tasks import process_document
 
         monkeypatch.setattr(settings, "parser_time_budget_seconds", 0.05)
@@ -150,17 +156,16 @@ class TestParseTimeBudget:
         doc_result = MagicMock()
         doc_result.scalar_one.return_value = doc
 
-        def _slow_ingest(*args, **kwargs):
-            time.sleep(0.5)
-            return ExtractedContent(text="doc")
-
         mock_storage = AsyncMock()
         mock_storage.download = AsyncMock(return_value=b"%PDF-1.4 test")
 
         with (
             patch("worker.tasks.AsyncSessionLocal") as mock_session_cls,
             patch("app.dependencies.get_storage", AsyncMock(return_value=mock_storage)),
-            patch("app.services.ingestion.ingest", side_effect=_slow_ingest),
+            patch(
+                "app.services.parse_runner._INGEST_TARGET",
+                "tests.unit.test_job_recoverability:_slow_ingest",
+            ),
         ):
             mock_db = AsyncMock()
             mock_session_cls.return_value.__aenter__ = AsyncMock(return_value=mock_db)
