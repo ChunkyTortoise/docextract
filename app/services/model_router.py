@@ -89,6 +89,7 @@ class ModelRouter:
             self._breakers[model] = AsyncCircuitBreaker(
                 failure_threshold=self.failure_threshold,
                 recovery_timeout=self.recovery_timeout,
+                failure_filter=_is_transient,
             )
         return self._breakers[model]
 
