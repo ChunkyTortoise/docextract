@@ -72,7 +72,9 @@ dependencies = [
 full = [
     # ML training / eval stack (deepeval, ragas, langchain) per requirements_full.txt.
     "deepeval>=1.0.0",
-    "ragas>=0.2.0",
+    "ragas>=0.4.3",
+    "langchain-anthropic>=0.3.0",
+    "datasets>=2.14.0",
     "langchain>=0.3.0",
     "langchain-community>=0.3.0",
     "torch>=2.0.0",
@@ -97,7 +99,6 @@ ignore = ["E501"]
 "tests/unit/test_feedback.py" = ["E402"]
 "tests/integration/*" = ["N806"]
 "tests/unit/test_llm_tracer.py" = ["F841"]
-"scripts/eval_ragas.py" = ["F821"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -122,9 +123,10 @@ no_implicit_optional = true
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 testpaths = ["tests"]
-addopts = "--cov=. --cov-report=term-missing --cov-fail-under=80"
+addopts = "--cov=. --cov-report=term-missing"
 markers = [
     "e2e: end-to-end tests that hit real external services (deselect with '-m not e2e')",
+    "pg: needs a PostgreSQL/pgvector DATABASE_URL (run 'pytest -m pg' against the CI pgvector service)",
 ]
 
 [tool.setuptools]

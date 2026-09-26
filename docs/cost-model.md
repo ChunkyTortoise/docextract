@@ -1,43 +1,33 @@
-# Cost Model
+# Cost model
 
-## Token Cost Comparison
+No metered document run is committed. These examples use explicit token assumptions and exclude embedding, judge sampling, retries, infrastructure, taxes, and caching discounts.
 
-Token cost comparison across models (per 1,000 tokens, as of 2026):
+## Provider rates
 
-| Model | Input | Output | Best For |
-|-------|-------|--------|----------|
-| Claude Sonnet 4.6 | $0.003 | $0.015 | Complex extraction, high accuracy |
-| Claude Haiku 4.5 | $0.00025 | $0.00125 | Classification, simple queries |
-| Claude Opus 4.6 | $0.015 | $0.075 | Evaluation, edge cases |
+Base Claude API rates, checked 2026-09-25 against [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing), in USD per million tokens:
 
-Classification defaults to Haiku-first (failover chain in config); extraction uses Sonnet. A z-test A/B tool lives in `app/services/model_ab_test.py` for offline model comparison; it is not wired as a live traffic split.
+| Model | Input | Output |
+|-------|-------|--------|
+| Claude Sonnet 4.6 | $3 | $15 |
+| Claude Haiku 4.5 | $1 | $5 |
+| Claude Opus 4.6 | $5 | $25 |
 
-## Per-Operation Costs
+Classification is Haiku-first and extraction is Sonnet-first. The optional judge is Gemini-first. Model allocation and correction frequency are unmeasured.
 
-Modeled estimates (pricing table × typical token counts; not load-tested wall times):
+## Worked invoice example
 
-| Model | Operation | Avg Cost/Request | Avg Latency (modeled) |
-|-------|-----------|-----------------|-------------|
-| claude-sonnet-4-6 | Extraction (2-pass) | $0.004-$0.012 | 1.8s |
-| claude-haiku-4-5 | Classification | $0.0003-$0.001 | 0.4s |
-| claude-sonnet-4-6 | LLM Judge | $0.002-$0.006 | 1.2s |
+`call cost = input tokens / 1,000,000 * input rate + output tokens / 1,000,000 * output rate`
 
-**Model routing strategy:** Classification and re-ranking use Haiku (cheaper primary). Full extraction uses Sonnet. LLM judge uses Sonnet for accuracy. Use `model_ab_test.py` to compare models offline; do not treat allocation as a measured live split until an experiment is recorded.
+| Assumed call | Input tokens | Output tokens | Modeled cost |
+|--------------|--------------|---------------|--------------|
+| Haiku classification | 300 | 50 | $0.00055 |
+| Sonnet extraction | 1,200 | 400 | $0.00960 |
+| Sonnet correction, when needed | 800 | 300 | $0.00690 |
 
-## Cost Calculator
+The assumed invoice costs $0.01015 before correction and $0.01705 with correction. At 1,000 identical documents that is $10.15 or $17.05, respectively, before the excluded costs. These are arithmetic scenarios, not observed averages. Overall cost depends on document length, correction frequency, fallback behavior, and the enabled providers.
 
-| Document Type | Model | Avg Tokens | Cost/Doc | Cost/1,000 |
-|--------------|-------|------------|----------|------------|
-| Invoice (1 page) | Sonnet | ~2,500 | $0.025 | $25.00 |
-| Invoice (1 page) | Haiku (fallback) | ~2,500 | $0.004 | $4.00 |
-| Receipt | Sonnet | ~1,200 | $0.012 | $12.00 |
-| Multi-page PDF (10p) | Sonnet | ~15,000 | $0.150 | $150.00 |
-| Embedding (any) | Gemini | 768-dim | $0.0004 | $0.40 |
+Embedding dimensionality does not determine token usage or price. Include the configured embedding and judge providers in a funded run before quoting a total per-document cost.
 
-*Costs assume Anthropic March 2026 pricing. Two-pass correction adds ~20% to base cost for low-confidence documents.*
+## Measurement
 
-## Monitoring
-
-Cost monitoring: `/api/v1/metrics` (Prometheus) + Cost Dashboard in Streamlit frontend.
-
-Track live cost-per-query in the [Cost Dashboard](../frontend/pages/cost_dashboard.py).
+Follow the [metering runbook](metering-runbook.md) to record tokens, provider charges, latency, and input population together. The optional Prometheus endpoint is `/metrics` when `OTEL_ENABLED=true`. The Streamlit [cost dashboard](../frontend/pages/cost_dashboard.py) depends on recorded telemetry.

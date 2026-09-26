@@ -148,3 +148,33 @@ class ModelRouter:
                 continue
 
         raise AllModelsUnavailableError(operation, chain) from last_error
+
+
+# ---------------------------------------------------------------------------
+# Shared, process-wide routers (breaker state persists across requests)
+# ---------------------------------------------------------------------------
+_SHARED_ROUTERS: dict[str, ModelRouter] = {}
+
+
+def get_shared_router(kind: str) -> ModelRouter:
+    """Return the process-wide router for a call site (e.g. "classify", "extract").
+
+    Routers built per request reset their breakers on every call, so cooldowns
+    never carried across jobs (lane B B6). Call sites share one router per kind
+    so independent requests share breaker state.
+    """
+    router = _SHARED_ROUTERS.get(kind)
+    if router is None:
+        from app.config import settings
+
+        router = ModelRouter(
+            failure_threshold=settings.circuit_breaker_failure_threshold,
+            recovery_timeout=settings.circuit_breaker_recovery_seconds,
+        )
+        _SHARED_ROUTERS[kind] = router
+    return router
+
+
+def reset_shared_routers() -> None:
+    """Testing hook: drop all shared breaker state."""
+    _SHARED_ROUTERS.clear()

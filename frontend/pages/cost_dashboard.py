@@ -1,4 +1,4 @@
-"""Cost & Performance Dashboard — LLM spend, model comparison, and A/B test status."""
+"""Cost & Performance Dashboard - LLM spend, model comparison, and A/B test status."""
 from __future__ import annotations
 
 import random
@@ -64,7 +64,7 @@ def _mock_ab_tests() -> list[dict]:
             "Avg Quality Delta": "-0.8%",
             "Cost Reduction": "83%",
             "Significant": "Pending (need 30+ samples)",
-            "Winner": "—",
+            "Winner": "-",
         },
         {
             "Test Name": "extraction_haiku_vs_sonnet",
@@ -77,7 +77,7 @@ def _mock_ab_tests() -> list[dict]:
             "Avg Quality Delta": "-4.1%",
             "Cost Reduction": "92%",
             "Significant": "No (p=0.12)",
-            "Winner": "—",
+            "Winner": "-",
         },
     ]
 

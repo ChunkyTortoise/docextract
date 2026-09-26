@@ -1,18 +1,20 @@
 """Pytest configuration and shared fixtures."""
 from __future__ import annotations
 
+import os
 import sqlite3
 import uuid
 from datetime import UTC
 
 import fakeredis.aioredis
 import pandas  # noqa: F401 — must import before frontend tests run to prevent sys.modules.setdefault("pandas", MagicMock()) from replacing the real module
+import pytest
 import pytest_asyncio
 import sklearn.utils.fixes  # noqa: F401 — pre-cache sklearn before any test patches sys.modules["pandas"]
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import JSON, String
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool, StaticPool
 
 # Register UUID adapter so sqlite3 can bind uuid.UUID objects as strings
 sqlite3.register_adapter(uuid.UUID, lambda u: str(u))
@@ -42,7 +44,9 @@ def _safe_uuid_bind_processor(self, dialect):  # type: ignore[override]
     return process
 
 
-_PG_UUID.bind_processor = _safe_uuid_bind_processor  # type: ignore[method-assign]
+if not os.environ.get("DATABASE_URL"):
+    # SQLite-only shim: on PostgreSQL the native UUID handling is correct.
+    _PG_UUID.bind_processor = _safe_uuid_bind_processor  # type: ignore[method-assign]
 
 from app.dependencies import get_arq_pool, get_db, get_redis, get_storage
 from app.models import APIKey  # noqa: F401
@@ -50,7 +54,9 @@ from app.models.database import Base
 from app.storage.base import StorageBackend
 from app.utils.hashing import hash_api_key
 
-TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
+# Honor DATABASE_URL when it is set (CI pgvector service runs the pg-marked
+# tests against it); otherwise the suite runs on in-memory SQLite.
+TEST_DB_URL = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 TEST_API_KEY = "test-api-key-12345"
 
 
@@ -115,13 +121,28 @@ class FakeStorageBackend(StorageBackend):
         return [k for k in self._store if k.startswith(prefix)]
 
 
+@pytest.fixture(autouse=True)
+def _reset_shared_model_routers():
+    """Shared breaker state must not leak across tests."""
+    from app.services.model_router import reset_shared_routers
+
+    reset_shared_routers()
+
+
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
-    engine = create_async_engine(
-        TEST_DB_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    engine_kwargs: dict = {}
+    if TEST_DB_URL.startswith("sqlite"):
+        engine_kwargs = {
+            "connect_args": {"check_same_thread": False},
+            "poolclass": StaticPool,
+        }
+    elif TEST_DB_URL.startswith("postgresql"):
+        # asyncpg connections are bound to the loop that created them; a
+        # fresh connection per checkout keeps fixture setup and test loops
+        # from sharing pooled connections.
+        engine_kwargs = {"poolclass": NullPool}
+    engine = create_async_engine(TEST_DB_URL, **engine_kwargs)
 
     # Create tables with SQLite-compatible DDL
     async with engine.begin() as conn:
@@ -133,7 +154,11 @@ async def test_engine():
 
 def _create_tables(conn):
     """Create tables, swapping out PostgreSQL types/defaults for SQLite."""
-    _patch_pg_types_for_sqlite()
+    if conn.dialect.name == "sqlite":
+        _patch_pg_types_for_sqlite()
+    elif conn.dialect.name == "postgresql":
+        # migration 002 enables it in production; create_all bypasses migrations
+        conn.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS vector")
 
     # Clear mapper caches that reference old column defaults
     from sqlalchemy.orm import class_mapper
@@ -228,10 +253,13 @@ async def client(db_session, test_redis, fake_storage, fake_arq_pool):
 
 
 @pytest_asyncio.fixture
-async def demo_client(db_session, test_redis, fake_storage, fake_arq_pool):
+async def demo_client(db_session, test_redis, fake_storage, fake_arq_pool, monkeypatch):
+    from pydantic import SecretStr
+
     from app.config import settings
     from app.main import create_app
 
+    monkeypatch.setattr(settings, "demo_api_key", SecretStr("test-demo-key"))
     original_demo_mode = settings.demo_mode
     settings.demo_mode = True
     try:

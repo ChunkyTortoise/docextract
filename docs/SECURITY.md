@@ -33,7 +33,7 @@ Plaintext keys cannot be recovered from storage. Generate a new key if a client 
 
 ## Demo Mode
 
-When `DEMO_MODE=true`, the configured `DEMO_API_KEY` may access read-only demo flows. Non-GET requests are rejected with `403` so demo users cannot mutate records.
+When `DEMO_MODE=true`, an explicitly configured `DEMO_API_KEY` may access read-only demo flows. Its default is empty, which disables the bypass. Only GET, HEAD, and OPTIONS are allowed; mutations return `403`. The public static demo uses cached fixtures without an API credential.
 
 ## Webhook Security
 

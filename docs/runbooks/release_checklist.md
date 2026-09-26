@@ -1,4 +1,4 @@
-# DocExtract AI — Release Checklist
+# DocExtract AI - Release Checklist
 
 ## Pre-Release
 
@@ -13,14 +13,15 @@
 ## Migration Safety Check
 
 - [ ] `alembic history` shows expected chain
-- [ ] `alembic upgrade head --sql` reviewed (dry-run SQL output)
-- [ ] Verified migration is reversible: `alembic downgrade -1` tested locally
+- [ ] Rehearsed the migration on a restored disposable PostgreSQL database (014 requires online schema inspection)
+- [ ] Reviewed [reconciliation release gate](reconciliation-release.md), duplicate dependencies, backups, and migration-specific rollback limits
+- [ ] Existing application database migration and deployment explicitly approved
 
 ## Deploy
 
-1. Merge PR to `main` (Render auto-deploys on push to main)
-2. Monitor Render deploy logs — watch for `Alembic upgrade complete` and `Application startup complete`
-3. Render runs `buildCommand` → `startCommand` in sequence
+1. Confirm the live Render auto-deploy branch/settings and complete the migration gate before an approved merge to `main`
+2. Monitor Render deploy logs - watch for `Alembic upgrade complete` and `Application startup complete`
+3. Render runs `buildCommand` → `preDeployCommand` (migrations) → `startCommand` in sequence
 
 ## Post-Deploy Verification
 
@@ -42,7 +43,7 @@ bash scripts/smoke_productization.sh
 If deploy fails:
 
 1. In Render dashboard → Service → **Deploys** tab → click previous deploy → **Redeploy**
-2. If migration broke the schema: `alembic downgrade -1` via Render shell or local env with prod DB URL
+2. Use the approved migration-specific recovery plan. Downgrading 013 does not restore deleted data, and 014's downgrade is a no-op; restore from backup when required.
 3. Announce rollback in relevant Slack channel with root cause
 
 ## Version Tagging

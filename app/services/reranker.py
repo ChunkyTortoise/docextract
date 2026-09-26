@@ -74,9 +74,9 @@ class TFIDFReranker:
 
         # Normalize existing retrieval scores to [0, 1]
         raw_scores = np.array([r.score for r in results], dtype=float)
-        score_range = raw_scores.max() - raw_scores.min()
+        score_range = np.max(raw_scores) - np.min(raw_scores)
         if score_range > 0:
-            norm_scores = (raw_scores - raw_scores.min()) / score_range
+            norm_scores = (raw_scores - np.min(raw_scores)) / score_range
         else:
             norm_scores = np.ones(len(results))
 

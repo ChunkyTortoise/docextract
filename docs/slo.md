@@ -8,8 +8,8 @@ These SLOs define the reliability targets for DocExtract AI in a production envi
 
 | Metric | Target | Measurement | Rationale |
 |--------|--------|-------------|-----------|
-| Field-level accuracy | >= 92% | Golden eval suite (72 scored cases, CI-gated) | Baseline tracked in `autoresearch/baseline.json`; regression tolerance enforced in CI |
-| Pass 2 correction rate | 15-20% of extractions | Two-pass pipeline metrics | Below 10% suggests thresholds too lenient; above 30% suggests prompt degradation |
+| Field-level accuracy | >= 92% | Golden eval suite (28 of 72 cases scored in CI replay) | Baseline tracked in `autoresearch/baseline.json`; regression tolerance enforced in CI |
+| Pass 2 correction rate | 15-20% of extractions | Unmeasured; requires a correction-rate counter | Below 10% suggests thresholds too lenient; above 30% suggests prompt degradation |
 | Confidence calibration | Brier score < 0.15 | Per-document-type confidence vs actual accuracy | Confidence scores should be meaningful, not inflated |
 
 ## Latency
@@ -52,7 +52,7 @@ These SLOs define the reliability targets for DocExtract AI in a production envi
 
 These SLOs are tracked via:
 - **Prometheus metrics**: `llm_call_duration_ms`, `llm_calls_total`, `circuit_breaker_state`
-- **Golden eval CI gate**: Runs on every PR, blocks merge on regression
+- **Golden eval CI gate**: Runs on eval-gated PRs, fails the check on regression (merge enforcement depends on branch settings)
 - **RAGAS evaluation**: Context recall, faithfulness, answer relevancy (main branch)
 - **Cost tracker**: Per-request USD computation via `llm_traces`
 

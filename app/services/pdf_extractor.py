@@ -40,7 +40,9 @@ def extract_pdf(data: bytes) -> ExtractedContent:
     """
     try:
         doc = fitz.open(stream=data, filetype="pdf")
-    except fitz.FitzError as exc:
+    except Exception as exc:
+        # fitz error classes vary across PyMuPDF versions; the documented
+        # contract is a ValueError for corrupt/unreadable input.
         raise ValueError(f"Corrupt or unreadable PDF: {exc}") from exc
 
     if doc.is_encrypted:
@@ -51,6 +53,7 @@ def extract_pdf(data: bytes) -> ExtractedContent:
     total_pages = min(doc.page_count, max_pages)
     has_tables = False
     page_texts: list[str] = []
+    rendered_pixels = 0
 
     for page_num in range(total_pages):
         page = doc[page_num]
@@ -62,9 +65,23 @@ def extract_pdf(data: bytes) -> ExtractedContent:
                 block[4] for block in blocks if block[6] == 0  # type 0 = text
             )
         else:
-            # Scanned page — render to image for OCR
+            # Scanned page — render to image for OCR. The render budget is
+            # checked before allocating the pixmap (lane B B8).
             from app.services.image_extractor import extract_image
-            from app.services.preprocessor import preprocess_image
+            from app.services.preprocessor import ParserBudgetError, preprocess_image
+
+            rect = page.rect
+            page_pixels = int(rect.width * (300 / 72) * rect.height * (300 / 72))
+            rendered_pixels += page_pixels
+            if (
+                page_pixels > settings.parser_max_image_pixels
+                or rendered_pixels > settings.parser_max_document_pixels
+            ):
+                raise ParserBudgetError(
+                    f"PDF render budget exceeded at page {page_num + 1}: "
+                    f"{page_pixels} pixels/page (max {settings.parser_max_image_pixels}), "
+                    f"{rendered_pixels} total (max {settings.parser_max_document_pixels})"
+                )
 
             pixmap = page.get_pixmap(dpi=300)
             import numpy as np

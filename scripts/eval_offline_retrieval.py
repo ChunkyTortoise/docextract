@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Offline retrieval eval: recall@k and MRR over a synthetic labeled corpus, no API key.
 
-Scope (honest): this exercises the BM25 lexical search primitive
+Scope: this exercises the BM25 lexical search primitive
 (`app/services/bm25.py`) against a small in-script synthetic corpus with
 explicit query-to-relevant-document labels. It does NOT measure the pgvector
 embedding path, hybrid RRF ranking, agentic RAG loop quality, or live-model

@@ -111,7 +111,7 @@ Separate from infrastructure. Charged per token by Anthropic.
 | Classification | claude-haiku-4-5 | ~$0.00005 |
 | **Average per document** | | **~$0.003** |
 
-Pass 2 is only triggered when Pass 1 confidence falls below 0.80. Approximately 15-20% of documents trigger Pass 2, which is factored into the per-document average above.
+Pass 2 is only triggered when Pass 1 confidence falls below 0.80. The trigger rate is a design target of 15-20% of documents (unmeasured), which is factored into the per-document average above.
 
 ### Semantic Cache Impact
 

@@ -1,4 +1,4 @@
-"""Prompt Lab — version comparison and regression testing UI."""
+"""Prompt Lab - version comparison and regression testing UI."""
 from __future__ import annotations
 
 import difflib
@@ -121,7 +121,7 @@ def render() -> None:
         active = _REGISTRY.get_active_version(cat)  # type: ignore[arg-type]
         if active == "latest":
             versions = _get_versions(cat)
-            resolved = versions[0] if versions else "—"
+            resolved = versions[0] if versions else "-"
             label = f"{resolved} (latest)"
         else:
             label = active
@@ -169,7 +169,7 @@ def render() -> None:
     # ── Unified diff ─────────────────────────────────────────────────────
     st.subheader("Diff")
     if baseline_ver == candidate_ver:
-        st.info("Baseline and candidate are the same version — no diff.")
+        st.info("Baseline and candidate are the same version - no diff.")
     else:
         diff_text = _unified_diff(baseline_text, candidate_text, baseline_ver, candidate_ver)
         if diff_text:
@@ -185,7 +185,7 @@ def render() -> None:
         if baseline_ver == candidate_ver:
             st.warning("Select two different versions to compare.")
         else:
-            with st.spinner("Running eval comparison (mocked — no API credits required)..."):
+            with st.spinner("Running eval comparison (mocked - no API credits required)..."):
                 result = _mock_regression_result(baseline_ver, candidate_ver)
 
             if result["passed"]:

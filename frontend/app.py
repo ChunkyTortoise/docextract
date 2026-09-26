@@ -26,7 +26,7 @@ def authenticate() -> bool:
     if DEMO_MODE:
         st.session_state["authenticated"] = True
         st.session_state["api_key"] = os.getenv(
-            "DEMO_API_KEY", "demo-key-docextract-2026"
+            "DEMO_API_KEY", ""
         )
         return True
 
@@ -65,7 +65,7 @@ def main() -> None:
         return
 
     if DEMO_MODE:
-        st.info("Demo mode — read-only access")
+        st.info("Demo mode - read-only access")
 
     # Sidebar navigation
     with st.sidebar:

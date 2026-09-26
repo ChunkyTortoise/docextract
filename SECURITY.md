@@ -30,10 +30,10 @@ DocExtract AI implements defense-in-depth across authentication, transport, stor
 
 ## Data Storage
 
-- **No PII logged**: Extraction jobs log document hashes and job IDs, not file contents or extracted data.
-- **SHA-256 deduplication**: Identical file uploads reuse existing jobs. The hash is computed client-side and verified server-side before storage.
+- **Logging scope**: Routine pipeline logs use job IDs and metadata. Provider and validation errors may contain source values; restrict log access and retention.
+- **SHA-256 deduplication**: The server hashes uploaded bytes. Normal uploads select the newest matching document and job; `?force=true` bypasses reuse. The soft check does not prevent concurrent duplicate uploads.
 - **Pluggable storage backends**: Local filesystem or Cloudflare R2. R2 credentials are env-only and never committed.
-- **PII redaction at persistence**: `PII_REDACTION_ENABLED` (default OFF in code) replaces PII values with redaction tokens before records are stored or returned. The render.yaml and fly.toml deploy profiles set it to `true` (fly.toml also ships `DEMO_MODE=true` for the demo UI; unset it for a demo-free production deployment). The k8s configmap and ecs.tf do not set it yet. The detect-and-flag boundary is separate (`GUARDRAILS_ENABLED`).
+- **PII redaction at persistence**: `PII_REDACTION_ENABLED` (default OFF in code) replaces PII values with redaction tokens before records are stored or returned. The render.yaml and fly.toml deploy profiles set it to `true` (both also ship `DEMO_MODE=true` for the demo UI; unset it for a demo-free production deployment). The k8s configmap and ecs.tf do not set it yet. The detect-and-flag boundary is separate (`GUARDRAILS_ENABLED`).
 
 ## Operational Endpoints
 
@@ -43,8 +43,20 @@ DocExtract AI implements defense-in-depth across authentication, transport, stor
 
 - **Fenced untrusted content**: Extracted document text and caller-supplied doc-type hints are wrapped in an untrusted fence so injected instructions are far less likely to steer the model. This is heuristic mitigation, not a guarantee (ADR-0020 instruction hierarchy).
 - **Defense system clause**: Both the text and vision extraction paths carry a defense clause in the system block.
-- **Output sanitization**: Extracted results pass through sanitize-and-scan before persistence; exfiltration keys are stripped and scan hits are logged.
+- **Output sanitization**: Text and vision extraction strip known exfiltration keys before persistence. Allowed field values can still contain injected content. The pattern scanner is a library hook and is not called by the current pipeline.
 
 ## Reporting Security Issues
 
 Open a private GitHub Security Advisory at [github.com/ChunkyTortoise/docextract/security/advisories](https://github.com/ChunkyTortoise/docextract/security/advisories).
+
+## PII and data handling
+
+- Document text and extracted records are stored in your configured PostgreSQL instance and object storage. Treat both as containing personal data.
+- `pii_redaction_enabled` defaults to **off** (a deployment decision). When enabled, the worker redacts record fields, raw text, embedding text, and optional graph input before persistence. Original uploads still contain the original data.
+- Completion/review webhooks contain job and record identifiers, status, and document type. Deliveries run as deferred ARQ jobs and are signed with HMAC-SHA256. Signing secrets remain AES-GCM ciphertext in storage and Redis, and are decrypted inside each delivery attempt.
+- No automatic data retention or deletion is implemented. Older docs mentioned `DATA_RETENTION_DAYS` and `STORE_DOCUMENTS`; those have no implementation. Enforce retention at the database and storage layer.
+
+## Known limitations
+
+- Document deduplication is a soft check. Extraction records have a separate one-record-per-job constraint; migration 013 keeps the earliest record for a job and removes later duplicates. Review and back up existing duplicate data before applying it.
+- Error logs can include fragments of raw model output. Regex redaction is incomplete and does not make documents anonymous.
