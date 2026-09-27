@@ -1,14 +1,16 @@
 # DocExtract AI
 
-Upload PDFs and images, classify the document, extract structured fields, and search the stored results. Classification uses cost-aware routing. Extraction uses a two-pass Claude pipeline. Embeddings are stored in pgvector. Queries run through agentic RAG. The same flow, with service boundaries, is in [What this does](#what-this-does).
+Turn PDFs and images into structured fields and searchable records. DocExtract combines a FastAPI service, a two-pass extraction worker, pgvector search, and repeatable evaluation.
 
-## Deterministic eval replay
-
-> **95.5% field-level score from a deterministic 28-fixture replay**
+## Inspect a stored extraction
 
 <p align="center">
-  <img src="./docs/screenshots/demo-hero.png" width="720" alt="DocExtract fixture-backed demo: uploaded invoice, classified document, structured fields with confidence, and the 95.5% offline replay score." />
+  <img src="./docs/screenshots/demo-hero.png" width="720" alt="DocExtract fixture explorer showing stored invoice fields, sample values, and explicitly labeled sample confidence." />
 </p>
+
+The screenshot shows the local **fixture explorer**, with stored invoice output and sample confidence values. It makes no live model call. [Run the explorer](#reviewer-path) · [Mobile view](docs/screenshots/demo-mobile.png) · [Capture provenance](docs/screenshots/PROVENANCE.md). Optional [9-second walkthrough](docs/screenshots/fixture-walkthrough.gif), three actual browser states, not continuous video.
+
+**Separate evaluation evidence: 95.5% weighted field-level accuracy from a deterministic 28-fixture replay.**
 
 | Evidence | What it is | What it is not |
 |----------|------------|----------------|
@@ -29,13 +31,15 @@ python scripts/eval_offline_replay.py --floor 0.85
 
 Python 3.10 or newer. The script scores committed prediction fixtures in `autoresearch/golden_responses/` against `autoresearch/eval_dataset_72.json`. Compare the weighted field-level score to **95.5%** (0.9555). Then read the [two extraction passes](docs/adr/0003-two-pass-extraction.md) and the [offline CI evidence](docs/retrieval-extraction-evidence.md).
 
-**2. Fixture-backed UI demo (no API key).** From the repository root, with the env var documented in [DEMO.md](DEMO.md) and read by `frontend/app.py`:
+**2. Fixture-backed UI demo (no API key).** From the repository root:
 
 ```bash
-DEMO_MODE=true streamlit run frontend/app.py
+python -m venv .venv-demo
+.venv-demo/bin/python -m pip install -r requirements_demo.txt
+.venv-demo/bin/python -m streamlit run streamlit_demo.py
 ```
 
-`DEMO_MODE` serves cached samples from `frontend/demo_data/`. Page order and limits: [DEMO.md](DEMO.md).
+The standalone explorer reads committed JSON samples from `frontend/demo_data/`; it makes no model or database calls. Use a separate demo environment to avoid mixing Streamlit dependencies with the backend stack. On Windows, use `.venv-demo\Scripts\python` in place of `.venv-demo/bin/python`. The full frontend and its limits are documented in [DEMO.md](DEMO.md).
 
 **3. Full configured services (API keys).** [Install](#install) is this path: copy `.env.example` to `.env`, set `ANTHROPIC_API_KEY` and `GEMINI_API_KEY`, then `docker compose up -d`.
 
@@ -99,7 +103,7 @@ Upload → ARQ worker → classify → extract → validate → embed → search
 ## Why this is interesting (engineering)
 
 - **Offline evaluation in CI**: `eval-gate.yml` replays 28 committed prediction fixtures at zero API cost and reports check status; the recorded repository audit did not show enforced merge protection
-- **FastAPI & Strict Type Safety**: End-to-end Pydantic V2 validation contracts, typed error domains, and deterministic schema enforcement preventing malformed extraction persistence
+- **FastAPI & Strict Type Safety**: Pydantic V2 validation contracts, typed error domains, and deterministic schema enforcement preventing malformed extraction persistence
 - **PostgreSQL (pgvector) & ARQ Queue**: Document chunk embeddings indexed via pgvector HNSW vectors, decoupled background document processing via Redis and ARQ worker queue
 - **Agentic RAG**: ReAct Think → Act → Observe over hybrid retrieval tools; primary search story in API and Streamlit ([`agentic_rag.py`](app/services/agentic_rag.py), [`agent_trace.py`](frontend/pages/agent_trace.py))
 - **Cost-aware model routing**: Haiku for classification, Sonnet for extraction; prompt caching on system prompts; circuit breaker with Haiku fallback

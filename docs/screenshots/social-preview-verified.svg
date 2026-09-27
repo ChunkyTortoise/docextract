@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
+<title id="title">DocExtract: document extraction and replayable evaluation</title>
+<desc id="description">Stored JSON sample, no live model call. Invoice INV-2024-00847, date 2024-11-15, total $5,286.50. Editorial representation of frontend/demo_data/invoice_sample.json, not an application screenshot.</desc>
+<rect width="1280" height="640" fill="#101820"/>
+<rect x="56" y="56" width="64" height="8" rx="4" fill="#98dcce"/>
+<g font-family="Arial, Helvetica, sans-serif">
+<text x="56" y="157" fill="#eef4f7" font-size="86" font-weight="700" letter-spacing="-3">DocExtract</text>
+<text x="56" y="224" fill="#b8c8d4" font-size="41">Document extraction + replayable evaluation</text>
+<rect x="56" y="290" width="376" height="164" rx="12" fill="#182530" stroke="#344958"/><text x="80" y="335" fill="#b8c8d4" font-size="29" letter-spacing="1.2">INVOICE</text><text x="80" y="407" fill="#eef4f7" font-size="40" font-weight="650">INV-2024-00847</text><rect x="452" y="290" width="376" height="164" rx="12" fill="#182530" stroke="#344958"/><text x="476" y="335" fill="#b8c8d4" font-size="29" letter-spacing="1.2">DATE</text><text x="476" y="407" fill="#eef4f7" font-size="40" font-weight="650">2024-11-15</text><rect x="848" y="290" width="376" height="164" rx="12" fill="#182530" stroke="#344958"/><text x="872" y="335" fill="#b8c8d4" font-size="29" letter-spacing="1.2">TOTAL</text><text x="872" y="407" fill="#eef4f7" font-size="40" font-weight="650">$5,286.50</text>
+<text x="56" y="526" fill="#98dcce" font-size="35" font-weight="700" letter-spacing=".8">STORED JSON SAMPLE / NO LIVE MODEL CALL</text>
+<text x="56" y="582" fill="#b8c8d4" font-size="29">Sample fields, not measured extraction performance.</text>
+</g></svg>
