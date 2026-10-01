@@ -93,11 +93,7 @@ More: [CASE_STUDY.md](CASE_STUDY.md) · [docs/eval-methodology.md](docs/eval-met
 
 Short form: the [opening paragraph](#docextract-ai). FastAPI document intelligence: upload PDFs and images, classify with cost-aware routing, extract structured fields via a **two-pass Claude pipeline**, embed into **pgvector**, and query with **agentic RAG** (ReAct loop with streaming SSE reasoning).
 
-```
-Upload → ARQ worker → classify → extract → validate → embed → search / agentic RAG
-         ↑
-    Optional trace exporters        Offline eval replay (CI only, not on request path)
-```
+Service boundaries and the CI-only eval path are in the [Architecture](#architecture) diagram.
 
 ## Why this is interesting (engineering)
 
@@ -113,17 +109,29 @@ Upload → ARQ worker → classify → extract → validate → embed → search
 ## Architecture
 
 ```mermaid
-graph LR
-  A[Client / Streamlit] -->|POST /documents| B[FastAPI]
-  B -->|enqueue| C[ARQ Worker]
-  C -->|classify + extract| D{Model Router}
-  D -->|primary| E[Claude Sonnet]
-  D -->|fallback| F[Claude Haiku]
-  E --> G[(pgvector)]
-  G -->|search| H[Agentic RAG]
-  H --> A
-  C -->|Langfuse| I[Traces]
-  B -->|SSE /jobs/events| A
+flowchart LR
+  UI["Streamlit UI or API client"] -->|"POST /api/v1/documents/upload"| API["FastAPI"]
+  API -->|"enqueue"| Q[("Redis + ARQ")]
+  Q --> ING
+  subgraph W["ARQ worker"]
+    ING["Ingest: PDF text or OCR"] --> CLS["Classify: Haiku, Sonnet fallback"]
+    CLS --> EXT["Two-pass extract: Sonnet, Haiku fallback, injection guard"]
+    EXT --> VAL["Validate"]
+    VAL --> EMB["Embed: Gemini"]
+    EMB --> STO["Store record and embedding"]
+  end
+  STO --> DB[("Postgres + pgvector HNSW")]
+  W -.->|"stage events via Redis pub/sub"| API
+  API -->|"SSE job events"| UI
+  UI -->|"POST /api/v1/agent-search/stream"| RAG["Agentic RAG: ReAct over vector, BM25, hybrid tools"]
+  RAG --> DB
+  STO -.->|"about 1 in 10 jobs"| J["LLM judge: Gemini, Haiku fallback, off by default"]
+  W -.->|"model calls"| T[("llm_traces: tokens, latency")]
+  RAG -.->|"model calls"| T
+  T --> M["GET /api/v1/metrics/llm"]
+  subgraph CI["CI only, not on the request path"]
+    R["Offline replay: 28 committed fixtures"] --> G{"floor 0.85"}
+  end
 ```
 
 ## Demo
