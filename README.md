@@ -71,6 +71,15 @@ DocExtract reports extraction quality through passing or failing CI checks. Succ
 | Authoring corpus | **200 cases** (150 golden + 50 adversarial) | `evals/golden_set.jsonl` + `evals/adversarial_set.jsonl`: 202 lines including two metadata rows; separate from the 28-fixture offline replay |
 | Cost / latency | See [cost-model.md](docs/cost-model.md) | Modeled only until a funded `scripts/benchmark.py` run is committed |
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/eval/replay-by-doc-type-dark.svg">
+    <img src="docs/assets/eval/replay-by-doc-type-light.svg" width="720" alt="Dot chart of weighted field-level accuracy per document type from the 28-fixture offline replay, with the case count on each row and the 0.85 CI floor marked.">
+  </picture>
+</p>
+
+Generated from the replay output by `python scripts/render_eval_chart.py`; `tests/unit/test_render_eval_chart.py` fails if the committed chart drifts from the committed fixtures.
+
 <details>
 <summary>Verified offline replay by document type (RA11, 2026-09-19; weighted field-level accuracy)</summary>
 
