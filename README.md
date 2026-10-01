@@ -17,6 +17,11 @@ Upload PDFs and images, classify the document, extract structured fields, and se
 
 The verified replay scored 28 committed prediction fixtures against 72 lookup cases, with 44 fixtures pending. Its weighted field-level accuracy is 0.9555 (95.5% rounded), not F1 or live-model performance. Retrieval recall, support and abstention remain unmeasured. See [retrieval and extraction evidence](docs/retrieval-extraction-evidence.md) for the score, populations and limitations. Held-out live eval (protocol only; performance unmeasured): [docs/held-out-live-eval-protocol.md](docs/held-out-live-eval-protocol.md).
 
+[![CI](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
+[![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 ### Reviewer path
 
 Three paths. Run paths 1 and 2 from the repository root. Path 3 is the configured stack in [Install](#install).
@@ -41,25 +46,21 @@ DEMO_MODE=true streamlit run frontend/app.py
 
 Retrieval, architecture, and the scope notes below apply after any path.
 
-[![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
-[![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
-
 The package requires Python 3.12+ (`pyproject.toml` `requires-python`). The standalone replay script in the Reviewer path above runs on Python 3.10+.
 
 The hosted Streamlit URL is intentionally omitted until anonymous access is verified. Static preview and trace visualizer live in [`site/`](site/) and [`frontend/pages/agent_trace.py`](frontend/pages/agent_trace.py).
 
-## Eval gate {#eval-gate}
+## Eval gate
 
 DocExtract reports extraction quality through passing or failing CI checks. Successful checks do not establish enforced merge protection. The recorded 2026-09-19 repository audit returned `Branch not protected` and an empty branch-rules list; merge blocking was not enforced in that observation. See [CI and merge enforcement](docs/retrieval-extraction-evidence.md#ci-and-merge-enforcement).
 
 | Signal | What runs | When |
 |--------|-----------|------|
 | **Offline replay** (badge driver) | `scripts/eval_offline_replay.py` on 28 committed fixtures | Every eval-gated PR; zero API cost |
-| **Variance-calibrated gate** | `scripts/eval_gate.py` vs `autoresearch/baseline.json` | PRs touching prompts / extraction services |
+| **Live-eval threshold gate** | `scripts/eval_gate.py`: Promptfoo, Ragas and LLM-judge outputs vs thresholds and `autoresearch/baseline.json` | Inside the paid live job only; skipped while no API key secret is configured |
 | **Paid live eval** | Promptfoo, RAGAS, LLM-judge | Only when `ANTHROPIC_API_KEY` is present in CI; skipped otherwise |
 | **Held-out live protocol** | Public or synthetic docs, untouched test partition, `score_extraction` | Unmeasured until a funded run is logged ([protocol](docs/held-out-live-eval-protocol.md)) |
-| **Drift cron** | Golden set vs production prompt version | Daily 13:23 UTC |
+| **Drift cron** | Daily schedule reruns the offline replay; drift recording and drift-issue creation sit inside the paid live job | Daily 13:23 UTC |
 
 **Failing CI check demonstration:** [#32, intentional regression (keep open / expect red)](https://github.com/ChunkyTortoise/docextract/pull/32). Executed vs replayed stages: [docs/eval-gate-proof.md](docs/eval-gate-proof.md). See also [docs/eval-methodology.md](docs/eval-methodology.md).
 
@@ -127,13 +128,9 @@ graph LR
 
 ## Demo
 
-Run the fixture-backed demo locally with no API key:
+No-key demo: [Reviewer path](#reviewer-path), step 2. The full multi-page frontend and its limits are in [DEMO.md](DEMO.md).
 
-```bash
-DEMO_MODE=true streamlit run frontend/app.py
-```
-
-Progress streams over SSE: `/jobs/{id}/events` (extraction stages) and `/agent-search/stream` (agentic retrieval reasoning).
+Progress streams over SSE: `/api/v1/jobs/{job_id}/events` (extraction stages) and `/api/v1/agent-search/stream` (agentic retrieval reasoning).
 
 ## Install
 
@@ -153,9 +150,8 @@ Services: API `:8000` (`/docs` for Swagger) | Frontend `:8501` | PostgreSQL `:54
 # Fresh clone, zero API cost:
 uv venv && uv pip install -e .           # or: uv sync (installs from pyproject.toml)
 source .venv/bin/activate                # or prefix commands with: uv run
-pytest tests/ --collect-only -q          # Discover the current suite; count is not a portfolio claim
+pytest tests/ -m "not e2e" --no-cov -q   # Unit + integration, zero API cost; count is not a portfolio claim
 python scripts/eval_offline_replay.py --floor 0.85   # Always-on CI offline replay (badge driver)
-python scripts/run_eval_ci.py --ci                    # Wrapper; same 28-case deterministic path
 make eval                                # Optional paid live eval; requires configured credentials
 ```
 
@@ -171,7 +167,7 @@ make eval                                # Optional paid live eval; requires con
 | [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Gemini as independent judge |
 | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | TF-IDF reranker + agentic self-reflection loop |
 
-**Scope notes (honest):** GraphRAG hybrid retrieval is opt-in (`GRAPH_RETRIEVAL_ENABLED=false` by default): regex entity graph, file-backed. Semantic cache ([ADR-0017](docs/adr/0017-semantic-cache-l1-l2.md)) is implemented but feature-flagged off and not wired into the extraction hot path. Langfuse, LangSmith, and OpenTelemetry integrations require configuration and are not presented as verified live telemetry.
+**Scope notes (honest):** GraphRAG hybrid retrieval is opt-in (`GRAPH_RETRIEVAL_ENABLED=false` by default): regex entity graph, file-backed. Semantic cache ([ADR-0017](docs/adr/0017-semantic-cache-l1-l2.md)) is implemented but feature-flagged off and not wired into the extraction hot path. Langfuse, LangSmith, and OpenTelemetry integrations require configuration and are not presented as verified live telemetry. The LLM judge (Gemini 2.5 Flash, Claude Haiku fallback) is off by default (`llm_judge_enabled = False` in `app/config.py`), and the paid CI job that would run it skips without an API key.
 
 More: [DEMO.md](DEMO.md) | [docs/cost-model.md](docs/cost-model.md) | [site/](site/)
 
