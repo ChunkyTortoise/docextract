@@ -4,7 +4,7 @@ Upload PDFs and images, classify the document, extract structured fields, and se
 
 Built under a paid client engagement; an authorized walkthrough is available on request.
 
-- **Deployment files:** [AWS ECS Terraform](deploy/aws-ecs/), [Kubernetes manifests](deploy/k8s/) and [Grafana configuration](deploy/grafana/). These are repository artifacts; a current live AWS deployment is not established here.
+- **Deployment files:** [AWS ECS Terraform](deploy/aws-ecs/), [Kubernetes manifests](deploy/) and [Grafana configuration](deploy/grafana/). These are repository artifacts; a current live AWS deployment is not established here.
 - **Versioned prompts:** [prompt registry](app/services/prompt_registry.py) loads extraction, classification and search prompts by semantic version, with environment-selectable active versions.
 - **PII filtering:** [pii_sanitizer.py](app/services/pii_sanitizer.py) applies pattern-based redaction for SSNs, credit cards, phone numbers and emails in trace data. This does not establish complete PII detection or regulatory compliance.
 
