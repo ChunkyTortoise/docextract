@@ -59,13 +59,14 @@ with col_links[1]:
         "Case Study", "https://github.com/ChunkyTortoise/docextract/blob/main/CASE_STUDY.md"
     )
 with col_links[2]:
-    st.link_button("API Docs", "https://github.com/ChunkyTortoise/docextract#api-reference")
+    st.link_button("Product API reference",
+        "https://github.com/ChunkyTortoise/docextract/blob/main/docs/productization_api.md")
 
 
 st.divider()
 st.caption(
     "This demo uses pre-cached extraction results. "
-    "Self-host with `DEMO_MODE=true streamlit run frontend/app.py` "
+    "Run the offline explorer with `python -m streamlit run streamlit_demo.py` "
     "or deploy the full stack via `docker compose up`. "
     "Source: [github.com/ChunkyTortoise/docextract](https://github.com/ChunkyTortoise/docextract)"
 )

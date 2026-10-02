@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from frontend.comparison_samples import DATA_DIR, LABEL
 from frontend.demo_mode import (
     list_demo_doc_types,
     load_demo_agent_trace,
@@ -12,6 +13,10 @@ from frontend.demo_mode import (
     load_demo_extraction,
     load_demo_search,
 )
+
+
+def _set_recorded_search_complete(completed: bool) -> None:
+    st.session_state["recorded_search_complete"] = completed
 
 
 def show() -> None:
@@ -30,6 +35,15 @@ def show() -> None:
             f"Source: frontend/demo_data/{doc_type}_sample.json | "
             f"Stored sample: {result['filename']}"
         )
+        with st.expander("Compare a synthetic source sample"):
+            comparison = (DATA_DIR / "comparison" / f"{doc_type}.html").read_text()
+            st.caption(LABEL)
+            st.html(comparison)
+            st.download_button(
+                "Download synthetic comparison HTML", comparison,
+                file_name=f"synthetic_{doc_type}_comparison.html", mime="text/html",
+                key=f"comparison_download_{doc_type}",
+            )
         st.table(
             [
                 {
@@ -63,10 +77,16 @@ def show() -> None:
         st.subheader("Replay a stored search result")
         st.caption(
             "This replays search_sample.json for its original question. "
-            "It does not accept arbitrary queries or search a running database."
+            "It does not accept arbitrary queries or search a running database. "
+            "This recorded invoice question is independent of the Fields sample selection."
         )
         st.text_input("Recorded question", value=sample["query"], disabled=True)
-        if st.button("Replay stored search", type="primary"):
+        st.button("Replay stored search", type="primary",
+                  on_click=_set_recorded_search_complete, args=(True,))
+        st.button("Reset recorded search",
+                  disabled=not st.session_state.get("recorded_search_complete", False),
+                  on_click=_set_recorded_search_complete, args=(False,))
+        if st.session_state.get("recorded_search_complete", False):
             st.caption(
                 f"Stored mode: {sample['retrieval_mode']} | "
                 f"Illustrative latency: {sample['latency_ms']} ms"

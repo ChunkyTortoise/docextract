@@ -1,44 +1,47 @@
-# DocExtract Demo Walkthrough
+# DocExtract fixture explorer walkthrough
 
-Hiring-manager path: about **90 to 120 seconds**, no API keys required.
+The offline route inspects stored JSON. It does not upload documents, extract fields, query a database or call a model. The UI's confidence, latency, Eval and Cost values are illustrative fixtures. The separate 28-fixture evaluation is measured offline replay, not live provider performance.
 
-## Start here (no credentials)
+## Start the standalone explorer
 
-1. Run the fixture-backed demo locally:
+From the repository root, use Python 3.10+ and an environment with `requirements_demo.txt` already installed. A fresh setup requires installing these dependencies first:
 
 ```bash
-DEMO_MODE=true streamlit run frontend/app.py
+python -m venv .venv-demo
+.venv-demo/bin/python -m pip install -r requirements_demo.txt
+.venv-demo/bin/python -m streamlit run streamlit_demo.py
 ```
 
-Local `DEMO_MODE` uses cached data under `frontend/demo_data/` and does not call Anthropic, Gemini, PostgreSQL, or Redis.
+Open the local URL printed by Streamlit. No credentials, `.env`, API, PostgreSQL, Redis or worker are required. On Windows use `.venv-demo\Scripts\python` for the interpreter. This is the same standalone entry point as the README.
 
-## 90–120 second path
+## Offline walkthrough
 
-In `DEMO_MODE`, Evaluation / Cost Dashboard / Quality Monitor are **hidden** (they fall back to synthetic seed without a live API). Stay on the pages below.
+1. **Fields:** select Invoice, Contract and Receipt. Compare stored fields and sample confidence. Expand **Compare a synthetic source sample** for a preview and **Download synthetic comparison HTML** for a standalone accessible copy. Expand the complete fixture JSON for line items and parties.
+2. **Search:** read the fixed invoice question and click **Replay stored search**. Two stored results appear. Return to Fields, change sample and return to Search, the recorded invoice output stays visible. **Reset recorded search** clears it. Selecting Contract or Receipt does not change the fixed invoice question.
+3. **Trace:** expand the stored reasoning steps and read the stored answer. This is an illustrative trace, not a trace from this session.
+4. **Eval:** inspect seeded UI scores and their warning. Follow the separate measured offline replay evidence link for the evaluation population and limitations.
+5. **Cost:** inspect the seeded display and warning. These amounts are not metered spend, savings or a completed A/B experiment.
 
-1. **Demo sandbox** — start on **Demo**; pick the invoice, contract, or receipt sample; note structured fields and confidence.
-2. **SSE progress** - watch stage updates at `/jobs/{id}/events` when the API is up.
-3. **Retrieval** — open **Agent Trace** for retrieval and reasoning output.
-4. **Human review** — open **Review** for low-confidence handoff.
-5. **Eval proof** — skim the README metrics table and [docs/eval-methodology.md](docs/eval-methodology.md) (95.5% = 28-case offline CI replay, not a paid live run). Optional: public red blocked eval-gate PR linked from the README.
+There is no measured time-to-complete claim for this route. Optional [capture provenance](docs/screenshots/PROVENANCE.md) identifies the existing completed-fields screenshot and three-state walkthrough.
 
-## Recording (owner)
+## Synthetic comparison provenance
 
-A public 90–120s screen recording is optional proof. Record only with `docs/media/VIDEO-HUMAN-CHECKLIST.md`, verify in a clean browser, then add the stable URL here and on the README first screen. Do not invent a URL.
+The [invoice](frontend/demo_data/comparison/invoice.html), [contract](frontend/demo_data/comparison/contract.html) and [receipt](frontend/demo_data/comparison/receipt.html) are each a **synthetic comparison sample reconstructed from stored fixture data**. They reproduce all `extracted_data` values from the corresponding `*_sample.json`, including lists. `python scripts/render_comparison_samples.py` regenerates the HTML using the standard library and `frontend/comparison_samples.py`.
 
-## Proof points
+Generation date: October 1, 2026. Layout and wording are newly authored. These are not the original processed PDFs, actual transactions or a signed NDA, and are not proof of extraction correctness. Known merchant names are illustrative stored fixture values. No new provider call, confidence calibration or improvement to the separate 95.5% score follows from these documents.
 
-| Signal | What to inspect | Source |
-|---|---|---|
-| Typed extraction | Schemas and confidence | `app/schemas/extraction_models.py` |
-| Eval discipline | Golden / adversarial / Promptfoo | `evals/` |
-| Offline CI signal | 28-case replay | `scripts/eval_offline_replay.py`, `autoresearch/baseline.json` |
-| Demo mode | No-credential cached data | `frontend/demo_mode.py` |
+## Configured backend walkthrough
+
+Prerequisites before these actions: install the full Python 3.12+ service dependencies, configure the environment described in [README Install](README.md#install), start API, PostgreSQL, Redis and the ARQ worker, and supply any required model credentials. Provider calls may cost money. This path was not verified by the offline walkthrough.
+
+Run the full frontend with `streamlit run frontend/app.py` with `DEMO_MODE` unset/false. Then upload a document on the upload page, inspect extraction-stage SSE at `/api/v1/jobs/{job_id}/events`, use Agent Trace for `/api/v1/agent-search/stream`, and use Review for low-confidence handoff. Backend failure is not successful fixture extraction. See the existing [product API reference](docs/productization_api.md) for review endpoints and roles. Swagger at `http://localhost:8000/docs` exists only after your API starts.
 
 ## Verification
 
 ```bash
-pytest tests/ --collect-only -q -o addopts=
 python scripts/eval_offline_replay.py --floor 0.85
 python scripts/audit_portfolio_claims.py
+pytest tests/frontend/test_fixture_explorer.py tests/frontend/test_comparison_samples.py --no-cov -q
 ```
+
+Full test prerequisites differ from the lightweight demo environment. See README Tests for the configured suite. An optional owner recording should follow [the human checklist](docs/media/VIDEO-HUMAN-CHECKLIST.md); no hosted recording or runnable public explorer is asserted here.

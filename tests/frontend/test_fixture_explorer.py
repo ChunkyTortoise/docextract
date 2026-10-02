@@ -41,3 +41,20 @@ def test_seeded_metrics_cannot_be_mistaken_for_measured_results():
     assert "not measured RAGAS" in warnings
     assert "not metered spend" in warnings
     assert "Sample confidence" in app.table[0].value.columns
+
+
+def test_recorded_search_survives_sample_changes_until_explicit_reset():
+    app = AppTest.from_file(str(ENTRY)).run(timeout=20)
+    app.button[0].click().run()
+    for sample in ("contract", "receipt", "invoice"):
+        app.selectbox[0].select(sample).run()
+        assert not app.exception
+        assert app.text_input[0].disabled
+        assert "invoice" in app.text_input[0].value
+        assert any("Total Amount Due: $5,286.50" in m.value for m in app.text)
+    next(b for b in app.button if b.label == "Reset recorded search").click().run()
+    assert not app.exception
+    assert not any("Stored mode:" in c.value for c in app.caption)
+    assert next(b for b in app.button if b.label == "Reset recorded search").disabled
+    app.button[0].click().run()
+    assert any("Total Amount Due: $5,286.50" in m.value for m in app.text)
