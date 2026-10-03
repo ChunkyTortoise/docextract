@@ -1,6 +1,7 @@
 """MIME-type-based routing to appropriate extractor."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 
@@ -26,8 +27,13 @@ class UnsupportedMimeType(Exception):  # noqa: N818
     pass
 
 
-def ingest(file_bytes: bytes, mime_type: str, filename: str) -> ExtractedContent:
+async def ingest(file_bytes: bytes, mime_type: str, filename: str) -> ExtractedContent:
     """Route document to appropriate extractor based on MIME type.
+
+    Async end to end so callers inside a running event loop (the ARQ worker)
+    never hit nested ``asyncio.run``. CPU-bound sync parsers (PDF, OCR,
+    preprocessing) run in a worker thread via ``asyncio.to_thread`` so
+    concurrent jobs do not serialize behind one parse.
 
     Args:
         file_bytes: Raw file content
@@ -43,7 +49,7 @@ def ingest(file_bytes: bytes, mime_type: str, filename: str) -> ExtractedContent
     start = time.monotonic()
 
     if mime_type == "application/pdf":
-        result = extract_pdf(file_bytes)
+        result = await asyncio.to_thread(extract_pdf, file_bytes)
     elif mime_type in IMAGE_MIME_TYPES:
         if (settings.ocr_engine == "vision" or settings.vision_extraction_enabled):
             from app.services.vision_extractor import (
@@ -53,9 +59,7 @@ def ingest(file_bytes: bytes, mime_type: str, filename: str) -> ExtractedContent
                 extract_vision,
             )
             if mime_type in VISION_MIME_TYPES:
-                import asyncio
-
-                vision_result = asyncio.run(extract_vision(file_bytes, mime_type))
+                vision_result = await extract_vision(file_bytes, mime_type)
                 result = ExtractedContent(
                     text=vision_result.text,
                     metadata=vision_result.metadata,
@@ -63,15 +67,19 @@ def ingest(file_bytes: bytes, mime_type: str, filename: str) -> ExtractedContent
                     tables=vision_result.tables,
                 )
             else:
-                image = preprocess_bytes(file_bytes)
-                result = extract_image(image, engine=settings.ocr_engine)
+                image = await asyncio.to_thread(preprocess_bytes, file_bytes)
+                result = await asyncio.to_thread(
+                    extract_image, image, engine=settings.ocr_engine
+                )
         else:
-            image = preprocess_bytes(file_bytes)
-            result = extract_image(image, engine=settings.ocr_engine)
+            image = await asyncio.to_thread(preprocess_bytes, file_bytes)
+            result = await asyncio.to_thread(
+                extract_image, image, engine=settings.ocr_engine
+            )
     elif mime_type == "message/rfc822":
-        result = extract_eml(file_bytes)
+        result = await asyncio.to_thread(extract_eml, file_bytes)
     elif mime_type == "application/vnd.ms-outlook":
-        result = extract_msg_file(file_bytes)
+        result = await asyncio.to_thread(extract_msg_file, file_bytes)
     elif mime_type == "text/plain":
         text = file_bytes.decode("utf-8", errors="replace")
         result = ExtractedContent(text=text, page_count=1)
