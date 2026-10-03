@@ -1,6 +1,6 @@
 # DocExtract: document extraction with an eval gate in CI
 
-DocExtract turns invoices, receipts, statements and other PDFs or scans into validated structured records you can search, and it measures its own extraction accuracy on every pull request that could change it. If accuracy drops below the floor, the check fails.
+DocExtract turns invoices, receipts, statements and other PDFs or scans into validated structured records you can search. Every pull request that touches prompts or the extractor re-scores a committed set of extraction outputs, and the check fails if the score falls below a floor or drops from baseline.
 
 Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and agentic RAG for questions over stored documents.
 
@@ -18,8 +18,8 @@ Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and ag
 
 | Kind | Result | Value | Source |
 |---|---|---|---|
-| Measured | Field-level extraction accuracy (critical fields weighted 2×) | **95.5%** on a 28-fixture offline replay | [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) · [`autoresearch/baseline.json`](autoresearch/baseline.json) · [evidence note](docs/retrieval-extraction-evidence.md#extraction-replay) |
-| CI gate | Replay accuracy floor: the Offline replay check fails below it | **0.85** | [`eval-gate.yml`](.github/workflows/eval-gate.yml) · [recorded failing run](https://github.com/ChunkyTortoise/docextract/actions/runs/29670515963/job/88148512559) |
+| Measured | Weighted field-level extraction score (critical fields 2×, partial credit for near matches) | **95.5%** on a 28-fixture offline replay | [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) · [`autoresearch/baseline.json`](autoresearch/baseline.json) · [evidence note](docs/retrieval-extraction-evidence.md#extraction-replay) |
+| CI gate | Replay floor: the Offline replay check fails below it, or on a drop of more than 0.03 from baseline | **0.85** | [`eval-gate.yml`](.github/workflows/eval-gate.yml) · [recorded failing run](https://github.com/ChunkyTortoise/docextract/actions/runs/29670515963/job/88148512559) |
 | CI gate | Test coverage floor | **80%** | [`ci.yml`](.github/workflows/ci.yml) (`--cov-fail-under=80`) · [metrics ledger](docs/portfolio-metrics.yaml) |
 | Inventory | Eval authoring corpus | **200 cases** (150 golden + 50 adversarial) | [`evals/golden_set.jsonl`](evals/golden_set.jsonl) · [`evals/adversarial_set.jsonl`](evals/adversarial_set.jsonl) |
 | Inventory | Architecture decision records | **20 ADRs** | [docs/adr/](docs/adr/) |
@@ -28,7 +28,7 @@ This table is the one place each number is stated. The scope of each one is in [
 
 ## Quickstart (no API key)
 
-**1. Reproduce the accuracy number.** Python 3.10+, from the repository root:
+**1. Reproduce the replay score.** Python 3.10+, from the repository root:
 
 ```bash
 python scripts/eval_offline_replay.py --floor 0.85
@@ -82,7 +82,7 @@ flowchart LR
   RAG -.->|"model calls"| T
   T --> M["GET /api/v1/metrics/llm"]
   subgraph CI["CI only, not on the request path"]
-    R["Offline replay: 28 committed fixtures"] --> G{"accuracy floor"}
+    R["Offline replay: 28 committed fixtures"] --> G{"score floor"}
   end
 ```
 
@@ -117,7 +117,7 @@ To see the gate catch a regression, read [docs/eval-gate-proof.md](docs/eval-gat
 The chart is generated from the replay output by `python scripts/render_eval_chart.py`, and `tests/unit/test_render_eval_chart.py` fails if it drifts from the committed fixtures.
 
 <details>
-<summary>Replay score by document type (weighted field-level accuracy)</summary>
+<summary>Replay score by document type (weighted field-level score)</summary>
 
 | Document type | Score | Cases |
 |---|---|---|
@@ -161,8 +161,9 @@ More: [docs/eval-methodology.md](docs/eval-methodology.md) · [docs/eval-boundar
 <details>
 <summary>What each number covers, and what is not measured yet</summary>
 
-**Extraction accuracy**
-- The Results score is weighted field-level accuracy (critical fields count 2×) from a deterministic replay of 28 committed prediction fixtures. Unrounded values and the historical baseline are in the [evidence note](docs/retrieval-extraction-evidence.md#extraction-replay). It is not F1, even though legacy output field names contain `f1`, and it is not a live-model grade.
+**Extraction score**
+- The Results score is a weighted field-level score (critical fields count 2×) from a deterministic replay of 28 committed prediction fixtures. It gives partial credit: strings by normalized Levenshtein similarity, numbers that match within one percent, and half credit when a value is extracted where null was expected ([`autoresearch/eval.py`](autoresearch/eval.py)). Unrounded values and the historical baseline are in the [evidence note](docs/retrieval-extraction-evidence.md#extraction-replay). It is not F1, even though legacy output field names contain `f1`, and it is not a live-model grade.
+- The replayed outputs are frozen, so a prompt or model change does not move the replay score. The replay catches scorer, schema and fixture regressions at zero cost; prompt and model changes are measured by the paid live eval job, which runs only when an API key is configured in CI.
 - Three populations are separate and must not be summed: 28 committed prediction fixtures (the score population), 72 lookup cases in `autoresearch/eval_dataset_72.json` (44 have no committed prediction fixture yet), and the authoring corpus. See [three separate denominators](docs/retrieval-extraction-evidence.md#three-separate-denominators).
 - The authoring corpus is stored as 202 JSONL lines; two of them are `_meta` rows, which the Results case count excludes. It is not the replay fixture total and not the score population.
 - Retrieval recall, support (faithfulness) and abstention are **unmeasured**. The replay does not execute retrieval. See [retrieval measures are separate](docs/retrieval-extraction-evidence.md#retrieval-measures-are-separate).
