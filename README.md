@@ -19,7 +19,7 @@ Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and ag
 | Kind | Result | Value | Source |
 |---|---|---|---|
 | Measured | Field-level extraction accuracy (critical fields weighted 2×) | **95.5%** on a 28-fixture offline replay | [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) · [`autoresearch/baseline.json`](autoresearch/baseline.json) · [evidence note](docs/retrieval-extraction-evidence.md#extraction-replay) |
-| CI gate | Replay accuracy floor: the Offline replay check fails below it | **0.85** | [`eval-gate.yml`](.github/workflows/eval-gate.yml) · [failing-check demo (PR #32)](https://github.com/ChunkyTortoise/docextract/pull/32) |
+| CI gate | Replay accuracy floor: the Offline replay check fails below it | **0.85** | [`eval-gate.yml`](.github/workflows/eval-gate.yml) · [recorded failing run](https://github.com/ChunkyTortoise/docextract/actions/runs/29670515963/job/88148512559) |
 | CI gate | Test coverage floor | **80%** | [`ci.yml`](.github/workflows/ci.yml) (`--cov-fail-under=80`) · [metrics ledger](docs/portfolio-metrics.yaml) |
 | Inventory | Eval authoring corpus | **200 cases** (150 golden + 50 adversarial) | [`evals/golden_set.jsonl`](evals/golden_set.jsonl) · [`evals/adversarial_set.jsonl`](evals/adversarial_set.jsonl) |
 | Inventory | Architecture decision records | **20 ADRs** | [docs/adr/](docs/adr/) |
@@ -105,7 +105,7 @@ Deployment artifacts: [AWS ECS Terraform](deploy/aws-ecs/), [Kubernetes manifest
 | **In-app judge** | Gemini 2.5 Flash, with Claude Haiku fallback, grades a sample of extractions to reduce self-grading bias ([ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md)) | Runtime, about 1 in 10 jobs when enabled; off by default |
 | **Held-out live protocol** | Public or synthetic docs, untouched test partition, `score_extraction` | [Protocol](docs/held-out-live-eval-protocol.md) ready for a funded run |
 
-To see the gate catch a regression, open [PR #32](https://github.com/ChunkyTortoise/docextract/pull/32): it corrupts eight fixtures and the Offline replay check goes red. Walkthrough: [docs/eval-gate-proof.md](docs/eval-gate-proof.md).
+To see the gate catch a regression, read [docs/eval-gate-proof.md](docs/eval-gate-proof.md): a demo branch corrupted eight fixtures, and the [recorded Offline replay job](https://github.com/ChunkyTortoise/docextract/actions/runs/29670515963/job/88148512559) failed below the floor. The proof note keeps the log excerpt and the commands to reproduce it.
 
 <p align="center">
   <picture>
@@ -170,7 +170,7 @@ More: [docs/eval-methodology.md](docs/eval-methodology.md) · [docs/eval-boundar
 
 **CI and merge enforcement**
 - The eval gate reports a passing or failing check. A check does not block merges unless branch protection requires it. The recorded 2026-09-19 repository audit returned `Branch not protected` and an empty branch-rules list, so merge blocking was not enforced in that observation. See [CI and merge enforcement](docs/retrieval-extraction-evidence.md#ci-and-merge-enforcement).
-- PR #32 is an intentional regression kept open as a demonstration. Its check fails because the fixtures were corrupted, not because the prompt edit alone changed predictions; live stages were skipped on that run (no key). Details: [docs/eval-gate-proof.md](docs/eval-gate-proof.md).
+- PR #32 (closed unmerged) was the intentional regression behind the failing-run demo. Its check failed because the fixtures were corrupted, not because the prompt edit alone changed predictions; live stages were skipped on that run (no key). Details: [docs/eval-gate-proof.md](docs/eval-gate-proof.md).
 - The live-eval threshold gate and paid live eval run only when `ANTHROPIC_API_KEY` is configured in CI and are skipped otherwise. Drift recording and drift-issue creation sit inside the paid live job; the daily 13:23 UTC schedule reruns the offline replay.
 
 **Tests, cost and latency**
