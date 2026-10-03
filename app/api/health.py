@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
 
 import redis.asyncio as aioredis
@@ -12,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_db, get_redis, get_storage
 from app.schemas.responses import HealthResponse
 from app.storage.base import StorageBackend
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["health"])
 
@@ -47,22 +50,25 @@ async def health_check_detailed(
     try:
         await db.execute(text("SELECT 1"))
         db_ok = True
-    except Exception:
-        pass
+    except Exception as e:
+        # Log and continue: a dependency-probe error is observable in logs and
+        # the response reports degraded status, instead of a silent bare pass
+        # that hides the outage cause.
+        logger.warning("Health probe db check failed: %s", e)
 
     try:
         await redis.ping()
         redis_ok = True
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Health probe redis check failed: %s", e)
 
     try:
         probe_key = f"_health_probe/{uuid.uuid4()}"
         await asyncio.wait_for(storage.upload(probe_key, b"\x00"), timeout=5.0)
         await asyncio.wait_for(storage.delete(probe_key), timeout=5.0)
         storage_ok = True
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Health probe storage check failed: %s", e)
 
     all_ok = db_ok and redis_ok
     status = "healthy" if all_ok else "degraded"
