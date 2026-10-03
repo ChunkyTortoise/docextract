@@ -170,7 +170,7 @@ The ADRs live in [docs/adr/](docs/adr/). The key ones:
 - Held-out live-model performance is unmeasured until a funded run is logged ([protocol](docs/held-out-live-eval-protocol.md)).
 
 **CI and merge enforcement**
-- The eval gate reports a passing or failing check. A check does not block merges unless branch protection requires it. The recorded 2026-09-19 repository audit returned `Branch not protected` and an empty branch-rules list, so merge blocking was not enforced in that observation. See [CI and merge enforcement](docs/retrieval-extraction-evidence.md#ci-and-merge-enforcement).
+- Since 2026-10-03, branch protection on `main` requires the CI `test` check. The weighted replay (eval-gate's Offline replay job) runs on eval-relevant PRs and pushes to `main`, and it is **not** a universal required merge check. The earlier 2026-09-19 repository audit returned `Branch not protected` and an empty branch-rules list. See [CI and merge enforcement](docs/retrieval-extraction-evidence.md#ci-and-merge-enforcement).
 - PR #32 (closed unmerged) was the intentional regression behind the failing-run demo. Its check failed because the fixtures were corrupted, not because the prompt edit alone changed predictions; live stages were skipped on that run (no key). Details: [docs/eval-gate-proof.md](docs/eval-gate-proof.md).
 - The live-eval threshold gate and paid live eval run only when `ANTHROPIC_API_KEY` is configured in CI and are skipped otherwise. Drift recording and drift-issue creation sit inside the paid live job; the daily 13:23 UTC schedule reruns the offline replay.
 

@@ -62,4 +62,6 @@ Those values are demo fixture data, not a measurement. They do not establish ret
 
 [The Eval Gate workflow](../.github/workflows/eval-gate.yml) can execute the offline replay and report a passing or failing job. CI execution is distinct from enforced merge protection. The repository branch-protection query returned `Branch not protected`, and the branch-rules query returned an empty list. A passing job must not be described as an enforced merge gate under that repository state.
 
+Update, 2026-10-03: `main` is now branch-protected and requires the CI `test` check. The eval-gate Offline replay job is not a required check. It runs only on PRs that touch eval-relevant paths and on pushes to `main`, so it still must not be described as an enforced merge gate.
+
 This note does not claim that README wording is correct. Correcting README gate and corpus wording is the later mandatory RA13 task and is outside this change.
