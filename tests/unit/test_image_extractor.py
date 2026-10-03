@@ -114,6 +114,52 @@ def test_no_engine_raises() -> None:
         image_extractor.HAS_PADDLE = original_paddle
 
 
+def test_paddle_singleton_init_is_thread_safe() -> None:
+    """Concurrent _get_paddle_ocr() calls initialize the singleton exactly once (DXC3).
+
+    DX3 moved extract_image into asyncio.to_thread, so concurrent paddle jobs
+    reach the lazy init on worker threads at once. Without the module-level
+    lock, PaddleOCR() (a heavy model load) can run more than once.
+    """
+    import threading
+
+    import app.services.image_extractor as image_extractor
+
+    init_calls: list[int] = []
+
+    class FakePaddle:
+        def __init__(self, *args, **kwargs) -> None:
+            init_calls.append(1)
+
+    original_paddle = getattr(image_extractor, "PaddleOCR", None)
+    image_extractor.PaddleOCR = FakePaddle
+    image_extractor.HAS_PADDLE = True
+    image_extractor._paddle_instance = None
+    try:
+        barrier = threading.Barrier(4)
+
+        def _worker() -> None:
+            barrier.wait()
+            image_extractor._get_paddle_ocr()
+
+        threads = [threading.Thread(target=_worker) for _ in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    finally:
+        image_extractor.HAS_PADDLE = False
+        image_extractor._paddle_instance = None
+        if original_paddle is None:
+            del image_extractor.PaddleOCR
+        else:
+            image_extractor.PaddleOCR = original_paddle
+
+    assert len(init_calls) == 1, (
+        f"PaddleOCR initialized {len(init_calls)} times under concurrent calls"
+    )
+
+
 def test_empty_image_returns_empty_text() -> None:
     """Empty image with no detected text returns empty string."""
     from app.services.image_extractor import extract_image
