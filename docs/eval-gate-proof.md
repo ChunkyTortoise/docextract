@@ -81,7 +81,7 @@ Pytest on the same head also executed and failed two fixture-backed tests that r
 
 ## Proof 2: The relevant regression fails the intended check
 
-The replay check is **Offline replay (deterministic, no key)** in `eval-gate.yml`. It runs on eval-relevant PRs and on pushes to `main`. It is not a required merge check; branch protection on `main` requires the CI `test` job. On #32 that job ran and concluded **FAILURE**.
+The replay check is **Offline replay (deterministic, no key)** in `eval-gate.yml`. It runs on eval-relevant PRs, on pushes to `main` and on a daily 13:23 UTC schedule. It is not a required merge check; branch protection on `main` requires the CI `test` job. On #32 that job ran and concluded **FAILURE**.
 
 Eval-gate run: https://github.com/ChunkyTortoise/docextract/actions/runs/29670515963
 
