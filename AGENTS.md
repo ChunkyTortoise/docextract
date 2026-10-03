@@ -33,7 +33,7 @@ LANGFUSE_* (human gate on live demo), OPENAI_API_KEY (optional eval-time multipr
 - Showcase overhaul delivers A→B→C sequentially (evalgate closeout → multi-provider/corpus depth → marketing front door); keep Streamlit demo; no Next.js rewrite.
 
 ## Learned Workspace Facts
-- Evalgate hireability overhaul is on **main** (PR #31 + follow-ups #33/#35): 200-case corpus v2.0.0, offline variance baseline, OpenAI eval-time provider, `site/`, DEMO_MODE hides synthetic dashboards, red money-shot [PR #32](https://github.com/ChunkyTortoise/docextract/pull/32) (keep open — Offline replay fails intentionally).
+- Evalgate hireability overhaul is on **main** (PR #31 + follow-ups #33/#35): 200-case corpus v2.0.0, offline variance baseline, OpenAI eval-time provider, `site/`, DEMO_MODE hides synthetic dashboards, red money-shot [PR #32](https://github.com/ChunkyTortoise/docextract/pull/32) (closed unmerged 2026-10-03; failing job and log excerpt preserved in docs/eval-gate-proof.md).
 - Spec / cont tracker: `~/Projects/job-search/docs/superpowers/specs/2026-07-18-hybrid-cont-checklist.md` + `2026-07-18-s1-docextract-evalgate-closeout-deep-spec.md`. Design spec: `~/Projects/job-search/evalgate-docextract-spec-2026-07-12.md`.
 - **Remaining human gates:** Langfuse keys on Render + one live demo trace; Anthropic credits for live N=7 variance + measured cost/latency; optional v2.0.0 ~10% label spot-check; optional 90s video ([docs/media/VIDEO-HUMAN-CHECKLIST.md](docs/media/VIDEO-HUMAN-CHECKLIST.md)).
 - Honest claims: 95.5% = 28-fixture offline replay (not F1); cost/latency modeled until metered; GraphRAG = opt-in regex+file store; semantic cache not on extract hot path; GLM removed from default router chains.
