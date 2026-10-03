@@ -6,10 +6,10 @@ Public 95.5% wording stays in the README: measured weighted field-level accuracy
 
 ## Public red PR
 
-- PR: https://github.com/ChunkyTortoise/docextract/pull/32
+- PR: https://github.com/ChunkyTortoise/docextract/pull/32 (closed unmerged on 2026-10-03; its head stays fetchable as `pull/32/head`)
 - Branch: `demo/eval-gate-regression`
 - Head: `21d4e802f721b1974e1d3b9c3d8ca6a0c77f25d3`
-- Keep open; do not merge.
+- Do not merge. The recorded failing job and the log excerpt below are the durable proof.
 
 Related:
 - Always-on job definition: `.github/workflows/eval-gate.yml` (`offline`)
@@ -48,6 +48,34 @@ That is fixture corruption, which is the correct way to trip a **replay** gate. 
 CI log (Offline replay job on head `21d4e802`): `FAIL: combined F1 0.8432 < floor 0.85`. That line is a public check-run quote, not a new README metric.
 
 Job: https://github.com/ChunkyTortoise/docextract/actions/runs/29670515963/job/88148512559
+
+Preserved log excerpt (Offline replay step, 2026-07-19T02:40:11Z; copied 2026-10-03 because Actions logs and the 30-day artifact expire):
+
+```text
+Run python scripts/eval_offline_replay.py --floor 0.85 --out eval_artifacts/offline_replay.json
+{
+  "corpus_cases": 72,
+  "replayed": 28,
+  "pending_fixtures": 44,
+  "extraction_f1_combined": 0.8432,
+  "extraction_f1_golden": 0.7408,
+  "extraction_f1_adversarial": 1.0,
+  "baseline_score": 0.95546,
+  "floor": 0.85,
+  "per_doc_type": {
+    "bank_statement":    {"f1": 0.9613, "count": 4},
+    "identity_document": {"f1": 0.8139, "count": 1},
+    "invoice":           {"f1": 0.803,  "count": 13},
+    "medical_record":    {"f1": 0.9923, "count": 3},
+    "purchase_order":    {"f1": 0.857,  "count": 3},
+    "receipt":           {"f1": 0.6926, "count": 4}
+  }
+}
+FAIL: combined F1 0.8432 < floor 0.85
+##[error]Process completed with exit code 1.
+```
+
+The `pending_ids_sample` list is omitted and the per-type objects are condensed to one line each; the values are unchanged. Re-run locally on 2026-10-03 from `21d4e802` with the command in [Reproduce](#reproduce): same `FAIL: combined F1 0.8432 < floor 0.85` line. Legacy `f1` keys are weighted field-level accuracy, not F1.
 
 Pytest on the same head also executed and failed two fixture-backed tests that require the replay to pass (`test_offline_replay_passes_deterministically`, `test_field_f1_scorer_matches_offline_gate`). That is the `test` job, not the Eval Gate badge driver.
 
@@ -111,7 +139,7 @@ python scripts/eval_offline_replay.py --floor 0.85
 
 Expect exit 0 and a PASS line vs `autoresearch/baseline.json`.
 
-Red (existing #32; do not merge):
+Red (closed #32 head; do not merge):
 
 ```bash
 git fetch origin pull/32/head
