@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 
 import numpy as np
 
@@ -24,15 +25,19 @@ from app.services.pdf_extractor import ExtractedContent
 
 logger = logging.getLogger(__name__)
 
-# Lazy-initialized PaddleOCR instance (heavy model load)
+# Lazy-initialized PaddleOCR instance (heavy model load). The lock keeps the
+# singleton init race-free: DX3 moved extract_image into asyncio.to_thread, so
+# concurrent paddle jobs reach _get_paddle_ocr() on worker threads at once.
 _paddle_instance: PaddleOCR | None = None
+_paddle_lock = threading.Lock()
 
 
 def _get_paddle_ocr() -> PaddleOCR:
     """Get or create PaddleOCR instance (singleton)."""
     global _paddle_instance
-    if _paddle_instance is None:
-        _paddle_instance = PaddleOCR(use_angle_cls=True, lang="en")
+    with _paddle_lock:
+        if _paddle_instance is None:
+            _paddle_instance = PaddleOCR(use_angle_cls=True, lang="en")
     return _paddle_instance
 
 
