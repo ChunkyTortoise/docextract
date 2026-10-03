@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synthetic Invoice comparison</title>
+<style>
+.comparison-sample {font: 16px/1.5 system-ui, sans-serif; color: #172554;
+ background: #f8fafc; padding: 16px; border: 1px solid #94a3b8;
+ border-radius: 8px; max-width: 720px; box-sizing: border-box; overflow-wrap: anywhere;}
+.comparison-sample h2 {font-size: 22px; margin: 0 0 8px;}
+.comparison-sample dt {font-weight: 650; margin-top: 10px;}
+.comparison-sample dd {margin: 0;}
+.comparison-sample ul {padding-left: 22px;}
+</style></head><body>
+<article class="comparison-sample" aria-label="Synthetic invoice comparison">
+<h2>Invoice comparison</h2>
+<p><strong>synthetic comparison sample reconstructed from stored fixture data</strong></p>
+<p>Synthetic illustration only. This is not the original processed PDF,
+ a real transaction or a signed agreement. No extraction was run on this sample.</p>
+<dl><dt>Invoice Number</dt><dd data-field="invoice_number">INV-2024-00847</dd><dt>Vendor Name</dt><dd data-field="vendor_name">Acme Technology Solutions</dd><dt>Vendor Address</dt><dd data-field="vendor_address">123 Innovation Drive, San Francisco, CA 94102</dd><dt>Client Name</dt><dd data-field="client_name">TechCorp Enterprises</dd><dt>Invoice Date</dt><dd data-field="invoice_date">2024-11-15</dd><dt>Due Date</dt><dd data-field="due_date">2024-12-15</dd><dt>Subtotal</dt><dd data-field="subtotal">$4,850.00</dd><dt>Tax</dt><dd data-field="tax">$436.50</dd><dt>Total</dt><dd data-field="total">$5,286.50</dd><dt>Line Items</dt><dd data-field="line_items"><ul><li><dl><dt>Description</dt><dd>API Integration Services</dd><dt>Quantity</dt><dd>1</dd><dt>Unit Price</dt><dd>$3,500.00</dd><dt>Total</dt><dd>$3,500.00</dd></dl></li><li><dl><dt>Description</dt><dd>Technical Documentation</dd><dt>Quantity</dt><dd>5</dd><dt>Unit Price</dt><dd>$270.00</dd><dt>Total</dt><dd>$1,350.00</dd></dl></li></ul></dd><dt>Payment Terms</dt><dd data-field="payment_terms">Net 30</dd><dt>Payment Methods</dt><dd data-field="payment_methods"><ul><li>ACH Transfer</li><li>Check</li></ul></dd></dl>
+<p>Source of values: invoice_sample.json. Reconstructed on October 1, 2026
+ with scripts/render_comparison_samples.py. Layout and wording are newly authored;
+ no original document layout, signature or extraction correctness is established.
+ This comparison does not change the separate 95.5% offline evaluation score.</p>
+</article></body></html>

@@ -152,6 +152,7 @@ class TestProcessPipeline:
             patch("app.utils.mime.detect_mime_type", return_value="application/pdf"),
             patch(
                 "app.services.ingestion.ingest",
+                new_callable=AsyncMock,
                 return_value=ExtractedContent(
                     text="Invoice #12345\nTotal: $500.00", metadata={}, page_count=1
                 ),
@@ -197,6 +198,168 @@ class TestProcessPipeline:
             assert result["status"] == "completed"
             assert "record_id" in result
             assert result["document_type"] == "invoice"
+        finally:
+            for p in patches:
+                p.stop()
+
+    @pytest.mark.asyncio
+    async def test_worker_entrypoint_completes_valid_extraction(
+        self, job_id, mock_job, mock_redis, pipeline_mocks
+    ):
+        """The ARQ entry point commits and reports a valid extraction as completed."""
+        mock_db, patches, _ = pipeline_mocks
+        session = MagicMock()
+        session.__aenter__ = AsyncMock(return_value=mock_db)
+        session.__aexit__ = AsyncMock(return_value=False)
+
+        try:
+            with (
+                patch("worker.tasks.AsyncSessionLocal", return_value=session),
+                patch("worker.tasks._start_task_span", return_value=None),
+            ):
+                from worker.tasks import process_document
+
+                result = await process_document({"redis": mock_redis}, job_id)
+
+            assert result["status"] == "completed"
+            assert mock_job.status == "completed"
+            mock_db.commit.assert_awaited_once()
+        finally:
+            for p in patches:
+                p.stop()
+
+    @pytest.mark.asyncio
+    async def test_vision_ingestion_in_worker_context_does_not_raise(
+        self, job_id, mock_redis, pipeline_mocks, monkeypatch
+    ):
+        """Real async ingest runs the vision branch inside the worker event loop.
+
+        Regression lock for H1: ``ingest`` used to call ``asyncio.run`` inside
+        the worker's running loop, raising RuntimeError when vision was
+        enabled. The real (unmocked) ``ingest`` must complete the vision path;
+        only the vision API client is mocked.
+        """
+        from app.services.vision_extractor import ExtractedContent as VisionContent
+
+        monkeypatch.setattr(
+            "app.services.ingestion.settings.ocr_engine", "vision", raising=False
+        )
+
+        mock_db, patches, _ = pipeline_mocks
+        # Stop the ingest mock: the real async ingest must run.
+        patches[2].stop()
+        patches.remove(patches[2])
+        # Point MIME detection at an image MIME handled by the vision branch.
+        patches[1].stop()
+        patches.remove(patches[1])
+        image_mime = patch(
+            "app.utils.mime.detect_mime_type", return_value="image/png"
+        )
+        image_mime.start()
+        patches.append(image_mime)
+        # Mock only the vision API call; ingestion's vision branch stays real.
+        vision_mock = patch(
+            "app.services.vision_extractor.extract_vision",
+            new_callable=AsyncMock,
+            return_value=VisionContent(
+                text="Invoice #12345\nTotal: $500.00",
+                metadata={"extraction_method": "vision", "_injection_defended": True},
+                page_count=1,
+            ),
+        )
+        vision_mock.start()
+        patches.append(vision_mock)
+
+        try:
+            from worker.tasks import _process
+
+            result = await _process(mock_db, mock_redis, job_id)
+        finally:
+            for p in patches:
+                p.stop()
+
+        assert result["status"] == "completed"
+        assert result["document_type"] == "invoice"
+
+    @pytest.mark.parametrize(
+        ("extractor_errors", "expected_message"),
+        [
+            (
+                ["Instructor retry exhausted after 3 attempts: invalid output"],
+                "Instructor retry exhausted after 3 attempts: invalid output",
+            ),
+            ([], "Extraction output failed schema validation"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_worker_entrypoint_routes_schema_invalid_output_to_review(
+        self,
+        job_id,
+        mock_job,
+        mock_redis,
+        pipeline_mocks,
+        extractor_errors,
+        expected_message,
+    ):
+        """A schema-invalid extractor result remains visible at the worker boundary."""
+        from app.models.record import ExtractedRecord
+        from app.models.validation_error import ValidationError as ValidationErrorModel
+        from app.services.claude_extractor import ExtractionResult
+
+        mock_db, patches, started = pipeline_mocks
+        publish_event = started[-1]
+        mock_job.webhook_url = "https://example.com/hook"
+        session = MagicMock()
+        session.__aenter__ = AsyncMock(return_value=mock_db)
+        session.__aexit__ = AsyncMock(return_value=False)
+
+        try:
+            with (
+                patch("worker.tasks.AsyncSessionLocal", return_value=session),
+                patch("worker.tasks._start_task_span", return_value=None),
+                patch(
+                    "app.services.claude_extractor.extract",
+                    new_callable=AsyncMock,
+                    return_value=ExtractionResult(
+                        data={},
+                        confidence=0.0,
+                        schema_valid=False,
+                        validation_errors=extractor_errors,
+                    ),
+                ),
+                patch(
+                    "app.services.webhook_sender.send_webhook",
+                    new_callable=AsyncMock,
+                ) as send_webhook,
+            ):
+                from worker.tasks import process_document
+
+                result = await process_document({"redis": mock_redis}, job_id)
+
+            records = [
+                call.args[0]
+                for call in mock_db.add.call_args_list
+                if isinstance(call.args[0], ExtractedRecord)
+            ]
+            extraction_errors = [
+                call.args[0]
+                for call in mock_db.add.call_args_list
+                if isinstance(call.args[0], ValidationErrorModel)
+                and call.args[0].rule_name == "SCHEMA_VALIDATION_FAILED"
+            ]
+
+            assert result["status"] == "needs_review"
+            assert mock_job.status == "needs_review"
+            assert len(records) == 1
+            assert records[0].validation_status == "pending_review"
+            assert records[0].needs_review is True
+            assert len(extraction_errors) == 1
+            assert extraction_errors[0].message == expected_message
+            mock_db.commit.assert_awaited_once()
+            assert publish_event.await_args_list[-1].args[2]["status"] == "needs_review"
+            webhook_payload = send_webhook.await_args.args[1]
+            assert webhook_payload["event"] == "job.needs_review"
+            assert webhook_payload["status"] == "needs_review"
         finally:
             for p in patches:
                 p.stop()
@@ -274,7 +437,7 @@ class TestProcessPipeline:
             from worker.tasks import _process
             result = await _process(mock_db, mock_redis, job_id)
 
-            assert result["status"] == "completed"
+            assert result["status"] == "needs_review"
             # db.add called for: record + audit_log + validation_error + embedding = 4
             assert mock_db.add.call_count == 4
         finally:
@@ -296,6 +459,7 @@ class TestProcessPipeline:
         )
         ingest_patch = patch(
             "app.services.ingestion.ingest",
+            new_callable=AsyncMock,
             return_value=ExtractedContent(
                 text="Customer SSN 123-45-6789\nTotal: $500.00",
                 metadata={},

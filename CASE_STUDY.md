@@ -52,7 +52,7 @@ PostgreSQL + pgvector    Redis (rate limiting + pub/sub + circuit state)
 
 ### Key Technical Decisions
 
-**Two-pass extraction** is the architectural centerpiece. Pass 1 calls Claude with a structured JSON prompt and asks for a `_confidence` field. If confidence falls below 0.80, Pass 2 fires a second call using Claude's `tool_use` API — the model returns corrections as a structured `apply_corrections` tool call, which are merged into the original extraction. This catches ~15-20% of extractions that would otherwise silently produce incomplete or malformed records.
+**Two-pass extraction** is the architectural centerpiece. Pass 1 calls Claude with a structured JSON prompt and asks for a `_confidence` field. If confidence falls below 0.80, Pass 2 fires a second call using Claude's `tool_use` API — the model returns corrections as a structured `apply_corrections` tool call, which are merged into the original extraction. This catches ~15-20% of extractions that would otherwise silently produce incomplete or malformed records. (Evidence status, 2026-10-03: no committed run artifact backs the ~15-20% figure; treat it as an unverified estimate.)
 
 **SHA-256 deduplication** on upload. Before queuing a new job, the API hashes the raw file bytes and queries for an existing document with the same hash. Resubmitted files return the existing job ID immediately — no duplicate processing, no wasted API calls.
 
