@@ -24,7 +24,7 @@ Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and ag
 | Inventory | Eval authoring corpus | **200 cases** (150 golden + 50 adversarial) | [`evals/golden_set.jsonl`](evals/golden_set.jsonl) · [`evals/adversarial_set.jsonl`](evals/adversarial_set.jsonl) |
 | Inventory | Architecture decision records | **20 ADRs** | [docs/adr/](docs/adr/) |
 
-This table is the one place each number is stated. The scope of each one is in [Methodology & limits](#methodology--limits).
+Each number is sourced in this table; other sections refer back to it. The scope of each one is in [Methodology & limits](#methodology--limits).
 
 ## Quickstart (no API key)
 
@@ -145,7 +145,7 @@ More: [docs/eval-methodology.md](docs/eval-methodology.md) · [docs/eval-boundar
 
 ## Design decisions
 
-20 ADRs live in [docs/adr/](docs/adr/). The key ones:
+The ADRs live in [docs/adr/](docs/adr/). The key ones:
 
 | ADR | Decision |
 |-----|----------|
