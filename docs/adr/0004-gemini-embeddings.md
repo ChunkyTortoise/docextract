@@ -5,7 +5,7 @@
 
 ## Context
 
-Semantic search over extracted documents requires high-quality embeddings for document-domain text (invoices, receipts, bank statements). Options evaluated: `text-embedding-ada-002` (OpenAI), `all-MiniLM-L6-v2` / `e5-base` (local sentence-transformers), and `gemini-embedding-2-preview` (Google).
+Semantic search over extracted documents requires high-quality embeddings for document-domain text (invoices, receipts, bank statements). Alternatives considered: `text-embedding-ada-002` (OpenAI), `all-MiniLM-L6-v2` / `e5-base` (local sentence-transformers), and `gemini-embedding-2-preview` (Google).
 
 ## Decision
 
@@ -13,6 +13,8 @@ Use `gemini-embedding-2-preview` (768-dim) for document embeddings.
 
 ## Consequences
 
-**Why:** Internal evaluation on a 200-document sample showed `gemini-embedding-2-preview` outperforms `text-embedding-ada-002` on document-domain text retrieval by 6.3% MRR@10 (0.847 vs 0.796). Local models (`all-MiniLM-L6-v2`, `e5-base`) scored 12-15% below both — they are trained on general web text, not document-domain content. With RRF hybrid search (vector + BM25 keyword), adding Gemini embeddings raised MRR@10 from 0.612 (BM25 alone) to 0.847, a 38% improvement. Gemini embeddings are on a generous free tier, eliminating per-embedding API cost at DocExtract's scale.
+**Why:** The current [embedding adapter](../../app/services/embedder.py) configures `gemini-embedding-2-preview` with 768 output dimensions for document retrieval. Using one adapter keeps embedding generation consistent across ingestion and search.
 
-**Tradeoff:** Gemini SDK adds a dependency and couples the embedding pipeline to Google's availability. If Gemini is down, new documents cannot be embedded. Accepted because the accuracy advantage is material for the product's core search feature, and the free tier makes cost a non-issue.
+**Evidence limit:** No committed comparative retrieval run supports a ranking advantage over OpenAI or local models. The [offline retrieval evaluator](../../scripts/eval_offline_retrieval.py) exercises synthetic BM25 queries only; it does not measure embeddings or hybrid RRF. Actual embedding cost and comparative retrieval accuracy remain unmeasured.
+
+**Tradeoff:** The Gemini SDK adds a dependency and couples embedding generation to Google's availability. If the provider is unavailable, new embeddings cannot be generated. Provider cost and retrieval quality should be measured on the intended workload before claiming an advantage.
