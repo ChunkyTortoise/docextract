@@ -2,7 +2,7 @@
 
 ## Token Cost Comparison
 
-Token cost comparison across models (per 1,000 tokens, as of 2026):
+Unverified planning assumptions per 1,000 tokens, retained only to illustrate the estimates below. Neither the numeric prices nor their mappings to model names are established provider quotes, historical or current. They are not observed billing; verify provider terms before budgeting.
 
 | Model | Input | Output | Best For |
 |-------|-------|--------|----------|
@@ -14,17 +14,18 @@ Classification defaults to Haiku-first (failover chain in config); extraction us
 
 ## Per-Operation Costs
 
-Modeled estimates (pricing table × typical token counts; not load-tested wall times):
+Illustrative cost and latency assumptions. Cost figures depend on unverified model-price mappings and token-count assumptions; latency figures are separate design estimates, not derived from prices or measured wall times:
 
 | Model | Operation | Avg Cost/Request | Avg Latency (modeled) |
 |-------|-----------|-----------------|-------------|
 | claude-sonnet-4-6 | Extraction (2-pass) | $0.004-$0.012 | 1.8s |
 | claude-haiku-4-5 | Classification | $0.0003-$0.001 | 0.4s |
-| claude-sonnet-4-6 | LLM Judge | $0.002-$0.006 | 1.2s |
 
-**Model routing strategy:** Classification and re-ranking use Haiku (cheaper primary). Full extraction uses Sonnet. LLM judge uses Sonnet for accuracy. Use `model_ab_test.py` to compare models offline; do not treat allocation as a measured live split until an experiment is recorded.
+**Model routing strategy:** Classification defaults to Haiku-first and extraction to Sonnet-first. Reranking uses local TF-IDF, not an LLM. The feature-flagged runtime judge tries Gemini 2.5 Flash first and falls back to the configured classification model (Haiku by default); it is disabled by default. Judge cost and latency are unmeasured. See [ADR-0018](adr/0018-independent-judge-and-multi-provider-router.md) and [ADR-0019](adr/0019-reranker-and-agentic-reflection.md). Use `model_ab_test.py` to compare models offline; do not treat allocation as a measured live split until an experiment is recorded.
 
 ## Cost Calculator
+
+Illustrative planning estimates, not measured workload averages. Prices, model-price mappings, token counts and correction overhead are unverified assumptions.
 
 | Document Type | Model | Avg Tokens | Cost/Doc | Cost/1,000 |
 |--------------|-------|------------|----------|------------|
@@ -32,9 +33,8 @@ Modeled estimates (pricing table × typical token counts; not load-tested wall t
 | Invoice (1 page) | Haiku (fallback) | ~2,500 | $0.004 | $4.00 |
 | Receipt | Sonnet | ~1,200 | $0.012 | $12.00 |
 | Multi-page PDF (10p) | Sonnet | ~15,000 | $0.150 | $150.00 |
-| Embedding (any) | Gemini | 768-dim | $0.0004 | $0.40 |
 
-*Costs assume Anthropic March 2026 pricing. Two-pass correction adds ~20% to base cost for low-confidence documents.*
+*The retained calculation uses the unverified planning prices and model-price mappings above, plus assumed ~20% correction overhead. Actual correction frequency, embedding cost and per-document cost remain unmeasured.*
 
 ## Monitoring
 

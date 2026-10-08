@@ -147,10 +147,10 @@ Query text → Gemini embedding (768-dim)
 
 | ADR | Decision | Why |
 |-----|----------|-----|
-| [001](adr/0001-arq-over-celery.md) | ARQ over Celery | Async-native, no GIL contention, smaller footprint |
+| [001](adr/0001-arq-over-celery.md) | ARQ over Celery | Async worker interface fits existing services; no comparative throughput benchmark |
 | [002](adr/0002-pgvector-over-dedicated-vector-db.md) | pgvector over Pinecone | Single storage dependency, ACID transactions, scales to ~100M vectors |
-| [003](adr/0003-two-pass-extraction.md) | Two-pass extraction | Catches ~15-20% low-confidence extractions without per-document cost |
-| [004](adr/0004-gemini-embeddings.md) | Gemini embeddings | 6% MRR advantage over ada-002, free tier eliminates per-embedding cost |
+| [003](adr/0003-two-pass-extraction.md) | Two-pass extraction | Confidence-gated optional correction; trigger rate, added cost and accuracy lift unmeasured |
+| [004](adr/0004-gemini-embeddings.md) | Gemini embeddings | Configured Gemini adapter with 768 output dimensions; comparative retrieval quality and actual cost unmeasured |
 | [005](adr/0005-sse-over-websocket.md) | SSE over WebSocket | Unidirectional pattern, works through standard proxies |
 | [006](adr/0006-circuit-breaker-model-fallback.md) | Circuit breaker fallback | Availability over marginal cost; fails fast during outages |
 | [007](adr/0007-otel-bridge-over-full-migration.md) | OTel bridge (not replacement) | Custom tracer powers product features, not just ops |

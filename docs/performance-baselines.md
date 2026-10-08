@@ -1,10 +1,10 @@
 # Performance Baselines
 
-Baseline figures for DocExtract extraction pipeline. Updated 2026-03-24.
+Unverified planning estimates for the DocExtract extraction pipeline, in a document originally dated 2026-03-24. Tables below are design assumptions, not committed live benchmark results. The reproducible extraction replay and its separate denominators are documented in [retrieval-extraction evidence](retrieval-extraction-evidence.md).
 
 ## Token Usage by Document Type
 
-Average tokens per extraction (Sonnet primary model, single-page documents):
+Assumed tokens per extraction for planning (Sonnet primary model, single-page documents); not measured averages:
 
 | Document Type | Avg Input Tokens | Avg Output Tokens | Total Tokens | Notes |
 |---------------|-----------------|-------------------|-------------|-------|
@@ -15,11 +15,11 @@ Average tokens per extraction (Sonnet primary model, single-page documents):
 | Medical Record | ~1,500 | ~500 | ~2,000 | Diagnoses/medications add complexity |
 | Identity Document | ~400 | ~200 | ~600 | Shortest documents, fixed fields |
 
-**Two-pass overhead**: When Pass 2 correction fires (~15-20% of extractions), add ~800 input + ~300 output tokens.
+**Two-pass planning assumption**: Assume correction on ~15-20% of extractions with ~800 additional input and ~300 output tokens. Neither trigger rate nor token overhead is established by a committed live run.
 
 ## Latency Distribution
 
-Modeled (pricing-table × call-distribution / design targets; not reproduced by a committed load run):
+Illustrative latency design estimates, not empirical percentiles. No committed load run reproduces this distribution; a pricing table cannot establish wall time:
 
 | Operation | p50 | p95 | p99 | Conditions |
 |-----------|-----|-----|-----|------------|
@@ -29,68 +29,37 @@ Modeled (pricing-table × call-distribution / design targets; not reproduced by 
 | Semantic search | 45ms | 120ms | 180ms | pgvector HNSW, 768-dim, ~10K documents |
 | Embedding generation | 0.3s | 0.8s | 1.2s | Gemini embedding, single document |
 
-**Circuit breaker failover**: Adds ~2-4s to p99 when primary model is unavailable (breaker open, fallback model used).
+**Circuit breaker planning assumption**: Allow ~2-4s additional latency during provider failover. This is not an observed p99 change.
 
 ## Cost per Extraction
 
-Based on Anthropic pricing (as of 2026-03):
+Unverified planning assumptions for prices, model-price mappings and workload. Neither prices nor mappings are established provider quotes, historical or current, and these are not observed billing:
 
 | Model | Input Cost/1K | Output Cost/1K | Avg Cost/Extraction | Notes |
 |-------|--------------|----------------|--------------------|----|
 | Claude Sonnet 4.6 | $0.003 | $0.015 | ~$0.010 | Primary extraction model |
 | Claude Haiku 4.5 | $0.00025 | $0.00125 | ~$0.001 | Fallback/classification model |
-| Gemini Embedding | ~$0 | $0 | ~$0 | Free tier covers typical volume |
 
-**Blended cost per document**: ~$0.012 (80% Sonnet / 20% Haiku fallback, includes classification + embedding).
+**Illustrative blended cost per document**: ~$0.012 under the assumed 80% Sonnet / 20% Haiku allocation and unverified model-price mappings. Provider allocation, classification overhead and embedding cost have not been measured; this figure is not a verified all-in cost.
 
-**Monthly cost estimates**:
+**Monthly planning examples**: Multiples of the illustrative blended cost above, using the same unverified prices, mappings and allocation assumptions. These are not budget quotes.
+
 | Volume | Blended Cost | Notes |
 |--------|-------------|-------|
 | 1,000 docs | ~$12 | Small business |
 | 10,000 docs | ~$120 | Mid-market |
 | 100,000 docs | ~$1,200 | Enterprise (volume discounts may apply) |
 
-## Model Comparison: Sonnet vs Haiku
+## Model Comparison: Evidence Status
 
-| Metric | Sonnet 4.6 | Haiku 4.5 | Delta |
-|--------|-----------|-----------|-------|
-| Field-level accuracy | 95.5% accepted baseline (weighted) | ~78% | +17.5% |
-| Completeness | 0.95 | 0.82 | +0.13 |
-| Hallucination rate | ~2% | ~8% | -6% |
-| Avg latency (p50) | 2.1s | 0.9s | +1.2s |
-| Cost per extraction | $0.010 | $0.001 | 10x |
+No committed paired Sonnet/Haiku run establishes comparative accuracy, completeness, hallucination rate, latency or cost. The extraction replay is a score of frozen prediction fixtures, not a live model comparison.
 
-**When Haiku is used**:
-- Document classification (all documents)
-- Extraction fallback when Sonnet circuit breaker is open
-- Cost-sensitive batch processing (acceptable accuracy tradeoff)
+The default configuration uses Haiku-first classification and Sonnet-first extraction with fallback. This describes routing intent, not observed traffic allocation or a quantified accuracy tradeoff. Runtime judging uses a separate Gemini-first, Claude-fallback path and is disabled by default.
 
-**When Sonnet is preferred**:
-- Primary extraction (quality-critical)
-- Correction pass (Pass 2 tool_use)
-- High-value documents (medical, financial)
+## Extraction Score by Document Type
 
-## Accuracy by Document Type
-
-From the accepted eval baseline and current 202-case corpus:
-
-| Document Type | Cases | Accuracy | Hardest Case |
-|---------------|-------|----------|-------------|
-| Invoice | 12 | 0.950 | `adv_prompt_injection_system` (embedded system override) |
-| Receipt | 4 | 0.821 | `adv_prompt_injection_hidden` (HTML comment injection) |
-| Purchase Order | 3 | 0.964 | `purchase_order_large` (10 line items) |
-| Bank Statement | 4 | 0.916 | `adv_prompt_injection_data_exfil` (data exfil attempt) |
-| Medical Record | 3 | 0.989 | `adv_prompt_injection_roleplay` (roleplay hijack) |
-| Identity Document | 1 | 0.814 | `identity_passport` (date format conversion) |
+Use the [README results and methodology](../README.md#methodology--limits) and [evidence note](retrieval-extraction-evidence.md) for the current weighted field-level replay score and per-type counts. Do not combine the replay population with the separate eval authoring corpus or treat it as a live-model accuracy estimate.
 
 ## Error Budget
 
-Based on SLO targets (see `docs/slo.md`):
-
-| SLO | Target | Current | Budget Remaining |
-|-----|--------|---------|-----------------|
-| Accuracy | >= 92% | 95.5% | 3.5% before breach |
-| API uptime | 99.5% | N/A | ~3.6 hrs/month |
-| Extraction p95 | < 8s | 4.1s (modeled) | see portfolio-metrics.yaml |
-| Search p95 | < 200ms | 120ms | 80ms headroom |
-| Brier score | < 0.15 | ~0.05 | 0.10 headroom |
+The [SLO document](slo.md) describes targets. Current live accuracy, uptime, latency percentiles and calibration are not established by committed operational measurements, so remaining error budgets cannot be calculated from these design estimates or frozen extraction fixtures.
