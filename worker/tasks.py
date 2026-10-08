@@ -129,11 +129,28 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     from app.utils.mime import detect_mime_type
     from worker.events import publish_event
 
-    # 1. Load job
-    job_result = await db.execute(select(ExtractionJob).where(ExtractionJob.id == job_id))
+    # Lock before checking status so redelivery observes the first worker's commit.
+    job_result = await db.execute(
+        select(ExtractionJob).where(ExtractionJob.id == job_id).with_for_update()
+    )
     job = job_result.scalar_one_or_none()
     if not job:
         raise ValueError(f"Job {job_id} not found")
+
+    if job.status in (
+        JobStatus.COMPLETED.value,
+        JobStatus.NEEDS_REVIEW.value,
+        JobStatus.CANCELLED.value,
+    ):
+        existing = await db.execute(
+            select(ExtractedRecord).where(ExtractedRecord.job_id == job.id)
+        )
+        record = existing.scalars().first()
+        return {
+            "status": "duplicate_ignored",
+            "record_id": str(record.id) if record else "",
+            "document_type": job.document_type_detected or "",
+        }
 
     # Load document
     doc_result = await db.execute(select(Document).where(Document.id == job.document_id))
@@ -422,16 +439,30 @@ async def _fail_job(db: AsyncSession, redis: aioredis.Redis, job_id: str, error:
     from worker.events import publish_event
 
     try:
-        job_result = await db.execute(select(ExtractionJob).where(ExtractionJob.id == job_id))
+        # Clear a possibly failed transaction, then re-read the committed status.
+        await db.rollback()
+        job_result = await db.execute(
+            select(ExtractionJob).where(ExtractionJob.id == job_id).with_for_update()
+        )
         job = job_result.scalar_one_or_none()
         if job:
+            if job.status in (
+                JobStatus.COMPLETED.value,
+                JobStatus.NEEDS_REVIEW.value,
+                JobStatus.CANCELLED.value,
+            ):
+                return
             job.status = JobStatus.FAILED.value
             job.error_message = error[:500]
             job.completed_at = datetime.now(UTC)
             await db.commit()
+        else:
+            return
     except Exception as e:
         logger.error("Failed to update job failure status: %s", e)
+        return
 
+    # Publish only after the failed status has been committed successfully.
     await publish_event(redis, job_id, {
         "job_id": job_id,
         "status": JobStatus.FAILED.value,
