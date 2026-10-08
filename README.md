@@ -26,6 +26,8 @@ Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and ag
 
 Each number is sourced in this table; other sections refer back to it. The scope of each one is in [Methodology & limits](#methodology--limits).
 
+[Engineering evidence](docs/reliability-evidence.md): observed queue and database failures, repairs, test receipts and reproduction boundaries.
+
 ## Quickstart (no API key)
 
 Clone the repository first; all commands below run from its root:

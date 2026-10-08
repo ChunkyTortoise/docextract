@@ -7,12 +7,13 @@ import signal
 from datetime import UTC, datetime, timedelta
 
 import redis.asyncio as aioredis
+from arq import func
 from arq.connections import RedisSettings
 from arq.cron import cron
 
 from app.config import settings
 from worker.judge_tasks import judge_extraction_sample
-from worker.tasks import process_document
+from worker.tasks import EXTRACTION_MAX_TRIES, process_document
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ async def recover_stale_jobs_cron(ctx: dict) -> None:
 
 
 class WorkerSettings:
-    functions = [process_document, judge_extraction_sample]
+    functions = [func(process_document, max_tries=EXTRACTION_MAX_TRIES), judge_extraction_sample]
     cron_jobs = [cron(recover_stale_jobs_cron, minute={0, 10, 20, 30, 40, 50})]
     on_startup = startup
     on_shutdown = shutdown

@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 import redis.asyncio as aioredis
 import structlog
+from arq import Retry
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +21,7 @@ logger = structlog.get_logger(__name__)
 
 # Error classification
 TRANSIENT_ERRORS = (httpx.TimeoutException, ConnectionError, OSError)
+EXTRACTION_MAX_TRIES = 3
 
 
 async def process_document(ctx: dict[str, Any], job_id: str) -> dict[str, Any]:
@@ -52,9 +54,18 @@ async def process_document(ctx: dict[str, Any], job_id: str) -> dict[str, Any]:
             return result
         except tuple(TRANSIENT_ERRORS) as e:
             logger.warning("Transient error processing job %s: %s", job_id, e)
-            await _fail_job(db, redis, job_id, str(e))
+            attempt = ctx.get("job_try", 1)
+            if attempt < EXTRACTION_MAX_TRIES:
+                _finish_task_span(span, start, status="retrying", error=str(e))
+                raise Retry(defer=attempt) from e
+            try:
+                await _fail_job(db, redis, job_id, str(e))
+            except Exception as reporting_error:
+                logger.error(
+                    "Failed to report exhausted job %s: %s", job_id, reporting_error, exc_info=True
+                )
             _finish_task_span(span, start, status="transient_error", error=str(e))
-            raise  # ARQ will retry
+            raise
         except Exception as e:
             logger.error("Permanent error processing job %s: %s", job_id, e, exc_info=True)
             await _fail_job(db, redis, job_id, str(e))

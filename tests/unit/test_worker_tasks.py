@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import sys
 import uuid
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+from arq import Retry
 
 # ---- Stub out heavy optional dependencies before importing worker.tasks ----
 
@@ -76,8 +78,9 @@ class TestProcessDocumentTopLevel:
     """Tests using patched _process to verify error handling."""
 
     @pytest.mark.asyncio
-    async def test_transient_error_reraises(self, job_id, mock_redis):
-        """Test that transient errors are re-raised for ARQ retry."""
+    @pytest.mark.parametrize("job_try", [1, 2])
+    async def test_transient_error_requests_retry(self, job_id, mock_redis, job_try):
+        """Early transient failures schedule retry without terminal failure."""
         from worker.tasks import process_document
 
         with patch("worker.tasks.AsyncSessionLocal") as mock_session_cls:
@@ -86,9 +89,11 @@ class TestProcessDocumentTopLevel:
             mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
             with patch("worker.tasks._process", side_effect=ConnectionError("redis down")):
-                with patch("worker.tasks._fail_job", new_callable=AsyncMock):
-                    with pytest.raises(ConnectionError):
-                        await process_document({"redis": mock_redis}, job_id)
+                with patch("worker.tasks._fail_job", new_callable=AsyncMock) as fail:
+                    with pytest.raises(Retry) as exc:
+                        await process_document({"redis": mock_redis, "job_try": job_try}, job_id)
+                    assert 0 < exc.value.defer_score <= 2000
+                    fail.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_permanent_error_returns_failed(self, job_id, mock_redis):
@@ -118,9 +123,47 @@ class TestProcessDocumentTopLevel:
             mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
             with patch("worker.tasks._process", side_effect=httpx.ReadTimeout("timeout")):
-                with patch("worker.tasks._fail_job", new_callable=AsyncMock):
-                    with pytest.raises(httpx.ReadTimeout):
-                        await process_document({"redis": mock_redis}, job_id)
+                with patch("worker.tasks._fail_job", new_callable=AsyncMock) as fail:
+                    with pytest.raises(Retry):
+                        await process_document({"redis": mock_redis, "job_try": 1}, job_id)
+                    fail.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_final_transient_attempt_marks_failed_and_reraises(self, job_id, mock_redis):
+        from worker.tasks import process_document
+
+        db = AsyncMock()
+        with patch("worker.tasks.AsyncSessionLocal") as session:
+            session.return_value.__aenter__ = AsyncMock(return_value=db)
+            session.return_value.__aexit__ = AsyncMock(return_value=False)
+            with patch("worker.tasks._process", side_effect=ConnectionError("unavailable")):
+                with patch("worker.tasks._fail_job", new_callable=AsyncMock) as fail:
+                    with pytest.raises(ConnectionError, match="unavailable"):
+                        await process_document({"redis": mock_redis, "job_try": 3}, job_id)
+                    fail.assert_awaited_once_with(db, mock_redis, job_id, "unavailable")
+
+    @pytest.mark.asyncio
+    async def test_final_transient_error_survives_failed_event_publication(self, job_id, mock_redis):
+        """Failure reporting must not replace the exhausted pipeline error."""
+        from redis.exceptions import ConnectionError as RedisConnectionError
+
+        from worker.tasks import process_document
+
+        original = httpx.ReadTimeout("provider timed out")
+        job = SimpleNamespace(status="extracting_data")
+        db = AsyncMock()
+        db.execute.return_value.scalar_one_or_none = MagicMock(return_value=job)
+        with patch("worker.tasks.AsyncSessionLocal") as session:
+            session.return_value.__aenter__ = AsyncMock(return_value=db)
+            session.return_value.__aexit__ = AsyncMock(return_value=False)
+            with patch("worker.tasks._process", side_effect=original):
+                with patch("worker.events.publish_event", side_effect=RedisConnectionError("Redis down")):
+                    with pytest.raises(httpx.ReadTimeout) as exc:
+                        await process_document({"redis": mock_redis, "job_try": 3}, job_id)
+        assert exc.value is original
+        assert job.status == "failed"
+        assert job.error_message == "provider timed out"
+        db.commit.assert_awaited_once()
 
 
 class TestProcessPipeline:
