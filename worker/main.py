@@ -29,8 +29,11 @@ signal.signal(signal.SIGTERM, handle_sigterm)
 
 
 async def startup(ctx: dict) -> None:
-    """Called when worker starts."""
-    ctx["redis"] = aioredis.from_url(settings.redis_url, decode_responses=True)
+    """Recover stale jobs using the enqueue-capable pool ARQ supplies in ctx.
+
+    Replacing it with a plain Redis client removes enqueue_job, which extraction
+    uses to schedule judge sampling.
+    """
     logger.info("Worker started. Queue: %s", settings.worker_queue)
     await recover_stale_jobs(ctx["redis"])
 
