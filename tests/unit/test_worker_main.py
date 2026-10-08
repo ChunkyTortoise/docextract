@@ -6,6 +6,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import arq
 import pytest
 
 
@@ -79,7 +80,7 @@ class TestWorkerSettings:
     def test_functions_include_process_document(self):
         from worker.main import WorkerSettings
         from worker.tasks import process_document
-        assert process_document in WorkerSettings.functions
+        assert process_document in [arq.func(f).coroutine for f in WorkerSettings.functions]
 
 
 class TestRecoverStaleJobsCron:
