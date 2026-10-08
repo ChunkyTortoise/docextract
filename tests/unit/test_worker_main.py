@@ -155,19 +155,18 @@ class TestRecoverStaleJobs:
 
 class TestStartupShutdown:
     @pytest.mark.asyncio
-    async def test_startup_initializes_redis_and_recovers(self):
+    async def test_startup_preserves_arq_pool_and_recovers(self):
         from worker.main import startup
 
-        ctx: dict = {}
-
-        with patch("worker.main.recover_stale_jobs", new_callable=AsyncMock) as mock_recover:
-            with patch("worker.main.aioredis") as mock_aioredis:
-                mock_redis_instance = AsyncMock()
-                mock_aioredis.from_url.return_value = mock_redis_instance
+        pool = AsyncMock()
+        ctx = {"redis": pool}
+        with patch("worker.main.recover_stale_jobs", new_callable=AsyncMock) as recover:
+            with patch("worker.main.aioredis.from_url") as plain_client:
                 await startup(ctx)
 
-        assert "redis" in ctx
-        mock_recover.assert_called_once()
+        assert ctx["redis"] is pool
+        recover.assert_awaited_once_with(pool)
+        plain_client.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_shutdown_closes_redis(self):
