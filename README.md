@@ -1,6 +1,6 @@
 # DocExtract: document extraction with an eval gate in CI
 
-DocExtract turns invoices, receipts, statements and other PDFs or scans into validated structured records you can search. Every pull request that touches prompts or the extractor re-scores a committed set of extraction outputs, and the check fails if the score falls below a floor or drops from baseline.
+DocExtract turns invoices, receipts, statements and other PDFs or scans into validated structured records you can search. Every pull request that touches prompts or the extractor re-scores a committed set of extraction outputs, and the check fails if the score falls below a floor or drops from baseline. This offline check scores frozen predictions; it does not rerun the extractor or detect prompt/model regressions. Those require a live evaluation.
 
 Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and agentic RAG for questions over stored documents.
 
@@ -28,6 +28,13 @@ Each number is sourced in this table; other sections refer back to it. The scope
 
 ## Quickstart (no API key)
 
+Clone the repository first; all commands below run from its root:
+
+```bash
+git clone https://github.com/ChunkyTortoise/docextract.git
+cd docextract
+```
+
 **1. Reproduce the replay score.** Python 3.10+, from the repository root:
 
 ```bash
@@ -49,8 +56,6 @@ The explorer reads committed JSON samples from `frontend/demo_data/` and makes n
 **3. Run the full stack (needs API keys).**
 
 ```bash
-git clone https://github.com/ChunkyTortoise/docextract.git
-cd docextract
 cp .env.example .env  # add ANTHROPIC_API_KEY and GEMINI_API_KEY
 docker compose up -d
 open http://localhost:8501  # Streamlit UI
