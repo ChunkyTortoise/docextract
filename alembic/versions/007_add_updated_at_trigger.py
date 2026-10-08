@@ -28,12 +28,16 @@ def upgrade() -> None:
         $$ LANGUAGE plpgsql;
     """)
 
+    # Migration 001 already creates this trigger on fresh databases.
+    op.execute("DROP TRIGGER IF EXISTS trg_extraction_jobs_updated_at ON extraction_jobs")
     op.execute("""
         CREATE TRIGGER trg_extraction_jobs_updated_at
         BEFORE UPDATE ON extraction_jobs
         FOR EACH ROW EXECUTE FUNCTION set_updated_at();
     """)
 
+    # Migration 001 already creates this trigger on fresh databases.
+    op.execute("DROP TRIGGER IF EXISTS trg_extracted_records_updated_at ON extracted_records")
     op.execute("""
         CREATE TRIGGER trg_extracted_records_updated_at
         BEFORE UPDATE ON extracted_records
