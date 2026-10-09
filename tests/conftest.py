@@ -115,8 +115,9 @@ class FakeStorageBackend(StorageBackend):
         return [k for k in self._store if k.startswith(prefix)]
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def test_engine():
+    """Give each test a fresh database, including routes that commit transactions."""
     engine = create_async_engine(
         TEST_DB_URL,
         connect_args={"check_same_thread": False},
