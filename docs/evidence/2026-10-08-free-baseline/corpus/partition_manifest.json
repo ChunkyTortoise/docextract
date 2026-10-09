@@ -1,0 +1,40 @@
+{
+  "status": "LOCAL FROZEN PREPARATION, PERFORMANCE UNMEASURED; NOT COMMITTED IN HERO REPO",
+  "declared_at": "2026-10-02T00:06:31.309753+00:00",
+  "declared_git_sha": "09a690bc9efc873ee59725c685a2ec604b6ef247",
+  "test_path": "test.json",
+  "train_dev_path": "train_dev.json",
+  "test_sha256": "944de5eb5bfa55f04662afcf4d7331f8e19e097f4218c49acdf94702012752f8",
+  "train_dev_sha256": "24701f3ee0c77c34e490c27c8391165fbc6afb1a9e7168ca77263599a3965d78",
+  "test_case_count": 12,
+  "train_dev_case_count": 6,
+  "sources": [
+    "Fresh synthetic text authored without client data"
+  ],
+  "pii_policy": "Invented entities and transaction identifiers only",
+  "source_hashes": {
+    "autoresearch/eval.py": "f6c684917c3a5aa5407354c106ca479fcd7c519db64ca16511203c013b4346e8",
+    "app/services/cost_tracker.py": "61d2dbebc09707d5ec6d444e752f25a2cab8e49706205a3ceb259a9c6d2d73ff",
+    "app/services/claude_extractor.py": "6d1742b87621280749125f69ff9104c45894e27e8412bf4bcce5f39f6373a109",
+    "app/services/llm_tracer.py": "fad9748503b9361be69581946f9d7900be559a48239e67de1c87f76ff0bb8621",
+    "app/services/model_router.py": "621ea9eebaa1b051903b5327cad283f891ee70877b8f3c10cf88ec399048cf2c",
+    "app/services/prompt_config.py": "396b58a6f86b1470f24958985d5d4a420724a4f04af85e098f549dd258fc0b25",
+    "prompts/CHANGELOG.md": "cd631192f356564f9b52d45e5f57c8fb0bceccae9f4dec362d1c6f3888f8b576",
+    "prompts/classification/v1.0.0.txt": "768961e4c1eff7e46e1c8959fe0c7c8ec2dd5244285bc8765ba2e0187b040a74",
+    "prompts/search/v1.0.0.txt": "e0276574d651697d7e2abca96894d6b7ca3c7ad322124d357ffbcd9d57cd6108",
+    "prompts/extraction/v1.1.0.txt": "bdb09199e14b2fb10782468fb07d5f0507cb31eaf6d636e5fc46c1ad9bdea30c",
+    "prompts/extraction/v1.0.0.txt": "10b18f699603ac91e347aaf61b953c40b7cfa860d5f74d7f213d867a5cb521ed"
+  },
+  "novelty": {
+    "existing_ids_checked": 201,
+    "existing_input_texts_checked": 200,
+    "files_checked": [
+      "autoresearch/eval_dataset.json",
+      "autoresearch/eval_dataset_72.json",
+      "evals/golden_set.jsonl",
+      "evals/adversarial_set.jsonl",
+      "autoresearch/golden_responses/*.json"
+    ],
+    "check": "New IDs; whitespace/case-normalized text unequal; no existing source text copied"
+  }
+}
