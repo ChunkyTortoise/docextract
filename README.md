@@ -28,6 +28,8 @@ Each number is sourced in this table; other sections refer back to it. The scope
 
 [Engineering evidence](docs/reliability-evidence.md): observed queue and database failures, repairs, test receipts and reproduction boundaries.
 
+[Historical single-pass extraction diagnostic](docs/evidence/2026-10-08-free-baseline/README.md): saved outputs and offline verification for 12 frozen synthetic text cases using Nemotron at source `09a690b`. The reference-field score does not assess every output field. Human review found three subtotal mappings that conflict with the accepted draft-only policy; all other saved fields were accepted. This is separate from the production extraction pipeline.
+
 ## Quickstart (no API key)
 
 Clone the repository first; all commands below run from its root:

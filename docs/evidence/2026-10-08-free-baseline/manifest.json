@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-08T23:02:10.644017+00:00",
+  "actor": "Codex",
+  "status": "human-reviewed release candidate; exact publication approval pending",
+  "source_revision": "09a690bc9efc873ee59725c685a2ec604b6ef247",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "historical_run_sha256": "9ba5b31ebb6b744d80e3a95e6e1901b2308f2902e41bf96f32be1897de906e5e",
+  "human_review_status": "All 12 reviewed: nine acceptable, three have subtotal prediction findings; all other fields acceptable",
+  "files": {
+    "baseline/run.json": {
+      "sha256": "9ba5b31ebb6b744d80e3a95e6e1901b2308f2902e41bf96f32be1897de906e5e",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/run.json"
+    },
+    "baseline/attempt-001.json": {
+      "sha256": "ab075a362f307d0721a3b32c9a5f7d7603171429df4a2e3df41ffebf91f55849",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-001.json"
+    },
+    "baseline/attempt-002.json": {
+      "sha256": "a9d5152055ff7e33483e86f343e39fb522b54d5a66bdee12aeabd376c0b43cf2",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-002.json"
+    },
+    "baseline/attempt-003.json": {
+      "sha256": "96952f6df172162554078f16ddf1a78473bdaab0ddfbfac774a22b01c9df824e",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-003.json"
+    },
+    "baseline/attempt-004.json": {
+      "sha256": "10911fa9db1265ebf92eaf29174ff9eba20a5dcf9980301295dbe0cb484d8634",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-004.json"
+    },
+    "baseline/attempt-005.json": {
+      "sha256": "a70fe715a80bafc74574a68895f4ed97bf765a8dd03063ede488f548a59bd59b",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-005.json"
+    },
+    "baseline/attempt-006.json": {
+      "sha256": "4e021ec438fc83b114c04876092c841d99400fddc1c5c389857eeb1aae733c5b",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-006.json"
+    },
+    "baseline/attempt-007.json": {
+      "sha256": "02ab6b3093e7247a27a24cb528c65fb58a3845c802e53ea938ec20df1baed93e",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-007.json"
+    },
+    "baseline/attempt-008.json": {
+      "sha256": "d64dda5594249fad8adc5be4c717c51be8ef74f34789f41a95f2615cc281e9ab",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-008.json"
+    },
+    "baseline/attempt-009.json": {
+      "sha256": "17227f073932690cc6114f59497e6d18d7372872ec5728c2b5df8614e25c6c7e",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-009.json"
+    },
+    "baseline/attempt-010.json": {
+      "sha256": "35ebbb3f9e724fe6fbc04daa3212f5926ff5bd905a659514fbf65c8efa7d5eae",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-010.json"
+    },
+    "baseline/attempt-011.json": {
+      "sha256": "d044d2904c674fc4c6403d42e7658b8468c6ee84ec21cc6c5427edbe439f7d33",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-011.json"
+    },
+    "baseline/attempt-012.json": {
+      "sha256": "c448f4d27c5e220c1b63caed5c230e5970a84a0ff45fa8190c3e286339c751ba",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-baseline-oct8/attempt-012.json"
+    },
+    "corpus/test.json": {
+      "sha256": "944de5eb5bfa55f04662afcf4d7331f8e19e097f4218c49acdf94702012752f8",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/test.json"
+    },
+    "corpus/train_dev.json": {
+      "sha256": "24701f3ee0c77c34e490c27c8391165fbc6afb1a9e7168ca77263599a3965d78",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/train_dev.json"
+    },
+    "corpus/partition_manifest.json": {
+      "sha256": "ac459034df9d76018f1953637b71eb22776e7ca9f1590bccf878868176a9b64f",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/partition_manifest.json"
+    },
+    "source/autoresearch/eval.py": {
+      "sha256": "f6c684917c3a5aa5407354c106ca479fcd7c519db64ca16511203c013b4346e8",
+      "origin": "/Users/cave/Projects/clients/docextract/autoresearch/eval.py"
+    },
+    "source/app/services/cost_tracker.py": {
+      "sha256": "61d2dbebc09707d5ec6d444e752f25a2cab8e49706205a3ceb259a9c6d2d73ff",
+      "origin": "/Users/cave/Projects/clients/docextract/app/services/cost_tracker.py"
+    },
+    "source/app/services/claude_extractor.py": {
+      "sha256": "6d1742b87621280749125f69ff9104c45894e27e8412bf4bcce5f39f6373a109",
+      "origin": "/Users/cave/Projects/clients/docextract/app/services/claude_extractor.py"
+    },
+    "source/app/services/llm_tracer.py": {
+      "sha256": "fad9748503b9361be69581946f9d7900be559a48239e67de1c87f76ff0bb8621",
+      "origin": "/Users/cave/Projects/clients/docextract/app/services/llm_tracer.py"
+    },
+    "source/app/services/model_router.py": {
+      "sha256": "621ea9eebaa1b051903b5327cad283f891ee70877b8f3c10cf88ec399048cf2c",
+      "origin": "/Users/cave/Projects/clients/docextract/app/services/model_router.py"
+    },
+    "source/app/services/prompt_config.py": {
+      "sha256": "396b58a6f86b1470f24958985d5d4a420724a4f04af85e098f549dd258fc0b25",
+      "origin": "/Users/cave/Projects/clients/docextract/app/services/prompt_config.py"
+    },
+    "source/prompts/CHANGELOG.md": {
+      "sha256": "cd631192f356564f9b52d45e5f57c8fb0bceccae9f4dec362d1c6f3888f8b576",
+      "origin": "/Users/cave/Projects/clients/docextract/prompts/CHANGELOG.md"
+    },
+    "source/prompts/classification/v1.0.0.txt": {
+      "sha256": "768961e4c1eff7e46e1c8959fe0c7c8ec2dd5244285bc8765ba2e0187b040a74",
+      "origin": "/Users/cave/Projects/clients/docextract/prompts/classification/v1.0.0.txt"
+    },
+    "source/prompts/search/v1.0.0.txt": {
+      "sha256": "e0276574d651697d7e2abca96894d6b7ca3c7ad322124d357ffbcd9d57cd6108",
+      "origin": "/Users/cave/Projects/clients/docextract/prompts/search/v1.0.0.txt"
+    },
+    "source/prompts/extraction/v1.1.0.txt": {
+      "sha256": "bdb09199e14b2fb10782468fb07d5f0507cb31eaf6d636e5fc46c1ad9bdea30c",
+      "origin": "/Users/cave/Projects/clients/docextract/prompts/extraction/v1.1.0.txt"
+    },
+    "source/prompts/extraction/v1.0.0.txt": {
+      "sha256": "10b18f699603ac91e347aaf61b953c40b7cfa860d5f74d7f213d867a5cb521ed",
+      "origin": "/Users/cave/Projects/clients/docextract/prompts/extraction/v1.0.0.txt"
+    },
+    "source/app/schemas/citations.py": {
+      "sha256": "90fe925a73d326a6657d42984c4e87023c807a2e76e501ea056072ced69f9db9",
+      "origin": "/Users/cave/Projects/clients/docextract/app/schemas/citations.py"
+    },
+    "source/app/schemas/responses.py": {
+      "sha256": "f75e3440632adfd1c5d603a379f50d51c433b926fafddbbc1ac95017ad325034",
+      "origin": "/Users/cave/Projects/clients/docextract/app/schemas/responses.py"
+    },
+    "source/app/schemas/events.py": {
+      "sha256": "596ccd408264ccb060be7bf4955f75f728dac8e4369cf4c592c71daa9d0d4625",
+      "origin": "/Users/cave/Projects/clients/docextract/app/schemas/events.py"
+    },
+    "source/app/schemas/extraction_models.py": {
+      "sha256": "c3b2309f8c47f1a5f63f2532617159f6ca529ba1d66cff7a7209b591957b50f9",
+      "origin": "/Users/cave/Projects/clients/docextract/app/schemas/extraction_models.py"
+    },
+    "source/app/schemas/__init__.py": {
+      "sha256": "0c6ea565460b93c5d67e740dcafa0290adb6973d4efe124d9dd229222a3e2aad",
+      "origin": "/Users/cave/Projects/clients/docextract/app/schemas/__init__.py"
+    },
+    "source/app/schemas/api_keys.py": {
+      "sha256": "9d5f2117870b821a64cd630c2ec1e75784c98ab14b8ab34235e784ac795ca1ec",
+      "origin": "/Users/cave/Projects/clients/docextract/app/schemas/api_keys.py"
+    },
+    "source/app/schemas/requests.py": {
+      "sha256": "02c13a3bf3c5d3037dce5fdcbdcb4737a577d43cd8321a69df124db51e8c354e",
+      "origin": "/Users/cave/Projects/clients/docextract/app/schemas/requests.py"
+    },
+    "source/app/schemas/document_types.py": {
+      "sha256": "d68e1ffe36ff6600fadd220d70764e561a5c8ffd39c148fe2a690957f78aa8ea",
+      "origin": "/Users/cave/Projects/clients/docextract/app/schemas/document_types.py"
+    },
+    "source/app/services/injection_guard.py": {
+      "sha256": "c90db891e7d8cae8363e7a7cad0a60df8ba1034aafa8616d6d04c69fa3779308",
+      "origin": "/Users/cave/Projects/clients/docextract/app/services/injection_guard.py"
+    },
+    "protocol/runner.py": {
+      "sha256": "8cf21bc9023fd2b33d11ac49e155e26206db9592b3ddd2c8e66852aae62d08fc",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/runner.py"
+    },
+    "protocol/extractor_adapter.py": {
+      "sha256": "93e8818544d36e84b577c5e70c9da77a19bec4f715b15a285879347a2bb6d523",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/extractor_adapter.py"
+    },
+    "protocol/candidate/claude_extractor.py": {
+      "sha256": "615157d3309a07cd8298155097c088170327747ec9ee724b7c7d5cd4fa197833",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/candidate/claude_extractor.py"
+    },
+    "protocol/EXECUTION-BINDING.json": {
+      "sha256": "ec5b57da0e3e15e37c5c8ed769945fe242801d96b6825c1febe895a95f927c86",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/EXECUTION-BINDING.json"
+    },
+    "protocol/free_baseline.py": {
+      "sha256": "55fc3e6249ab8af5093da9b3c289d4b8c9269be977067907baec3ec9111f8952",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/free_baseline.py"
+    },
+    "protocol/test_free_baseline.py": {
+      "sha256": "8457ba19aeb3ca222a42d5f5e3edf6e6120f807a7ed863c1045ba275cbac10fa",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/test_free_baseline.py"
+    },
+    "protocol/attempt_meter.py": {
+      "sha256": "b754e0a5b22f78dc17435a146888b5adcda6c4abea29fcbc2e753fead1b2a51f",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/attempt_meter.py"
+    },
+    "protocol/README.md": {
+      "sha256": "4616c8c881990d734bfb08765f86428b6ffcea3a188a1fb5f8e31bb6c5705a1a",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/README.md"
+    },
+    "protocol/TEST-RESULTS.txt": {
+      "sha256": "bbfb80463b338e914b67359394d874e83d235fc3185ac0116096d8510c6f5be1",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/TEST-RESULTS.txt"
+    },
+    "protocol/correction-instructor.patch": {
+      "sha256": "87d2bffef74013d3c46e92f06b2462049184742472ad78d2af1c911bd623bfb5",
+      "origin": "/Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/correction-instructor.patch"
+    },
+    "receipts/live-free-verification.json": {
+      "sha256": "83b06118c5fd70e40a990b8d99a534303f4bd5b71ede421cc3fca6df45cf60ab",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/live-free-verification.json"
+    },
+    "receipts/free-baseline-preflight.json": {
+      "sha256": "af6d49bd42b0cfee9be7be6c9548df58fb85e5255c41c15eb57cebb78726e0d7",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/free-baseline-preflight.json"
+    },
+    "receipts/final-evidence-verification.json": {
+      "sha256": "15f669ee0893dbc160c70bf78033ef06ad963333cc9ce3d887d5a4399c56c2c0",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/final-evidence-verification.json"
+    },
+    "receipts/unscored-fields-review.json": {
+      "sha256": "0c53ae027c89273fd18d2c8f8876710591ad039148c8806a5c98c708c29e504d",
+      "origin": "/Users/cave/Documents/Codex/2026-10-08/github-hiring-evidence-continuation/outputs/unscored-fields-review.json"
+    },
+    "source/LICENSE": {
+      "sha256": "f5c64bb01ec98f89ffa6b4b1660715e2067617a13737b7f6848c996796f4039e",
+      "origin": "ChunkyTortoise/docextract@09a690bc9efc873ee59725c685a2ec604b6ef247:LICENSE"
+    },
+    "README.md": {
+      "sha256": "2eed59c64bf98c0e9fdbedf9c7977f9b4fb6b793a6c74f7b0e277dce68704e94",
+      "origin": "Derived local preparation; reviewed under GitHub hiring-evidence spec/plan"
+    },
+    "verify_saved_run.py": {
+      "sha256": "54e0ae90033def0a6c3da2fbc2947231c6e33b5becb10b8c1e7d3eb863b2b409",
+      "origin": "Derived local preparation; reviewed under GitHub hiring-evidence spec/plan"
+    },
+    "human-review-status.json": {
+      "sha256": "28e2082ba70031766340bd4cb4959bcdcd5613c8d5d3a1680d1f24852b00079f",
+      "origin": "Derived local preparation; reviewed under GitHub hiring-evidence spec/plan"
+    },
+    "adjudication-summary.json": {
+      "sha256": "2739d1016d149a8a23b4981c53502dbcc7fa29ee3c9f3af224316991145b630a",
+      "origin": "Derived public summary of adjudication-v1.json; raw human authority retained privately"
+    }
+  },
+  "omitted": "Raw provider response bytes and reasoning are not retained. Historical hashes alone do not recover them.",
+  "runtime": "Python3.12.7 HTTPX0.27.2 recorded at run; current inventory is separate, not historical lock."
+}

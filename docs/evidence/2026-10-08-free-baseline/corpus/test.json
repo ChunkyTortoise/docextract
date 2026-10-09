@@ -1,0 +1,270 @@
+[
+  {
+    "id": "oct01_holdout_invoice_01",
+    "doc_type": "invoice",
+    "weight": 1,
+    "critical_fields": [
+      "invoice_number",
+      "total_amount",
+      "vendor_name",
+      "customer_name"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nInvoice number: HO-INV-OCT01-01\nVendor: Invented Harbor Invoice Workshop 1\nBill to: Synthetic Cedar Research\nInvoice date: 2026-09-30\nTotal amount due: USD 73.25\nReference note: synthetic paper order, no customer records",
+    "expected": {
+      "invoice_number": "HO-INV-OCT01-01",
+      "vendor_name": "Invented Harbor Invoice Workshop 1",
+      "customer_name": "Synthetic Cedar Research",
+      "invoice_date": "2026-09-30",
+      "total_amount": 73.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "ordinary"
+  },
+  {
+    "id": "oct01_holdout_invoice_02",
+    "doc_type": "invoice",
+    "weight": 1,
+    "critical_fields": [
+      "invoice_number",
+      "total_amount",
+      "vendor_name",
+      "customer_name"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nTotal amount due: USD 90.25\nInvoice date: 2026-09-30\nBill to: Synthetic Cedar Research\nVendor: Invented Harbor Invoice Workshop 2\nInvoice number: HO-INV-OCT01-02\nReference note: synthetic paper order, no customer records",
+    "expected": {
+      "invoice_number": "HO-INV-OCT01-02",
+      "vendor_name": "Invented Harbor Invoice Workshop 2",
+      "customer_name": "Synthetic Cedar Research",
+      "invoice_date": "2026-09-30",
+      "total_amount": 90.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "reordered"
+  },
+  {
+    "id": "oct01_holdout_invoice_03",
+    "doc_type": "invoice",
+    "weight": 1,
+    "critical_fields": [
+      "invoice_number",
+      "total_amount",
+      "vendor_name",
+      "customer_name"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nInvoice number: HO-INV-OCT01-03\nVendor: Invented Harbor Invoice Workshop 3\nBill to: Synthetic Cedar Research\nInvoice date: 2026-09-30\nTotal amount due: USD 107.25",
+    "expected": {
+      "invoice_number": "HO-INV-OCT01-03",
+      "vendor_name": "Invented Harbor Invoice Workshop 3",
+      "customer_name": "Synthetic Cedar Research",
+      "invoice_date": "2026-09-30",
+      "total_amount": 107.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "optional_omitted"
+  },
+  {
+    "id": "oct01_holdout_invoice_04",
+    "doc_type": "invoice",
+    "weight": 1,
+    "critical_fields": [
+      "invoice_number",
+      "total_amount",
+      "vendor_name",
+      "customer_name"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nDRAFT subtotal estimate: USD 999.00 (not the final total)\nInvoice number: HO-INV-OCT01-04\nVendor: Invented Harbor Invoice Workshop 4\nBill to: Synthetic Cedar Research\nInvoice date: 2026-09-30\nTotal amount due: USD 124.25\nReference note: synthetic paper order, no customer records",
+    "expected": {
+      "invoice_number": "HO-INV-OCT01-04",
+      "vendor_name": "Invented Harbor Invoice Workshop 4",
+      "customer_name": "Synthetic Cedar Research",
+      "invoice_date": "2026-09-30",
+      "total_amount": 124.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "ambiguous_label"
+  },
+  {
+    "id": "oct01_holdout_receipt_01",
+    "doc_type": "receipt",
+    "weight": 1,
+    "critical_fields": [
+      "merchant_name",
+      "total",
+      "transaction_date"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nReceipt number: HO-REC-OCT01-01\nMerchant: Invented Harbor Receipt Workshop 1\nTransaction date: 2026-09-30\nTotal paid: USD 73.25\nReference note: synthetic paper order, no customer records",
+    "expected": {
+      "receipt_number": "HO-REC-OCT01-01",
+      "merchant_name": "Invented Harbor Receipt Workshop 1",
+      "transaction_date": "2026-09-30",
+      "total": 73.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "ordinary"
+  },
+  {
+    "id": "oct01_holdout_receipt_02",
+    "doc_type": "receipt",
+    "weight": 1,
+    "critical_fields": [
+      "merchant_name",
+      "total",
+      "transaction_date"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nTotal paid: USD 90.25\nTransaction date: 2026-09-30\nMerchant: Invented Harbor Receipt Workshop 2\nReceipt number: HO-REC-OCT01-02\nReference note: synthetic paper order, no customer records",
+    "expected": {
+      "receipt_number": "HO-REC-OCT01-02",
+      "merchant_name": "Invented Harbor Receipt Workshop 2",
+      "transaction_date": "2026-09-30",
+      "total": 90.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "reordered"
+  },
+  {
+    "id": "oct01_holdout_receipt_03",
+    "doc_type": "receipt",
+    "weight": 1,
+    "critical_fields": [
+      "merchant_name",
+      "total",
+      "transaction_date"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nReceipt number: HO-REC-OCT01-03\nMerchant: Invented Harbor Receipt Workshop 3\nTransaction date: 2026-09-30\nTotal paid: USD 107.25",
+    "expected": {
+      "receipt_number": "HO-REC-OCT01-03",
+      "merchant_name": "Invented Harbor Receipt Workshop 3",
+      "transaction_date": "2026-09-30",
+      "total": 107.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "optional_omitted"
+  },
+  {
+    "id": "oct01_holdout_receipt_04",
+    "doc_type": "receipt",
+    "weight": 1,
+    "critical_fields": [
+      "merchant_name",
+      "total",
+      "transaction_date"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nDRAFT subtotal estimate: USD 999.00 (not the final total)\nReceipt number: HO-REC-OCT01-04\nMerchant: Invented Harbor Receipt Workshop 4\nTransaction date: 2026-09-30\nTotal paid: USD 124.25\nReference note: synthetic paper order, no customer records",
+    "expected": {
+      "receipt_number": "HO-REC-OCT01-04",
+      "merchant_name": "Invented Harbor Receipt Workshop 4",
+      "transaction_date": "2026-09-30",
+      "total": 124.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "ambiguous_label"
+  },
+  {
+    "id": "oct01_holdout_purchase_order_01",
+    "doc_type": "purchase_order",
+    "weight": 1,
+    "critical_fields": [
+      "po_number",
+      "total_amount",
+      "vendor_name",
+      "customer_name"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nPurchase order number: HO-PUR-OCT01-01\nSupplier: Invented Harbor Purchase_Order Workshop 1\nBuyer: Synthetic Cedar Research\nOrder date: 2026-09-30\nOrder total: USD 73.25\nReference note: synthetic paper order, no customer records",
+    "expected": {
+      "po_number": "HO-PUR-OCT01-01",
+      "vendor_name": "Invented Harbor Purchase_Order Workshop 1",
+      "customer_name": "Synthetic Cedar Research",
+      "order_date": "2026-09-30",
+      "total_amount": 73.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "ordinary"
+  },
+  {
+    "id": "oct01_holdout_purchase_order_02",
+    "doc_type": "purchase_order",
+    "weight": 1,
+    "critical_fields": [
+      "po_number",
+      "total_amount",
+      "vendor_name",
+      "customer_name"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nOrder total: USD 90.25\nOrder date: 2026-09-30\nBuyer: Synthetic Cedar Research\nSupplier: Invented Harbor Purchase_Order Workshop 2\nPurchase order number: HO-PUR-OCT01-02\nReference note: synthetic paper order, no customer records",
+    "expected": {
+      "po_number": "HO-PUR-OCT01-02",
+      "vendor_name": "Invented Harbor Purchase_Order Workshop 2",
+      "customer_name": "Synthetic Cedar Research",
+      "order_date": "2026-09-30",
+      "total_amount": 90.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "reordered"
+  },
+  {
+    "id": "oct01_holdout_purchase_order_03",
+    "doc_type": "purchase_order",
+    "weight": 1,
+    "critical_fields": [
+      "po_number",
+      "total_amount",
+      "vendor_name",
+      "customer_name"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nPurchase order number: HO-PUR-OCT01-03\nSupplier: Invented Harbor Purchase_Order Workshop 3\nBuyer: Synthetic Cedar Research\nOrder date: 2026-09-30\nOrder total: USD 107.25",
+    "expected": {
+      "po_number": "HO-PUR-OCT01-03",
+      "vendor_name": "Invented Harbor Purchase_Order Workshop 3",
+      "customer_name": "Synthetic Cedar Research",
+      "order_date": "2026-09-30",
+      "total_amount": 107.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "optional_omitted"
+  },
+  {
+    "id": "oct01_holdout_purchase_order_04",
+    "doc_type": "purchase_order",
+    "weight": 1,
+    "critical_fields": [
+      "po_number",
+      "total_amount",
+      "vendor_name",
+      "customer_name"
+    ],
+    "input_text": "SYNTHETIC DOCUMENT FOR LOCAL EVALUATION\nDRAFT subtotal estimate: USD 999.00 (not the final total)\nPurchase order number: HO-PUR-OCT01-04\nSupplier: Invented Harbor Purchase_Order Workshop 4\nBuyer: Synthetic Cedar Research\nOrder date: 2026-09-30\nOrder total: USD 124.25\nReference note: synthetic paper order, no customer records",
+    "expected": {
+      "po_number": "HO-PUR-OCT01-04",
+      "vendor_name": "Invented Harbor Purchase_Order Workshop 4",
+      "customer_name": "Synthetic Cedar Research",
+      "order_date": "2026-09-30",
+      "total_amount": 124.25,
+      "currency": "USD"
+    },
+    "source": "Fresh synthetic authored October 1, 2026",
+    "license": "User-authorized synthetic evaluation material; no third-party source",
+    "variation": "ambiguous_label"
+  }
+]
