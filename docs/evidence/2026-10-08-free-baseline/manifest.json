@@ -213,7 +213,7 @@
       "origin": "ChunkyTortoise/docextract@09a690bc9efc873ee59725c685a2ec604b6ef247:LICENSE"
     },
     "README.md": {
-      "sha256": "2eed59c64bf98c0e9fdbedf9c7977f9b4fb6b793a6c74f7b0e277dce68704e94",
+      "sha256": "820df0ac1b3a5f751f9df5a58639cebed8469bf74a548c58e0fbb87a0d6310bf",
       "origin": "Derived local preparation; reviewed under GitHub hiring-evidence spec/plan"
     },
     "verify_saved_run.py": {
