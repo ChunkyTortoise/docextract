@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import streamlit as st
 
-from frontend.comparison_samples import DATA_DIR, LABEL
 from frontend.demo_mode import (
     list_demo_doc_types,
     load_demo_agent_trace,
@@ -13,6 +12,7 @@ from frontend.demo_mode import (
     load_demo_extraction,
     load_demo_search,
 )
+from frontend.demo_result import render_stored_result
 
 
 def _set_recorded_search_complete(completed: bool) -> None:
@@ -20,9 +20,9 @@ def _set_recorded_search_complete(completed: bool) -> None:
 
 
 def show() -> None:
-    st.title("Document to data.")
     st.caption("DOCEXTRACT / FIXTURE EXPLORER")
-    st.info("Fixture mode: inspect stored JSON outputs. No upload, model call, or database.")
+    st.title("Document to data.")
+    st.caption("Fixture mode: inspect stored JSON outputs. No upload, model call or database.")
     extract_tab, search_tab, trace_tab, eval_tab, cost_tab = st.tabs(
         ["Fields", "Search", "Trace", "Eval", "Cost"]
     )
@@ -30,47 +30,7 @@ def show() -> None:
     with extract_tab:
         doc_type = st.selectbox("Document sample", list_demo_doc_types(), format_func=str.title)
         result = load_demo_extraction(doc_type)
-        st.subheader(f"{result['document_type'].title()} / structured result")
-        st.caption(
-            f"Source: frontend/demo_data/{doc_type}_sample.json | "
-            f"Stored sample: {result['filename']}"
-        )
-        with st.expander("Compare a synthetic source sample"):
-            comparison = (DATA_DIR / "comparison" / f"{doc_type}.html").read_text()
-            st.caption(LABEL)
-            st.html(comparison)
-            st.download_button(
-                "Download synthetic comparison HTML", comparison,
-                file_name=f"synthetic_{doc_type}_comparison.html", mime="text/html",
-                key=f"comparison_download_{doc_type}",
-            )
-        st.table(
-            [
-                {
-                    "Field": key.replace("_", " ").title(),
-                    "Stored value": str(value)
-                    if not isinstance(value, list)
-                    else f"{len(value)} entries (see JSON)",
-                    "Sample confidence": (
-                        f"{result['field_confidence'][key]:.0%}"
-                        if key in result["field_confidence"]
-                        else "Not supplied"
-                    ),
-                }
-                for key in dict.fromkeys([*result["field_confidence"], *result["extracted_data"]])
-                for value in [result["extracted_data"][key]]
-            ],
-        )
-        st.caption(
-            "These are stored outputs, not an extraction of a document in this session. "
-            "Confidence values are not calibrated accuracy or the offline replay score."
-        )
-        with st.expander("Inspect the complete fixture JSON"):
-            st.json(result)
-        st.markdown(
-            "**Reproduce the separate offline evaluation:** "
-            "`python scripts/eval_offline_replay.py --floor 0.85`"
-        )
+        render_stored_result(doc_type, result)
 
     with search_tab:
         sample = load_demo_search()
