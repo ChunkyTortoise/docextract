@@ -5,7 +5,9 @@ inside the child process (standalone module, no app.* wiring beyond targets).
 """
 from __future__ import annotations
 
+import asyncio
 import importlib
+import inspect
 import multiprocessing
 import time
 from typing import TYPE_CHECKING
@@ -42,6 +44,9 @@ def _parse_child(
         result = _resolve_target(target)(
             file_bytes, mime_type, filename, deadline=deadline
         )
+        # ingest is async; the child has no running loop, so drive it here.
+        if inspect.iscoroutine(result):
+            result = asyncio.run(result)
         conn.send(("ok", result))
     except BaseException as exc:  # noqa: BLE001 - report any child failure
         try:

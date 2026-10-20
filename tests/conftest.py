@@ -129,8 +129,9 @@ def _reset_shared_model_routers():
     reset_shared_routers()
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def test_engine():
+    """Give each test a fresh database, including routes that commit transactions."""
     engine_kwargs: dict = {}
     if TEST_DB_URL.startswith("sqlite"):
         engine_kwargs = {

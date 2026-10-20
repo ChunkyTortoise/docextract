@@ -1,12 +1,15 @@
 """Tests for worker tasks — pipeline orchestrator."""
 from __future__ import annotations
 
+import asyncio
 import sys
 import uuid
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+from arq import Retry
 
 from app.config import settings
 from app.services.webhook_sender import RETRY_DELAYS
@@ -79,8 +82,9 @@ class TestProcessDocumentTopLevel:
     """Tests using patched _process to verify error handling."""
 
     @pytest.mark.asyncio
-    async def test_transient_error_reraises(self, job_id, mock_redis):
-        """Test that transient errors are re-raised for ARQ retry."""
+    @pytest.mark.parametrize("job_try", [1, 2])
+    async def test_transient_error_requests_retry(self, job_id, mock_redis, job_try):
+        """Early transient failures schedule retry without terminal failure."""
         from worker.tasks import process_document
 
         with patch("worker.tasks.AsyncSessionLocal") as mock_session_cls:
@@ -89,9 +93,11 @@ class TestProcessDocumentTopLevel:
             mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
             with patch("worker.tasks._process", side_effect=ConnectionError("redis down")):
-                with patch("worker.tasks._fail_job", new_callable=AsyncMock):
-                    with pytest.raises(ConnectionError):
-                        await process_document({"redis": mock_redis}, job_id)
+                with patch("worker.tasks._fail_job", new_callable=AsyncMock) as fail:
+                    with pytest.raises(Retry) as exc:
+                        await process_document({"redis": mock_redis, "job_try": job_try}, job_id)
+                    assert 0 < exc.value.defer_score <= 2000
+                    fail.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_permanent_error_returns_failed(self, job_id, mock_redis):
@@ -121,9 +127,47 @@ class TestProcessDocumentTopLevel:
             mock_session_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
             with patch("worker.tasks._process", side_effect=httpx.ReadTimeout("timeout")):
-                with patch("worker.tasks._fail_job", new_callable=AsyncMock):
-                    with pytest.raises(httpx.ReadTimeout):
-                        await process_document({"redis": mock_redis}, job_id)
+                with patch("worker.tasks._fail_job", new_callable=AsyncMock) as fail:
+                    with pytest.raises(Retry):
+                        await process_document({"redis": mock_redis, "job_try": 1}, job_id)
+                    fail.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_final_transient_attempt_marks_failed_and_reraises(self, job_id, mock_redis):
+        from worker.tasks import process_document
+
+        db = AsyncMock()
+        with patch("worker.tasks.AsyncSessionLocal") as session:
+            session.return_value.__aenter__ = AsyncMock(return_value=db)
+            session.return_value.__aexit__ = AsyncMock(return_value=False)
+            with patch("worker.tasks._process", side_effect=ConnectionError("unavailable")):
+                with patch("worker.tasks._fail_job", new_callable=AsyncMock) as fail:
+                    with pytest.raises(ConnectionError, match="unavailable"):
+                        await process_document({"redis": mock_redis, "job_try": 3}, job_id)
+                    fail.assert_awaited_once_with(db, mock_redis, job_id, "unavailable")
+
+    @pytest.mark.asyncio
+    async def test_final_transient_error_survives_failed_event_publication(self, job_id, mock_redis):
+        """Failure reporting must not replace the exhausted pipeline error."""
+        from redis.exceptions import ConnectionError as RedisConnectionError
+
+        from worker.tasks import process_document
+
+        original = httpx.ReadTimeout("provider timed out")
+        job = SimpleNamespace(status="extracting_data")
+        db = AsyncMock()
+        db.execute.return_value.scalar_one_or_none = MagicMock(return_value=job)
+        with patch("worker.tasks.AsyncSessionLocal") as session:
+            session.return_value.__aenter__ = AsyncMock(return_value=db)
+            session.return_value.__aexit__ = AsyncMock(return_value=False)
+            with patch("worker.tasks._process", side_effect=original):
+                with patch("worker.events.publish_event", side_effect=RedisConnectionError("Redis down")):
+                    with pytest.raises(httpx.ReadTimeout) as exc:
+                        await process_document({"redis": mock_redis, "job_try": 3}, job_id)
+        assert exc.value is original
+        assert job.status == "failed"
+        assert job.error_message == "provider timed out"
+        db.commit.assert_awaited_once()
 
 
 class TestProcessPipeline:
@@ -200,6 +244,183 @@ class TestProcessPipeline:
             assert result["status"] == "completed"
             assert "record_id" in result
             assert result["document_type"] == "invoice"
+        finally:
+            for p in patches:
+                p.stop()
+
+    @pytest.mark.asyncio
+    async def test_worker_entrypoint_completes_valid_extraction(
+        self, job_id, mock_job, mock_redis, pipeline_mocks
+    ):
+        """The ARQ entry point commits and reports a valid extraction as completed."""
+        mock_db, patches, _ = pipeline_mocks
+        session = MagicMock()
+        session.__aenter__ = AsyncMock(return_value=mock_db)
+        session.__aexit__ = AsyncMock(return_value=False)
+
+        try:
+            with (
+                patch("worker.tasks.AsyncSessionLocal", return_value=session),
+                patch("worker.tasks._start_task_span", return_value=None),
+            ):
+                from worker.tasks import process_document
+
+                result = await process_document({"redis": mock_redis}, job_id)
+
+            assert result["status"] == "completed"
+            assert mock_job.status == "completed"
+            mock_db.commit.assert_awaited_once()
+        finally:
+            for p in patches:
+                p.stop()
+
+    @pytest.mark.asyncio
+    async def test_vision_ingestion_in_worker_context_does_not_raise(
+        self, job_id, mock_redis, pipeline_mocks, monkeypatch
+    ):
+        """Real async ingest runs the vision branch inside the worker event loop.
+
+        Regression lock for H1: ``ingest`` used to call ``asyncio.run`` inside
+        the worker's running loop, raising RuntimeError when vision was
+        enabled. The real (unmocked) ``ingest`` must complete the vision path;
+        only the vision API client is mocked.
+        """
+        from app.services.vision_extractor import ExtractedContent as VisionContent
+
+        monkeypatch.setattr(
+            "app.services.ingestion.settings.ocr_engine", "vision", raising=False
+        )
+
+        mock_db, patches, _ = pipeline_mocks
+        # Stop the parse-subprocess mock and run the real async ingest
+        # in-process (mocks do not cross the spawn boundary). It still runs
+        # on a worker thread, as the subprocess child would.
+        patches[2].stop()
+        patches.remove(patches[2])
+        from app.services.ingestion import ingest as real_ingest
+
+        def _in_process_parse(file_bytes, mime_type, filename, deadline=None):
+            return asyncio.run(
+                real_ingest(file_bytes, mime_type, filename, deadline=deadline)
+            )
+
+        in_process = patch(
+            "worker.tasks.run_parse_subprocess", side_effect=_in_process_parse
+        )
+        in_process.start()
+        patches.append(in_process)
+        # Point MIME detection at an image MIME handled by the vision branch.
+        patches[1].stop()
+        patches.remove(patches[1])
+        image_mime = patch(
+            "app.utils.mime.detect_mime_type", return_value="image/png"
+        )
+        image_mime.start()
+        patches.append(image_mime)
+        # Mock only the vision API call; ingestion's vision branch stays real.
+        vision_mock = patch(
+            "app.services.vision_extractor.extract_vision",
+            new_callable=AsyncMock,
+            return_value=VisionContent(
+                text="Invoice #12345\nTotal: $500.00",
+                metadata={"extraction_method": "vision", "_injection_defended": True},
+                page_count=1,
+            ),
+        )
+        vision_mock.start()
+        patches.append(vision_mock)
+
+        try:
+            from worker.tasks import _process
+
+            result = await _process(mock_db, mock_redis, job_id)
+        finally:
+            for p in patches:
+                p.stop()
+
+        assert result["status"] == "completed"
+        assert result["document_type"] == "invoice"
+
+    @pytest.mark.parametrize(
+        ("extractor_errors", "expected_message"),
+        [
+            (
+                ["Instructor retry exhausted after 3 attempts: invalid output"],
+                "Instructor retry exhausted after 3 attempts: invalid output",
+            ),
+            ([], "Extraction output failed schema validation"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_worker_entrypoint_routes_schema_invalid_output_to_review(
+        self,
+        job_id,
+        mock_job,
+        mock_redis,
+        pipeline_mocks,
+        extractor_errors,
+        expected_message,
+    ):
+        """A schema-invalid extractor result remains visible at the worker boundary."""
+        from app.models.record import ExtractedRecord
+        from app.models.validation_error import ValidationError as ValidationErrorModel
+        from app.services.claude_extractor import ExtractionResult
+
+        mock_db, patches, started = pipeline_mocks
+        publish_event = started[-1]
+        mock_job.webhook_url = "https://example.com/hook"
+        session = MagicMock()
+        session.__aenter__ = AsyncMock(return_value=mock_db)
+        session.__aexit__ = AsyncMock(return_value=False)
+
+        try:
+            with (
+                patch("worker.tasks.AsyncSessionLocal", return_value=session),
+                patch("worker.tasks._start_task_span", return_value=None),
+                patch(
+                    "app.services.claude_extractor.extract",
+                    new_callable=AsyncMock,
+                    return_value=ExtractionResult(
+                        data={},
+                        confidence=0.0,
+                        schema_valid=False,
+                        validation_errors=extractor_errors,
+                    ),
+                ),
+            ):
+                from worker.tasks import process_document
+
+                result = await process_document({"redis": mock_redis}, job_id)
+
+            records = [
+                call.args[0]
+                for call in mock_db.add.call_args_list
+                if isinstance(call.args[0], ExtractedRecord)
+            ]
+            extraction_errors = [
+                call.args[0]
+                for call in mock_db.add.call_args_list
+                if isinstance(call.args[0], ValidationErrorModel)
+                and call.args[0].rule_name == "SCHEMA_VALIDATION_FAILED"
+            ]
+
+            assert result["status"] == "needs_review"
+            assert mock_job.status == "needs_review"
+            assert len(records) == 1
+            assert records[0].validation_status == "pending_review"
+            assert records[0].needs_review is True
+            assert len(extraction_errors) == 1
+            assert extraction_errors[0].message == expected_message
+            mock_db.commit.assert_awaited_once()
+            assert publish_event.await_args_list[-1].args[2]["status"] == "needs_review"
+            webhook_calls = [
+                c for c in mock_redis.enqueue_job.await_args_list
+                if c.args and c.args[0] == "deliver_webhook"
+            ]
+            assert len(webhook_calls) == 1
+            webhook_payload = webhook_calls[0].args[2]
+            assert webhook_payload["event"] == "job.needs_review"
+            assert webhook_payload["status"] == "needs_review"
         finally:
             for p in patches:
                 p.stop()
@@ -330,7 +551,7 @@ class TestProcessPipeline:
             from worker.tasks import _process
             result = await _process(mock_db, mock_redis, job_id)
 
-            assert result["status"] == "completed"
+            assert result["status"] == "needs_review"
             # db.add called for: record + audit_log + validation_error + embedding = 4
             assert mock_db.add.call_count == 4
         finally:

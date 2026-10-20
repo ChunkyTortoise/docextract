@@ -1,0 +1,35 @@
+{
+  "verification": "Scores independently recomputed from saved predictions against frozen references; trace hashes checked",
+  "human_review": "PENDING, no human labels or output acceptance asserted",
+  "case_count": 12,
+  "attempted_count": 12,
+  "schema_valid_completion_count": 12,
+  "primary_score": 1.0,
+  "declared_denominator_score": 1.0,
+  "cost_usd": "0",
+  "stop_reason": null,
+  "latency_p50_ms": 15287.200000000666,
+  "latency_p95_ms": 27617.37095799981,
+  "latency_method": "nearest rank over attempted calls, including failures",
+  "by_type": {
+    "invoice": {
+      "case_count": 4,
+      "mean_declared_denominator_score": 1.0
+    },
+    "receipt": {
+      "case_count": 4,
+      "mean_declared_denominator_score": 1.0
+    },
+    "purchase_order": {
+      "case_count": 4,
+      "mean_declared_denominator_score": 1.0
+    }
+  },
+  "source_revision": "09a690bc9efc873ee59725c685a2ec604b6ef247",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "providers_observed": [
+    "Nvidia"
+  ],
+  "partition_manifest_sha256": "ac459034df9d76018f1953637b71eb22776e7ca9f1590bccf878868176a9b64f",
+  "run_sha256": "9ba5b31ebb6b744d80e3a95e6e1901b2308f2902e41bf96f32be1897de906e5e"
+}

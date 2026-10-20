@@ -9,21 +9,23 @@ from app.services.ingestion import UnsupportedMimeType, ingest
 from app.services.pdf_extractor import ExtractedContent
 
 
-def test_ingestion_routing_pdf():
+@pytest.mark.asyncio
+async def test_ingestion_routing_pdf():
     """PDF files route to pdf_extractor."""
     with patch("app.services.ingestion.extract_pdf") as mock_pdf:
         mock_pdf.return_value = ExtractedContent(text="Invoice content", page_count=1)
 
-        result = ingest(b"%PDF-1.4", "application/pdf", "test.pdf")
+        result = await ingest(b"%PDF-1.4", "application/pdf", "test.pdf")
 
         mock_pdf.assert_called_once()
         assert result.text == "Invoice content"
 
 
-def test_ingestion_routing_unsupported():
+@pytest.mark.asyncio
+async def test_ingestion_routing_unsupported():
     """Unsupported MIME raises UnsupportedMimeType."""
     with pytest.raises(UnsupportedMimeType):
-        ingest(b"data", "application/zip", "test.zip")
+        await ingest(b"data", "application/zip", "test.zip")
 
 
 def test_chunker_splits_long_text():

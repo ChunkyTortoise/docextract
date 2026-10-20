@@ -1,52 +1,132 @@
-# DocExtract AI
+# DocExtract: document extraction with an eval gate in CI
 
-Documents arrive as PDFs, scans, and emails; the job is to get trustworthy structured fields out without hiding uncertain results.
+DocExtract turns invoices, receipts, statements and other PDFs or scans into validated structured records you can search. Every pull request that touches prompts or the extractor re-scores a committed set of extraction outputs, and the check fails if the score falls below a floor or drops from baseline. This offline check scores frozen predictions; it does not rerun the extractor or detect prompt/model regressions. Those require a live evaluation.
 
-![DocExtract demo showing extraction progress streamed to the UI](docs/screenshots/sse-streaming-demo.gif)
+Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and agentic RAG for questions over stored documents.
 
-| Evidence | Population and method |
-|----------|-----------------------|
-| Replay coverage | 28 committed prediction fixtures replayed against 72 lookup cases; 44 cases have no prediction fixture and remain pending. |
-| Field-level accuracy | **0.9555 (95.5% rounded)** over those 28 fixtures, aggregated with case weights by [the replay script](scripts/eval_offline_replay.py). |
-| Replay split | 16 golden fixtures score 0.9264; 12 adversarial fixtures score 1.0, using the same case-weighted field-level method. |
-| Scorer | Critical fields receive 2x weight. Recall only: unexpected output fields are ignored. This is not F1. |
-| Authoring corpus | 200 cases (150 golden + 50 adversarial), stored as 202 JSONL lines including two metadata rows. This inventory is separate from the score population. |
+[![CI](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
+[![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-From the repository root, no API key is needed. The UI command requires Streamlit installed and serves cached samples:
+<p align="center">
+  <img src="./docs/screenshots/demo-hero.png" width="720" alt="DocExtract fixture explorer showing stored invoice fields, sample values, and explicitly labeled sample confidence." />
+</p>
+<p align="center"><sub>Fixture explorer, runnable with no API key (<a href="#quickstart-no-api-key">Quickstart</a>, step 2). <a href="docs/screenshots/fixture-walkthrough.gif">9-second walkthrough</a> · <a href="docs/screenshots/demo-mobile.png">mobile view</a> · <a href="docs/screenshots/PROVENANCE.md">capture provenance</a></sub></p>
+
+## Results
+
+| Kind | Result | Value | Source |
+|---|---|---|---|
+| Measured | Weighted field-level extraction score (critical fields 2×, partial credit for near matches) | **95.5%** on a 28-fixture offline replay | [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) · [`autoresearch/baseline.json`](autoresearch/baseline.json) · [evidence note](docs/retrieval-extraction-evidence.md#extraction-replay) |
+| CI gate | Replay floor: the Offline replay check fails below it, or on a drop of more than 0.03 from baseline | **0.85** | [`eval-gate.yml`](.github/workflows/eval-gate.yml) · [recorded failing run](https://github.com/ChunkyTortoise/docextract/actions/runs/29670515963/job/88148512559) |
+| CI gate | Test coverage floor | **80%** | [`ci.yml`](.github/workflows/ci.yml) (`--cov-fail-under=80`) · [metrics ledger](docs/portfolio-metrics.yaml) |
+| Inventory | Eval authoring corpus | **200 cases** (150 golden + 50 adversarial) | [`evals/golden_set.jsonl`](evals/golden_set.jsonl) · [`evals/adversarial_set.jsonl`](evals/adversarial_set.jsonl) |
+| Inventory | Architecture decision records | **20 ADRs** | [docs/adr/](docs/adr/) |
+
+Each number is sourced in this table; other sections refer back to it. The scope of each one is in [Methodology & limits](#methodology--limits).
+
+[Engineering evidence](docs/reliability-evidence.md): observed queue and database failures, repairs, test receipts and reproduction boundaries.
+
+[Historical single-pass extraction diagnostic](docs/evidence/2026-10-08-free-baseline/README.md): saved outputs and offline verification for 12 frozen synthetic text cases using Nemotron at source `09a690b`. The reference-field score does not assess every output field. Human review found three subtotal mappings that conflict with the accepted draft-only policy; all other saved fields were accepted. This is separate from the production extraction pipeline.
+
+## Quickstart (no API key)
+
+Clone the repository first; all commands below run from its root:
 
 ```bash
-python scripts/eval_offline_replay.py
-DEMO_MODE=true streamlit run frontend/app.py
+git clone https://github.com/ChunkyTortoise/docextract.git
+cd docextract
 ```
 
-**Limits:** Replay guards only the scorer and frozen fixtures; live-model quality is unmeasured; cost and latency are modeled with no metered run committed; no hosted demo URL is published.
+**1. Reproduce the replay score.** Python 3.10+, from the repository root:
 
-[![Tests](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/ci.yml)
-[![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
+```bash
+python scripts/eval_offline_replay.py --floor 0.85
+```
 
-## Eval gate
+It scores the committed prediction fixtures in `autoresearch/golden_responses/` against `autoresearch/eval_dataset_72.json` and should print the combined score from the [Results](#results) table (legacy output labels it `F1`; see [Methodology & limits](#methodology--limits)).
 
-Replay regressions beyond the configured tolerance fail the check. It does not catch prompt or extractor regressions; those rely on code review and the currently unfunded paid live path. Merge enforcement depends on branch settings; the [recorded audit](docs/retrieval-extraction-evidence.md#ci-and-merge-enforcement) found the branch unprotected.
+**2. Explore stored extractions in the UI.**
+
+```bash
+python -m venv .venv-demo
+.venv-demo/bin/python -m pip install -r requirements_demo.txt
+.venv-demo/bin/python -m streamlit run streamlit_demo.py
+```
+
+The explorer reads committed JSON samples from `frontend/demo_data/` and makes no model or database calls. It uses a separate demo environment so Streamlit dependencies don't mix with the backend stack. On Windows, use `.venv-demo\Scripts\python`. The Fields / Search / Trace / Eval / Cost walkthrough is in [DEMO.md](DEMO.md).
+
+**3. Run the full stack (needs API keys).**
+
+```bash
+cp .env.example .env  # add ANTHROPIC_API_KEY and GEMINI_API_KEY
+docker compose up -d
+open http://localhost:8501  # Streamlit UI
+```
+
+Services: API `:8000` (`/docs` for Swagger) · Frontend `:8501` · PostgreSQL `:5432` · Redis `:6379`.
+
+## How it works
+
+```mermaid
+flowchart LR
+  UI["Streamlit UI or API client"] -->|"POST /api/v1/documents/upload"| API["FastAPI"]
+  API -->|"enqueue"| Q[("Redis + ARQ")]
+  Q --> ING
+  subgraph W["ARQ worker"]
+    ING["Ingest: PDF text or OCR"] --> CLS["Classify: Haiku, Sonnet fallback"]
+    CLS --> EXT["Two-pass extract: Sonnet, Haiku fallback, injection guard"]
+    EXT --> VAL["Validate"]
+    VAL --> EMB["Embed: Gemini"]
+    EMB --> STO["Store record and embedding"]
+  end
+  STO --> DB[("Postgres + pgvector HNSW")]
+  W -.->|"stage events via Redis pub/sub"| API
+  API -->|"SSE job events"| UI
+  UI -->|"POST /api/v1/agent-search/stream"| RAG["Agentic RAG: ReAct over vector, BM25, hybrid tools"]
+  RAG --> DB
+  STO -.->|"about 1 in 10 jobs"| J["LLM judge: Gemini, Haiku fallback, off by default"]
+  W -.->|"model calls"| T[("llm_traces: tokens, latency")]
+  RAG -.->|"model calls"| T
+  T --> M["GET /api/v1/metrics/llm"]
+  subgraph CI["CI only, not on the request path"]
+    R["Offline replay: 28 committed fixtures"] --> G{"score floor"}
+  end
+```
+
+- **Two-pass extraction:** pass 1 extracts fields and a confidence score; a correction pass runs only when confidence falls below a per-document-type threshold ([ADR-0003](docs/adr/0003-two-pass-extraction.md)). Pydantic v2 schemas reject malformed output before it is stored.
+- **Cost-aware routing:** Haiku classifies and Sonnet extracts, with prompt caching on system prompts and a circuit breaker that falls back to Haiku ([ADR-0006](docs/adr/0006-circuit-breaker-model-fallback.md), [ADR-0015](docs/adr/0015-prompt-caching.md)).
+- **Agentic RAG:** a ReAct loop (think, act, observe) over vector, BM25 and hybrid retrieval tools, with reasoning streamed over SSE ([`agentic_rag.py`](app/services/agentic_rag.py), [`agent_trace.py`](frontend/pages/agent_trace.py)).
+- **Prompt-injection defense:** runtime fencing, scanning and output sanitization on both the text and vision extraction paths, with adversarial tests ([ADR-0020](docs/adr/0020-indirect-prompt-injection-defense.md)).
+- **Async pipeline:** an ARQ worker on Redis does the processing; pgvector HNSW stores the embeddings ([ADR-0001](docs/adr/0001-arq-over-celery.md), [ADR-0002](docs/adr/0002-pgvector-over-dedicated-vector-db.md)).
+- **Versioned prompts and PII redaction in traces:** [prompt registry](app/services/prompt_registry.py) and [`pii_sanitizer.py`](app/services/pii_sanitizer.py).
+
+Deployment artifacts: [AWS ECS Terraform](deploy/aws-ecs/), [Kubernetes manifests](deploy/) and [Grafana configuration](deploy/grafana/).
+
+## How it's evaluated
 
 | Signal | What runs | When |
 |--------|-----------|------|
-| Offline replay (badge driver) | Frozen response scoring with `scripts/eval_offline_replay.py` | Every eval-gate workflow run, without credentials |
-| Paid live eval | Promptfoo, RAGAS, and LLM judge | When `ANTHROPIC_API_KEY` is configured in CI |
-| Baseline comparison | `scripts/eval_gate.py` compares live-job artifacts with `autoresearch/baseline.json` | Within the paid live job |
-| Held-out live protocol | [Procedure for an untouched test partition](docs/held-out-live-eval-protocol.md) | After API credits are available |
-| Drift check | Scheduled comparison against the baseline | Daily; live stages require the paid key |
+| **Offline replay** (badge driver) | `scripts/eval_offline_replay.py` on 28 committed fixtures, against the floor in [Results](#results) | Every eval-relevant PR, pushes to `main`, and a daily drift run; zero API cost |
+| **Live-eval threshold gate** | `scripts/eval_gate.py`: Promptfoo, Ragas and LLM-judge outputs vs thresholds and `autoresearch/baseline.json` | Inside the paid live job when `ANTHROPIC_API_KEY` is configured in CI |
+| **CI LLM judge** | `scripts/eval_llm_judge.py` grades the golden and adversarial sets. CI calls it without `--provider`, so it uses the script default (Anthropic, Claude Haiku); `--provider openai` or `gemini` is available | Paid live job only |
+| **In-app judge** | Gemini 2.5 Flash, with Claude Haiku fallback, grades a sample of extractions to reduce self-grading bias ([ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md)) | Runtime, about 1 in 10 jobs when enabled; off by default |
+| **Held-out live protocol** | Public or synthetic docs, untouched test partition, `score_extraction` | [Protocol](docs/held-out-live-eval-protocol.md) ready for a funded run |
 
-[PR #32](https://github.com/ChunkyTortoise/docextract/pull/32) deliberately fails the replay check to demonstrate a regression. The [gate proof](docs/eval-gate-proof.md) records the demonstration; [evaluation methodology](docs/eval-methodology.md) explains the workflow.
+To see the gate catch a regression, read [docs/eval-gate-proof.md](docs/eval-gate-proof.md): a demo branch corrupted eight fixtures, and the [recorded Offline replay job](https://github.com/ChunkyTortoise/docextract/actions/runs/29670515963/job/88148512559) failed below the floor. The proof note keeps the log excerpt and the commands to reproduce it.
 
-| Metric | Value | Basis |
-|--------|-------|-------|
-| Extraction accuracy | **95.5%** | Case-weighted field-level accuracy from offline replay of 28 committed prediction fixtures |
-| Test suite | **80% CI coverage gate** | Project Python coverage enforced with `--cov-fail-under=80` |
-| Authoring corpus | **200 cases** (150 golden + 50 adversarial) | Inventory of `evals/golden_set.jsonl` and `evals/adversarial_set.jsonl`: 202 lines including two metadata rows |
-| Cost / latency | See [cost-model.md](docs/cost-model.md) | Pricing and call-distribution assumptions |
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/eval/replay-by-doc-type-dark.svg">
+    <img src="docs/assets/eval/replay-by-doc-type-light.svg" width="720" alt="Dot chart of weighted field-level accuracy per document type from the 28-fixture offline replay, with the case count on each row and the 0.85 CI floor marked.">
+  </picture>
+</p>
+
+The chart is generated from the replay output by `python scripts/render_eval_chart.py`, and `tests/unit/test_render_eval_chart.py` fails if it drifts from the committed fixtures.
 
 <details>
-<summary>Offline replay by document type (case-weighted field-level accuracy)</summary>
+<summary>Replay score by document type (weighted field-level score)</summary>
 
 | Document type | Score | Replayed fixtures |
 |---|---|---|
@@ -57,80 +137,24 @@ Replay regressions beyond the configured tolerance fail the check. It does not c
 | medical_record | 0.9923 | 3 |
 | identity_document | 0.8139 | 1 |
 
-For comparison, the [historical baseline](autoresearch/baseline.json) stores 0.95546 for weighted field-level accuracy on 28 committed fixtures. The [scoring reference](docs/eval-boundary.md) documents field matching and case weighting.
+The overall score across all 28 fixtures is the Results figure. Recorded 2026-09-19 (RA11).
 
 </details>
 
-## What this does
-
-FastAPI accepts uploads and queues extraction in ARQ. The worker classifies the document, runs Claude extraction and validation, flags records for human review, and stores embeddings in pgvector. Search supports vector retrieval, keyword matching, and agentic RAG.
-
-```text
-Upload → ARQ worker → classify → extract → validate → embed → search / agentic RAG
-```
-
-The [case study](CASE_STUDY.md) explains the design choices and known failure modes.
-
-## Why this is interesting (engineering)
-
-- **Offline evaluation in CI:** Baseline comparison, fixture-count checks, and downloadable score artifacts.
-- **FastAPI and typed schemas:** Pydantic validation checks extraction shapes and records schema errors alongside results.
-- **PostgreSQL and ARQ:** pgvector HNSW indexing for embeddings; Redis and ARQ keep document processing outside the upload request.
-- **Agentic RAG:** A ReAct loop selects retrieval tools and streams its steps ([agentic_rag.py](app/services/agentic_rag.py), [trace viewer](frontend/pages/agent_trace.py)).
-- **Model routing:** Haiku-first classification, Sonnet-first extraction, per-model circuit breakers, and prompt caching.
-- **Independent judge:** Gemini-first LLM judge, off by default, CI provider configurable ([judge decision](docs/adr/0018-independent-judge-and-multi-provider-router.md)).
-- **Optional observability:** Langfuse, LangSmith, and OpenTelemetry integrations ([observability.py](app/observability.py)).
-- **Prompt-injection defense:** An untrusted-document fence, pattern scanning, and output sanitization ([defense decision](docs/adr/0020-indirect-prompt-injection-defense.md)).
-
-## Architecture
-
-```mermaid
-graph LR
-  A[Client / Streamlit] -->|POST /documents| B[FastAPI]
-  B -->|enqueue| C[ARQ Worker]
-  C -->|classify + extract| D{Model Router}
-  D -->|primary| E[Claude Sonnet]
-  D -->|fallback| F[Claude Haiku]
-  E --> G[(pgvector)]
-  G -->|search| H[Agentic RAG]
-  H --> A
-  C -->|Langfuse| I[Traces]
-  B -->|SSE /jobs/events| A
-```
-
-## Demo
-
-[DEMO.md](DEMO.md) walks through extraction results, search, and the agent trace viewer. The static front page lives in [site/](site/).
-
-With the configured stack, `/jobs/{id}/events` streams extraction progress and `/agent-search/stream` streams retrieval reasoning over SSE.
-
-## Install
-
-Self-host with Docker Compose. Copy the example configuration, then set `ANTHROPIC_API_KEY` and `GEMINI_API_KEY` before starting the stack:
+Run the test suite (zero API cost):
 
 ```bash
-git clone https://github.com/ChunkyTortoise/docextract.git
-cd docextract
-cp .env.example .env
-# Configure .env before starting services.
-docker compose up -d
+uv venv && uv pip install -e .           # or: uv sync
+source .venv/bin/activate
+pytest tests/ -m "not e2e" --no-cov -q
+make eval                                # optional paid live eval; needs credentials
 ```
 
-The [Compose file](docker-compose.yml) defines the API, worker, Streamlit frontend, PostgreSQL, Redis, and their local port mappings.
+More: [docs/eval-methodology.md](docs/eval-methodology.md) · [docs/eval-boundary.md](docs/eval-boundary.md) · [evals/](evals/) · [CASE_STUDY.md](CASE_STUDY.md)
 
-## Tests
+## Design decisions
 
-With development dependencies installed, run from the repository root:
-
-```bash
-pytest tests/
-```
-
-Use `make eval` for the optional paid live evaluation with configured credentials. The replay command above is the offline entry point.
-
-## Architecture Decisions
-
-Selected decisions from [docs/adr/](docs/adr/):
+The ADRs live in [docs/adr/](docs/adr/). The key ones:
 
 | ADR | Decision |
 |-----|----------|
@@ -139,10 +163,54 @@ Selected decisions from [docs/adr/](docs/adr/):
 | [ADR-0015](docs/adr/0015-prompt-caching.md) | Anthropic prompt caching for eval cost reduction |
 | [ADR-0018](docs/adr/0018-independent-judge-and-multi-provider-router.md) | Gemini as independent judge |
 | [ADR-0019](docs/adr/0019-reranker-and-agentic-reflection.md) | TF-IDF reranker + agentic self-reflection loop |
+| [ADR-0020](docs/adr/0020-indirect-prompt-injection-defense.md) | Indirect prompt-injection defense on text and vision paths |
 
-## Scope notes
+## Methodology & limits
 
-GraphRAG hybrid retrieval is opt-in (`GRAPH_RETRIEVAL_ENABLED=false` by default), using regex entities and a file-backed graph. The [semantic cache](docs/adr/0017-semantic-cache-l1-l2.md) is feature-flagged off and is not wired into the extraction hot path. Observability integrations require configuration; live telemetry has not been verified. See [SECURITY.md](SECURITY.md) for deployment limitations.
+<details>
+<summary>What each number covers, and what is not measured yet</summary>
+
+**Extraction score**
+- The Results score is a weighted field-level score (critical fields count 2×) from a deterministic replay of 28 committed prediction fixtures. It gives partial credit: strings by normalized Levenshtein similarity, numbers that match within one percent, and half credit when a value is extracted where null was expected ([`autoresearch/eval.py`](autoresearch/eval.py)). Unrounded values and the historical baseline are in the [evidence note](docs/retrieval-extraction-evidence.md#extraction-replay). It is not F1, even though legacy output field names contain `f1`, and it is not a live-model grade.
+- The replayed outputs are frozen, so a prompt or model change does not move the replay score. The replay catches scorer, schema and fixture regressions at zero cost; prompt and model changes are measured by the paid live eval job, which runs only when an API key is configured in CI.
+- Three populations are separate and must not be summed: 28 committed prediction fixtures (the score population), 72 lookup cases in `autoresearch/eval_dataset_72.json` (44 have no committed prediction fixture yet), and the authoring corpus. See [three separate denominators](docs/retrieval-extraction-evidence.md#three-separate-denominators).
+- The authoring corpus is stored as 202 JSONL lines; two of them are `_meta` rows, which the Results case count excludes. It is not the replay fixture total and not the score population.
+- Retrieval recall, support (faithfulness) and abstention are **unmeasured**. The replay does not execute retrieval. See [retrieval measures are separate](docs/retrieval-extraction-evidence.md#retrieval-measures-are-separate).
+- Held-out live-model performance is unmeasured until a funded run is logged ([protocol](docs/held-out-live-eval-protocol.md)).
+
+**CI and merge enforcement**
+- Since 2026-10-03, branch protection on `main` requires the CI `test` check. The weighted replay (eval-gate's Offline replay job) runs on eval-relevant PRs, pushes to `main` and a daily drift schedule, and it is **not** a universal required merge check. The earlier 2026-09-19 repository audit returned `Branch not protected` and an empty branch-rules list. See [CI and merge enforcement](docs/retrieval-extraction-evidence.md#ci-and-merge-enforcement).
+- PR #32 (closed unmerged) was the intentional regression behind the failing-run demo. Its check failed because the fixtures were corrupted, not because the prompt edit alone changed predictions; live stages were skipped on that run (no key). Details: [docs/eval-gate-proof.md](docs/eval-gate-proof.md).
+- The live-eval threshold gate and paid live eval run only when `ANTHROPIC_API_KEY` is configured in CI and are skipped otherwise. Drift recording and drift-issue creation sit inside the paid live job; the daily 13:23 UTC schedule reruns the offline replay.
+
+**Tests, cost and latency**
+- The collected-test total changes and is intentionally omitted ([portfolio-metrics.yaml](docs/portfolio-metrics.yaml)). The coverage row in Results is the CI floor, not a measured coverage figure.
+- Cost and latency are modeled only until a funded `scripts/benchmark.py` run is committed ([cost-model.md](docs/cost-model.md)).
+
+**Demo and screenshots**
+- The screenshot shows the local fixture explorer with stored invoice output. It makes no live model call. Sample confidence values are stored metadata, not calibrated accuracy or the replay score. The walkthrough GIF is three actual browser states, not continuous video ([provenance](docs/screenshots/PROVENANCE.md)).
+- The hosted Streamlit URL is intentionally omitted until anonymous access is verified. A static preview and trace visualizer live in [`site/`](site/) and [`frontend/pages/agent_trace.py`](frontend/pages/agent_trace.py).
+- The package requires Python 3.12+ (`pyproject.toml` `requires-python`); the standalone replay script runs on Python 3.10+.
+
+**Feature scope**
+- Deployment files are repository artifacts; a current live AWS deployment is not established here.
+- PII filtering is pattern-based redaction (SSNs, credit cards, phone numbers, emails) in trace data. It does not establish complete PII detection or regulatory compliance.
+- GraphRAG hybrid retrieval is opt-in (`GRAPH_RETRIEVAL_ENABLED=false` by default): regex entity graph, file-backed.
+- The semantic cache ([ADR-0017](docs/adr/0017-semantic-cache-l1-l2.md)) is implemented but feature-flagged off and not wired into the extraction hot path.
+- Langfuse, LangSmith and OpenTelemetry integrations require configuration and are not presented as verified live telemetry ([`app/observability.py`](app/observability.py)).
+- There are two separate judges. The in-app judge (Gemini 2.5 Flash, Claude Haiku fallback) is off by default (`llm_judge_enabled = False` in `app/config.py`). The CI judge (`scripts/eval_llm_judge.py`) runs only in the paid live job, which skips without an API key, and uses its default provider (Anthropic) because the workflow passes no `--provider`.
+- The two-pass figures in [ADR-0003](docs/adr/0003-two-pass-extraction.md) (trigger rate, improvement, added latency) have no committed run artifact and are not cited as results here.
+
+**Provenance:** built under a paid client engagement; an authorized walkthrough is available on request.
+
+</details>
+
+## Roadmap
+
+- Record prediction fixtures for the 44 lookup cases that do not have one yet, so the replay covers all 72 ([eval dataset](autoresearch/eval_dataset_72.json)).
+- Run the [held-out live eval protocol](docs/held-out-live-eval-protocol.md) and publish live-model accuracy next to the replay score.
+- Measure retrieval recall, support and abstention on a labeled query set ([what is needed](docs/retrieval-extraction-evidence.md#retrieval-measures-are-separate)).
+- Replace modeled cost and latency with a metered `scripts/benchmark.py` run ([cost model](docs/cost-model.md)).
 
 ## License
 

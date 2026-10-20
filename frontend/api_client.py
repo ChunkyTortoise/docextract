@@ -1,16 +1,34 @@
 """Async HTTP client for DocExtract AI API."""
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import httpx
 import streamlit as st
 
+try:
+    from streamlit.errors import StreamlitSecretNotFoundError
+except ImportError:  # older Streamlit, or a test stub without streamlit.errors
+    StreamlitSecretNotFoundError = FileNotFoundError  # type: ignore[assignment,misc]
+
+
+def _secret(name: str, default: str) -> str:
+    """Read a Streamlit secret, returning ``default`` when no secrets file exists.
+
+    Without a secrets.toml, ``st.secrets`` raises instead of honoring the
+    default, and Streamlit's message lists local filesystem paths.
+    """
+    try:
+        return st.secrets.get(name, default)
+    except (FileNotFoundError, StreamlitSecretNotFoundError):
+        return default
+
 
 def get_client() -> httpx.Client:
     """Create configured httpx client with API key auth."""
-    api_url = st.secrets.get("api_url", "http://localhost:8000")
-    api_key = st.session_state.get("api_key") or st.secrets.get("api_key", "")
+    api_url = _secret("api_url", "") or os.environ.get("API_URL") or "http://localhost:8000"
+    api_key = st.session_state.get("api_key") or _secret("api_key", "")
     return httpx.Client(
         base_url=f"{api_url}/api/v1",
         headers={"X-API-Key": api_key},

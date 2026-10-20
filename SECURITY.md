@@ -33,6 +33,17 @@ DocExtract AI implements defense-in-depth across authentication, transport, stor
 - **No PII logged**: Extraction jobs log document hashes and job IDs, not file contents or extracted data.
 - **SHA-256 deduplication**: Identical file uploads reuse existing jobs. The hash is computed client-side and verified server-side before storage.
 - **Pluggable storage backends**: Local filesystem or Cloudflare R2. R2 credentials are env-only and never committed.
+- **PII redaction at persistence**: `PII_REDACTION_ENABLED` (default OFF in code) replaces PII values with redaction tokens before records are stored or returned. The render.yaml and fly.toml deploy profiles set it to `true` (fly.toml also ships `DEMO_MODE=true` for the demo UI; unset it for a demo-free production deployment). The k8s configmap and ecs.tf do not set it yet. The detect-and-flag boundary is separate (`GUARDRAILS_ENABLED`).
+
+## Operational Endpoints
+
+- **/metrics (Prometheus)**: Mounted only when `OTEL_ENABLED=true` (default OFF). When enabled it serves metrics unauthenticated at the API root; point an internal collector at it or add an auth boundary before enabling on a public deployment.
+
+## Prompt-Injection Defense
+
+- **Fenced untrusted content**: Extracted document text and caller-supplied doc-type hints are wrapped in an untrusted fence so injected instructions are far less likely to steer the model. This is heuristic mitigation, not a guarantee (ADR-0020 instruction hierarchy).
+- **Defense system clause**: Both the text and vision extraction paths carry a defense clause in the system block.
+- **Output sanitization**: Extracted results pass through sanitize-and-scan before persistence; exfiltration keys are stripped and scan hits are logged.
 
 ## Reporting Security Issues
 

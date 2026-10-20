@@ -1,0 +1,72 @@
+test_bound_violation_and_missing_usage_stop (test_attempt_meter.AttemptMeterTests.test_bound_violation_and_missing_usage_stop) ... Meter halted after case independent-unit-case attempt 1: MeterStop
+Meter halted after case independent-unit-case attempt 1: MeterStop
+Meter halted after case independent-unit-case attempt 1: MeterStop
+ok
+test_budget_blocks_next_attempt_before_mock_send (test_attempt_meter.AttemptMeterTests.test_budget_blocks_next_attempt_before_mock_send) ... ok
+test_cancellation_retains_unknown_reservation_and_propagates (test_attempt_meter.AttemptMeterTests.test_cancellation_retains_unknown_reservation_and_propagates) ... Meter halted after case fake-cancel attempt 1: CancelledError
+ok
+test_each_sdk_success_is_separate_with_case_context (test_attempt_meter.AttemptMeterTests.test_each_sdk_success_is_separate_with_case_context) ... ok
+test_happy_path_cache_ttl_cost_and_private_headers_not_saved (test_attempt_meter.AttemptMeterTests.test_happy_path_cache_ttl_cost_and_private_headers_not_saved) ... ok
+test_instructor_schema_retry_captures_both_attempts (test_attempt_meter.AttemptMeterTests.test_instructor_schema_retry_captures_both_attempts) ... /Users/cave/Projects/clients/docextract/.venv/lib/python3.12/site-packages/instructor/v2/providers/anthropic/client.py:104: DeprecationWarning: Mode.ANTHROPIC_TOOLS is deprecated and will be removed in v3.0. Use Mode.TOOLS instead. The provider is determined by the client (from_openai, from_anthropic, etc.), not by the mode.
+  normalized_mode = normalize_mode(Provider.ANTHROPIC, mode)
+Executing <Task pending name='Task-27' coro=<AttemptMeterTests.test_instructor_schema_retry_captures_both_attempts() running at /Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/test_attempt_meter.py:142> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at /Users/cave/.local/share/uv/python/cpython-3.12.7-macos-aarch64-none/lib/python3.12/asyncio/futures.py:391, Task.task_wakeup()] created at /Users/cave/.local/share/uv/python/cpython-3.12.7-macos-aarch64-none/lib/python3.12/asyncio/base_events.py:449> cb=[_run_until_complete_cb() at /Users/cave/.local/share/uv/python/cpython-3.12.7-macos-aarch64-none/lib/python3.12/asyncio/base_events.py:182] created at /Users/cave/.local/share/uv/python/cpython-3.12.7-macos-aarch64-none/lib/python3.12/asyncio/runners.py:100> took 0.458 seconds
+ok
+test_missing_context_and_bad_policy_fail_before_send (test_attempt_meter.AttemptMeterTests.test_missing_context_and_bad_policy_fail_before_send) ... ok
+test_network_transport_rejected (test_attempt_meter.AttemptMeterTests.test_network_transport_rejected) ... ok
+test_no_unknown_model_stream_tier_or_price_dimensions_sent (test_attempt_meter.AttemptMeterTests.test_no_unknown_model_stream_tier_or_price_dimensions_sent) ... ok
+test_returned_model_mismatch_stops (test_attempt_meter.AttemptMeterTests.test_returned_model_mismatch_stops) ... Meter halted after case independent-unit-case attempt 1: MeterStop
+ok
+test_sdk_retry_after_500_cannot_send_again (test_attempt_meter.AttemptMeterTests.test_sdk_retry_after_500_cannot_send_again) ... Meter halted after case independent-unit-case attempt 1: MeterStop
+ok
+test_unknown_cache_ttl_stops (test_attempt_meter.AttemptMeterTests.test_unknown_cache_ttl_stops) ... Meter halted after case independent-unit-case attempt 1: MeterStop
+ok
+test_runner_retains_individual_cached_sdk_attempts (test_attempt_meter.RunnerMeterIntegrationTests.test_runner_retains_individual_cached_sdk_attempts) ... ok
+test_actual_router_fallback_cannot_send_after_unknown_attempt (test_extractor_adapter.ExtractorTests.test_actual_router_fallback_cannot_send_after_unknown_attempt) ... Executing <Task pending name='Task-67' coro=<ExtractorTests.test_actual_router_fallback_cannot_send_after_unknown_attempt() running at /Users/cave/Documents/Codex/2026-10-01/continue-the-approved-github-hiring-improvements/outputs/measurement/test_extractor_adapter.py:130> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at /Users/cave/.local/share/uv/python/cpython-3.12.7-macos-aarch64-none/lib/python3.12/asyncio/futures.py:391, Task.task_wakeup()] created at /Users/cave/.local/share/uv/python/cpython-3.12.7-macos-aarch64-none/lib/python3.12/asyncio/base_events.py:449> cb=[_run_until_complete_cb() at /Users/cave/.local/share/uv/python/cpython-3.12.7-macos-aarch64-none/lib/python3.12/asyncio/base_events.py:182] created at /Users/cave/.local/share/uv/python/cpython-3.12.7-macos-aarch64-none/lib/python3.12/asyncio/runners.py:100> took 0.538 seconds
+Meter halted after case independent-unit-document attempt 1: MeterStop
+API call failed on attempt 1: Connection error.
+Max retries exceeded. Total attempts: 1, Last error: Connection error.
+ok
+test_corpus_hashes_and_active_prompt_binding_preserved (test_extractor_adapter.ExtractorTests.test_corpus_hashes_and_active_prompt_binding_preserved) ... ok
+test_no_budget_causes_zero_provider_sends (test_extractor_adapter.ExtractorTests.test_no_budget_causes_zero_provider_sends) ... API call failed on attempt 1: Connection error.
+Max retries exceeded. Total attempts: 1, Last error: Connection error.
+ok
+test_real_correction_has_its_own_operation_and_cost (test_extractor_adapter.ExtractorTests.test_real_correction_has_its_own_operation_and_cost) ... 2026-10-01 17:35:38 [debug    ] 'extract' succeeded with fake-primary
+2026-10-01 17:35:38 [debug    ] 'correct' succeeded with fake-primary
+ok
+test_real_instructor_retry_is_metered_individually (test_extractor_adapter.ExtractorTests.test_real_instructor_retry_is_metered_individually) ... 2026-10-01 17:35:38 [debug    ] 'extract' succeeded with fake-primary
+ok
+test_real_source_happy_path_all_three_document_types (test_extractor_adapter.ExtractorTests.test_real_source_happy_path_all_three_document_types) ... 2026-10-01 17:35:38 [debug    ] 'extract' succeeded with fake-primary
+2026-10-01 17:35:38 [debug    ] 'extract' succeeded with fake-primary
+2026-10-01 17:35:38 [debug    ] 'extract' succeeded with fake-primary
+ok
+test_swallowed_source_correction_failure_cannot_report_success (test_extractor_adapter.ExtractorTests.test_swallowed_source_correction_failure_cannot_report_success) ... 2026-10-01 17:35:38 [debug    ] 'extract' succeeded with fake-primary
+Meter halted after case independent-unit-document attempt 2: MeterStop
+2026-10-01 17:35:38 [warning  ] Model fake-primary failed for 'correct' (APIConnectionError: Connection error.), trying next
+2026-10-01 17:35:38 [warning  ] Correction pass failed: All models unavailable for 'correct': [fake-primary]
+Extractor returned after meter halt for independent-unit-document
+ok
+test_blank_model_not_accepted (test_runner.RunnerTests.test_blank_model_not_accepted) ... Extraction failed for 0: ValueError
+Extraction failed for 1: ValueError
+Extraction failed for 2: ValueError
+ok
+test_budget_stops_before_next_case (test_runner.RunnerTests.test_budget_stops_before_next_case) ... ok
+test_cancel_persists_partial (test_runner.RunnerTests.test_cancel_persists_partial) ... Extraction cancelled for 0
+ok
+test_changed_partition_prevents_call (test_runner.RunnerTests.test_changed_partition_prevents_call) ... ok
+test_failures_retained_in_denominator (test_runner.RunnerTests.test_failures_retained_in_denominator) ... Extraction failed for 0: RuntimeError
+Extraction failed for 1: RuntimeError
+Extraction failed for 2: RuntimeError
+ok
+test_frozen_partition_valid_without_scoring (test_runner.RunnerTests.test_frozen_partition_valid_without_scoring) ... ok
+test_happy_path_sequential_trace_attribution_and_artifact (test_runner.RunnerTests.test_happy_path_sequential_trace_attribution_and_artifact) ... ok
+test_incomplete_accounting_stops (test_runner.RunnerTests.test_incomplete_accounting_stops) ... ok
+test_live_adapter_refused (test_runner.RunnerTests.test_live_adapter_refused) ... ok
+test_missing_cached_or_retry_tokens_unknown (test_runner.RunnerTests.test_missing_cached_or_retry_tokens_unknown) ... ok
+test_no_bound_prevents_call (test_runner.RunnerTests.test_no_bound_prevents_call) ... ok
+test_unknown_cost_stops_and_stays_null (test_runner.RunnerTests.test_unknown_cost_stops_and_stays_null) ... Extraction failed for 0: ValueError
+ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 1.698s
+
+OK

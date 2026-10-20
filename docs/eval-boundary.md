@@ -75,7 +75,7 @@ CI offline replay does **not** run that pipeline. It does **not** call a live mo
 
 Optional paid paths (Promptfoo, Ragas, LLM-as-judge) run only when `ANTHROPIC_API_KEY` is present. They are skipped otherwise and are not the Eval Gate badge driver. See `.github/workflows/eval-gate.yml` (`offline` vs `live` jobs).
 
-Intentional red demo of the gate: [PR #32](https://github.com/ChunkyTortoise/docextract/pull/32) (keep open; Offline replay fails on purpose).
+Intentional red demo of the gate: [PR #32](https://github.com/ChunkyTortoise/docextract/pull/32) (closed unmerged; the failing Offline replay job and its log are preserved in [eval-gate-proof.md](eval-gate-proof.md)).
 
 ## Scoring: `score_extraction`
 

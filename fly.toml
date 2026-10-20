@@ -10,6 +10,7 @@ primary_region = 'iad'
   LANGFUSE_ENABLED = 'true'
   DEMO_MODE = 'true'
   PORT = '8000'
+  PII_REDACTION_ENABLED = 'true'
 
 [http_service]
   internal_port = 8000

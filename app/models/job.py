@@ -40,7 +40,6 @@ class ExtractionJob(Base):
     output_tokens_used: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     retryable: Mapped[bool] = mapped_column(Boolean, default=True)
-    attempt_number: Mapped[int] = mapped_column(Integer, default=1)
     webhook_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     webhook_secret_encrypted: Mapped[str | None] = mapped_column(
         Text, nullable=True

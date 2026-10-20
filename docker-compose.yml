@@ -1,6 +1,9 @@
 services:
   postgres:
     image: ankane/pgvector:latest
+    # NOTE: these credentials are dev-only defaults for local docker-compose.
+    # Override POSTGRES_USER/POSTGRES_PASSWORD in any shared or real
+    # deployment; never reuse them outside a local dev environment.
     environment:
       POSTGRES_USER: docextract
       POSTGRES_PASSWORD: docextract

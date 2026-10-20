@@ -1,0 +1,51 @@
+{
+  "status": "AUTOMATIC TRIAGE ONLY, HUMAN REVIEW REQUIRED",
+  "meaning": "These fields are outside the reference-scored field set. They may be supported by input or inferred; this is not a hallucination verdict.",
+  "cases_with_unscored_nonempty_fields": [
+    {
+      "case_id": "oct01_holdout_invoice_01",
+      "nonempty_fields_not_scored_against_reference": {
+        "notes": "synthetic paper order, no customer records"
+      }
+    },
+    {
+      "case_id": "oct01_holdout_invoice_02",
+      "nonempty_fields_not_scored_against_reference": {
+        "notes": "synthetic paper order, no customer records"
+      }
+    },
+    {
+      "case_id": "oct01_holdout_invoice_04",
+      "nonempty_fields_not_scored_against_reference": {
+        "subtotal": 999.0,
+        "notes": "synthetic paper order, no customer records"
+      }
+    },
+    {
+      "case_id": "oct01_holdout_receipt_04",
+      "nonempty_fields_not_scored_against_reference": {
+        "subtotal": 999.0
+      }
+    },
+    {
+      "case_id": "oct01_holdout_purchase_order_01",
+      "nonempty_fields_not_scored_against_reference": {
+        "notes": "synthetic paper order, no customer records"
+      }
+    },
+    {
+      "case_id": "oct01_holdout_purchase_order_02",
+      "nonempty_fields_not_scored_against_reference": {
+        "notes": "synthetic paper order, no customer records"
+      }
+    },
+    {
+      "case_id": "oct01_holdout_purchase_order_04",
+      "nonempty_fields_not_scored_against_reference": {
+        "subtotal": 999.0,
+        "notes": "synthetic paper order, no customer records"
+      }
+    }
+  ],
+  "case_count": 12
+}

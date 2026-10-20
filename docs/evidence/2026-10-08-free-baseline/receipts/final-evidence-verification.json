@@ -1,0 +1,11 @@
+{
+  "status": "verified",
+  "run_sha256": "9ba5b31ebb6b744d80e3a95e6e1901b2308f2902e41bf96f32be1897de906e5e",
+  "all12_review_rows_bound_to_predictions": true,
+  "human_judgments_blank": true,
+  "original_measurement_files_preserved": true,
+  "paid_api_spend_usd": "0",
+  "successful_anonymous_provider_calls": "1 independent dev probe plus12 frozen cases",
+  "unscored_nonempty_fields_review": "7 cases, automatic flags only",
+  "summary_sha256": "8582bdef7ff4185d99954f1efd8d69b5c3d8adfb3f337dda747debf12913efa4"
+}

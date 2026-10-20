@@ -39,6 +39,8 @@ services:
         sync: false
       - key: LANGFUSE_HOST
         value: https://cloud.langfuse.com
+      - key: PII_REDACTION_ENABLED
+        value: "true"
   - type: worker
     name: docextract-worker
     plan: standard
@@ -87,6 +89,8 @@ services:
           envVarKey: LANGFUSE_SECRET_KEY
       - key: LANGFUSE_HOST
         value: https://cloud.langfuse.com
+      - key: PII_REDACTION_ENABLED
+        value: "true"
   - type: web
     name: docextract-frontend
     plan: starter

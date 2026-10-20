@@ -1,0 +1,10 @@
+--- a/app/services/claude_extractor.py
++++ b/app/services/claude_extractor.py
+@@ -324,6 +324,7 @@
+                     max_tokens=2048,
+                     messages=[{"role": "user", "content": correction_prompt}],
+                     tools=[CORRECTION_TOOL],
++                    response_model=None,
+                 )
+                 trace_ctx.record_response(response)
+             return response

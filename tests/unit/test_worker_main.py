@@ -6,6 +6,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import arq
 import pytest
 
 
@@ -79,7 +80,7 @@ class TestWorkerSettings:
     def test_functions_include_process_document(self):
         from worker.main import WorkerSettings
         from worker.tasks import process_document
-        assert process_document in WorkerSettings.functions
+        assert process_document in [arq.func(f).coroutine for f in WorkerSettings.functions]
 
     def test_functions_include_deliver_webhook(self):
         from worker.main import WorkerSettings
@@ -159,19 +160,18 @@ class TestRecoverStaleJobs:
 
 class TestStartupShutdown:
     @pytest.mark.asyncio
-    async def test_startup_keeps_arq_pool_and_recovers(self):
+    async def test_startup_preserves_arq_pool_and_recovers(self):
         from worker.main import startup
 
-        mock_redis = AsyncMock()
-        ctx: dict = {"redis": mock_redis}
+        pool = AsyncMock()
+        ctx = {"redis": pool}
+        with patch("worker.main.recover_stale_jobs", new_callable=AsyncMock) as recover:
+            with patch("worker.main.aioredis.from_url") as plain_client:
+                await startup(ctx)
 
-        with patch("worker.main.recover_stale_jobs", new_callable=AsyncMock) as mock_recover:
-            await startup(ctx)
-
-        # ARQ's enqueue-capable pool must not be replaced by a plain client
-        # (a plain redis client has no enqueue_job, breaking deferred jobs).
-        assert ctx["redis"] is mock_redis
-        mock_recover.assert_called_once_with(mock_redis)
+        assert ctx["redis"] is pool
+        recover.assert_awaited_once_with(pool)
+        plain_client.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_shutdown_closes_redis(self):

@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 import redis.asyncio as aioredis
 import structlog
+from arq import Retry
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +23,7 @@ logger = structlog.get_logger(__name__)
 
 # Error classification
 TRANSIENT_ERRORS = (httpx.TimeoutException, ConnectionError, OSError)
+EXTRACTION_MAX_TRIES = 3
 
 
 async def process_document(ctx: dict[str, Any], job_id: str) -> dict[str, Any]:
@@ -38,7 +40,7 @@ async def process_document(ctx: dict[str, Any], job_id: str) -> dict[str, Any]:
     8. Store validation errors
     9. Create embedding
     10. Store record to DB
-    11. Update job -> COMPLETED
+    11. Update job -> COMPLETED or NEEDS_REVIEW
     12. Schedule webhook delivery as a deferred ARQ job
 
     Returns dict with status and record_id on success.
@@ -54,9 +56,18 @@ async def process_document(ctx: dict[str, Any], job_id: str) -> dict[str, Any]:
             return result
         except tuple(TRANSIENT_ERRORS) as e:
             logger.warning("Transient error processing job %s: %s", job_id, e)
-            await _fail_job(db, redis, job_id, str(e))
+            attempt = ctx.get("job_try", 1)
+            if attempt < EXTRACTION_MAX_TRIES:
+                _finish_task_span(span, start, status="retrying", error=str(e))
+                raise Retry(defer=attempt) from e
+            try:
+                await _fail_job(db, redis, job_id, str(e))
+            except Exception as reporting_error:
+                logger.error(
+                    "Failed to report exhausted job %s: %s", job_id, reporting_error, exc_info=True
+                )
             _finish_task_span(span, start, status="transient_error", error=str(e))
-            raise  # ARQ will retry
+            raise
         except Exception as e:
             logger.error("Permanent error processing job %s: %s", job_id, e, exc_info=True)
             await _fail_job(db, redis, job_id, str(e))
@@ -132,8 +143,10 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     from app.utils.mime import detect_mime_type
     from worker.events import publish_event
 
-    # 1. Load job
-    job_result = await db.execute(select(ExtractionJob).where(ExtractionJob.id == job_id))
+    # Lock before checking status so redelivery observes the first worker's commit.
+    job_result = await db.execute(
+        select(ExtractionJob).where(ExtractionJob.id == job_id).with_for_update()
+    )
     job = job_result.scalar_one_or_none()
     if not job:
         raise ValueError(f"Job {job_id} not found")
@@ -206,14 +219,6 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     extraction_result = await extract(extracted.text, doc_type, schema_class, db=db)
 
-    # Propagate explicit extraction failure: exhausted or invalid parsing must
-    # never reach a successful completion contract.
-    if not extraction_result.schema_valid:
-        raise ValueError(
-            "Extraction failed schema validation: "
-            + "; ".join(str(e) for e in extraction_result.validation_errors[:5])
-        )
-
     # Merge structured tables from ingestion into extraction result
     if extracted.tables:
         extraction_result.data["tables"] = extracted.tables
@@ -221,6 +226,12 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     # 7. Validate -> VALIDATING
     await _update_job_status(db, redis, job, JobStatus.VALIDATING)
     validation_result = validate(doc_type, extraction_result.data, extraction_result.confidence)
+    extraction_validation_errors: list[str] = []
+    if not extraction_result.schema_valid:
+        extraction_validation_errors = extraction_result.validation_errors or [
+            "Extraction output failed schema validation"
+        ]
+        validation_result.needs_review = True
 
     # 7b. Guardrails — PII detection + hallucination grounding
     guardrail_result = None
@@ -255,6 +266,8 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
     review_reason = None
     if validation_result.needs_review:
         reasons: list[str] = []
+        if extraction_validation_errors:
+            reasons.append("Extraction output failed schema validation")
         if guardrail_result and guardrail_result.pii_detected:
             pii_types = {m.pattern_type for m in guardrail_result.pii_detected}
             reasons.append(f"PII detected: {', '.join(sorted(pii_types))}")
@@ -335,6 +348,16 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
             severity=err.severity.value.lower(),
         ))
 
+    for message in extraction_validation_errors:
+        db.add(ValidationErrorModel(
+            id=str(uuid.uuid4()),
+            record_id=record.id,
+            field_name="extraction_output",
+            rule_name="SCHEMA_VALIDATION_FAILED",
+            message=message,
+            severity="error",
+        ))
+
     # Store embedding
     db.add(DocumentEmbedding(
         id=str(uuid.uuid4()),
@@ -402,7 +425,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
                 "deliver_webhook",
                 job.webhook_url,
                 {
-                    "event": "job.completed",
+                    "event": f"job.{job.status}",
                     "job_id": job_id,
                     "status": job.status,
                     "document_type": doc_type,
@@ -415,7 +438,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
         except Exception as exc:
             logger.warning("Webhook delivery enqueue failed for job %s: %s", job_id, exc)
 
-    return {"status": "completed", "record_id": record_id, "document_type": doc_type}
+    return {"status": job.status, "record_id": record_id, "document_type": doc_type}
 
 
 async def _emit_page_events(
@@ -467,18 +490,30 @@ async def _fail_job(db: AsyncSession, redis: aioredis.Redis, job_id: str, error:
     from worker.events import publish_event
 
     try:
-        # The calling transaction may have failed; clear it before reuse.
+        # Clear a possibly failed transaction, then re-read the committed status.
         await db.rollback()
-        job_result = await db.execute(select(ExtractionJob).where(ExtractionJob.id == job_id))
+        job_result = await db.execute(
+            select(ExtractionJob).where(ExtractionJob.id == job_id).with_for_update()
+        )
         job = job_result.scalar_one_or_none()
         if job:
+            if job.status in (
+                JobStatus.COMPLETED.value,
+                JobStatus.NEEDS_REVIEW.value,
+                JobStatus.CANCELLED.value,
+            ):
+                return
             job.status = JobStatus.FAILED.value
             job.error_message = error[:500]
             job.completed_at = datetime.now(UTC)
             await db.commit()
+        else:
+            return
     except Exception as e:
         logger.error("Failed to update job failure status: %s", e)
+        return
 
+    # Publish only after the failed status has been committed successfully.
     await publish_event(redis, job_id, {
         "job_id": job_id,
         "status": JobStatus.FAILED.value,

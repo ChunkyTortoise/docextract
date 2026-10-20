@@ -73,10 +73,10 @@ grep POOL_SIZE .env
 **Diagnosis**:
 ```bash
 # Check queue depth
-redis-cli -u $REDIS_URL llen arq:queue
+redis-cli -u "$REDIS_URL" zcard "${WORKER_QUEUE:-arq:queue}"
 
 # Check worker status
-redis-cli -u $REDIS_URL keys "arq:worker:*"
+redis-cli -u "$REDIS_URL" get "${WORKER_QUEUE:-arq:queue}:health-check"
 ```
 
 **Resolution**:
@@ -136,6 +136,14 @@ echo $OTEL_EXPORTER_OTLP_ENDPOINT
 
 ## Escalation Path
 
-1. **Automated recovery**: Circuit breaker, queue retry (3 attempts), Redis reconnect
+1. **Automated recovery**: Circuit breaker, extraction queue retry, Redis reconnect.
+   Extraction retries `httpx.TimeoutException`, built-in `ConnectionError`, and
+   `OSError` for at most 3 attempts total. Attempts 1 and 2 request ARQ retry
+   after 1 and 2 seconds, without marking the job failed. Attempt 3 attempts to record a
+   terminal failure and raises the original error, even if failure reporting fails. Permanent errors are recorded
+   as failed after one attempt (the existing ARQ result is a failed-status payload).
+   This cap applies to `process_document`, not the judge task. Retries rerun the
+   pipeline; terminal-job guards prevent rerunning completed, review, or cancelled
+   jobs. This policy does not promise recovery after a worker crash.
 2. **Manual intervention**: Restart service, scale workers, kill stuck queries
 3. **Architecture change needed**: If failures are systemic (e.g., model provider consistently slow), consider adjusting circuit breaker thresholds or switching primary/fallback model ordering

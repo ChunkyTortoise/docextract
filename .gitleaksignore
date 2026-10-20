@@ -8,3 +8,13 @@ f812b3fb2afa24a63b1a28b3808853ab8804ef78:deploy/k8s/secrets.yaml:generic-api-key
 
 # Example curl commands in docs with Authorization: Bearer <token> placeholders
 da4b4d84de88be8e6e1c3376be4b94620f1aa2d5:README.md:curl-auth-header:54
+
+# Evidence bundle SHA-256 file hashes keyed by paths like app/utils/tokens.py (not secrets, already on main via PR #75)
+docs/evidence/2026-10-08-free-baseline/protocol/EXECUTION-BINDING.json:generic-api-key:17
+docs/evidence/2026-10-08-free-baseline/protocol/EXECUTION-BINDING.json:generic-api-key:27
+docs/evidence/2026-10-08-free-baseline/protocol/EXECUTION-BINDING.json:generic-api-key:37
+docs/evidence/2026-10-08-free-baseline/protocol/EXECUTION-BINDING.json:generic-api-key:59
+docs/evidence/2026-10-08-free-baseline/baseline/run.json:generic-api-key:1228
+docs/evidence/2026-10-08-free-baseline/baseline/run.json:generic-api-key:1238
+docs/evidence/2026-10-08-free-baseline/baseline/run.json:generic-api-key:1248
+docs/evidence/2026-10-08-free-baseline/baseline/run.json:generic-api-key:1270

@@ -1,7 +1,7 @@
 # CI test job -- lean install, no torch/deepeval (~2 min cold vs ~25 min with requirements_full.txt).
 # Full stack (dev, evals, ML training): requirements_full.txt
 fastapi>=0.115.8,<0.140
-starlette>=0.40.0,<0.42
+starlette>=0.47.0,<0.48
 uvicorn[standard]==0.30.6
 sqlalchemy[asyncio]==2.0.35
 asyncpg==0.29.0
@@ -34,7 +34,7 @@ plotly==5.24.1
 locust==2.32.1
 pytest==8.3.3
 pytest-asyncio==0.24.0
-anyio==4.6.2
+anyio==4.14.2
 fakeredis==2.26.1
 respx==0.21.1
 aiosqlite==0.20.0
