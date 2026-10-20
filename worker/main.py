@@ -14,6 +14,7 @@ from arq.cron import cron
 from app.config import settings
 from worker.judge_tasks import judge_extraction_sample
 from worker.tasks import EXTRACTION_MAX_TRIES, process_document
+from worker.webhook_tasks import deliver_webhook
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +30,10 @@ signal.signal(signal.SIGTERM, handle_sigterm)
 
 
 async def startup(ctx: dict) -> None:
-    """Recover stale jobs using the enqueue-capable pool ARQ supplies in ctx.
+    """Called when worker starts.
 
-    Replacing it with a plain Redis client removes enqueue_job, which extraction
-    uses to schedule judge sampling.
+    ARQ seeds ctx["redis"] with its enqueue-capable pool before this runs;
+    keep that client (a plain redis client has no enqueue_job).
     """
     logger.info("Worker started. Queue: %s", settings.worker_queue)
     await recover_stale_jobs(ctx["redis"])
@@ -45,8 +46,29 @@ async def shutdown(ctx: dict) -> None:
     logger.info("Worker shut down cleanly")
 
 
+# In-flight pipeline states: a worker owns the job right now.
+IN_FLIGHT_STATUSES = (
+    "preprocessing",
+    "extracting_text",
+    "classifying",
+    "extracting_data",
+    "extracting_page",
+    "validating",
+    "embedding",
+)
+
+
 async def recover_stale_jobs(redis: aioredis.Redis) -> None:
-    """Requeue jobs stuck in PROCESSING longer than job_timeout."""
+    """Requeue stale in-flight jobs and re-enqueue recoverable queued work.
+
+    Two failure modes are recovered (lane B B5):
+    - a job stuck in an in-flight state longer than job_timeout (worker died);
+    - a job committed to the DB but never (or no longer) in the queue, e.g.
+      when the enqueue at upload time failed after the commit.
+
+    Re-enqueueing is idempotent: ARQ dedupes on _job_id, so a job already
+    pending in the queue is not scheduled twice.
+    """
     from sqlalchemy import select
 
     from app.models.database import AsyncSessionLocal
@@ -57,11 +79,11 @@ async def recover_stale_jobs(redis: aioredis.Redis) -> None:
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(ExtractionJob).where(
-                ExtractionJob.status == "processing",
+                ExtractionJob.status.in_(IN_FLIGHT_STATUSES),
                 ExtractionJob.started_at < stale_cutoff,
             )
         )
-        stale_jobs = result.scalars().all()
+        stale_jobs = list(result.scalars().all())
 
         for job in stale_jobs:
             job.status = "queued"
@@ -69,9 +91,35 @@ async def recover_stale_jobs(redis: aioredis.Redis) -> None:
             job.error_message = "Requeued: stale processing state on startup"
             logger.warning("Requeued stale job: %s", job.id)
 
-        if stale_jobs:
+        # Committed but stranded: sitting in "queued" past the timeout with no
+        # worker pickup (e.g. a failed enqueue at upload time). Recoverable
+        # work, never dropped on the floor.
+        stranded_result = await db.execute(
+            select(ExtractionJob).where(
+                ExtractionJob.status == "queued",
+                ExtractionJob.queued_at < stale_cutoff,
+            )
+        )
+        stranded_jobs = list(stranded_result.scalars().all())
+
+        if stale_jobs or stranded_jobs:
             await db.commit()
-            logger.info("Recovered %d stale jobs", len(stale_jobs))
+            logger.info(
+                "Recovered %d stale jobs; re-enqueueing %d",
+                len(stale_jobs),
+                len(stale_jobs) + len(stranded_jobs),
+            )
+
+        for job in [*stale_jobs, *stranded_jobs]:
+            try:
+                await redis.enqueue_job(
+                    "process_document",
+                    str(job.id),
+                    _queue_name=settings.worker_queue,
+                    _job_id=str(job.id),
+                )
+            except Exception as exc:
+                logger.warning("Could not re-enqueue job %s: %s", job.id, exc)
 
 
 async def recover_stale_jobs_cron(ctx: dict) -> None:
@@ -81,7 +129,11 @@ async def recover_stale_jobs_cron(ctx: dict) -> None:
 
 
 class WorkerSettings:
-    functions = [func(process_document, max_tries=EXTRACTION_MAX_TRIES), judge_extraction_sample]
+    functions = [
+        func(process_document, max_tries=EXTRACTION_MAX_TRIES),
+        judge_extraction_sample,
+        deliver_webhook,
+    ]
     cron_jobs = [cron(recover_stale_jobs_cron, minute={0, 10, 20, 30, 40, 50})]
     on_startup = startup
     on_shutdown = shutdown

@@ -192,11 +192,14 @@ class TestProcessAttachmentImage:
             mock_preprocess.return_value = "preprocessed-image"
             mock_extract.return_value = MagicMock(text="OCR text from image")
             mock_settings.ocr_engine = "tesseract"
+            mock_settings.parser_max_image_pixels = 40_000_000
 
             result = _process_attachment(b"img-bytes", "image/jpeg", "scan.jpg", _depth=0)
 
         assert result == "OCR text from image"
-        mock_preprocess.assert_called_once_with(b"img-bytes")
+        mock_preprocess.assert_called_once_with(
+            b"img-bytes", max_pixels=mock_settings.parser_max_image_pixels
+        )
 
     def test_attachment_exception_returns_none(self) -> None:
         """Failed attachment processing returns None."""

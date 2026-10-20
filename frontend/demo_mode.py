@@ -1,4 +1,4 @@
-"""Demo mode data loader — serves cached results when DEMO_MODE=true."""
+"""Demo mode data loader - serves cached results when DEMO_MODE=true."""
 from __future__ import annotations
 
 import json

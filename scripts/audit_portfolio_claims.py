@@ -12,23 +12,22 @@ DEFAULT_METRICS_PATH = ROOT / "docs" / "portfolio-metrics.yaml"
 DOC_PATHS = [
     ROOT / "README.md",
     ROOT / "CASE_STUDY.md",
-    ROOT / "offer-kit.yaml",
     *sorted((ROOT / "docs").glob("**/*.md")),
 ]
 
-EXCLUDED_DOC_PARTS = {
-    "docs/specs",
-}
+EXCLUDED_DOC_PARTS: set[str] = set()
 
 STALE_PATTERNS = {
-    "1,155": "Use 1,260 collected tests or 1,253 passed from docs/portfolio-metrics.yaml.",
-    "1,185": "Use 1,260 collected tests or 1,253 passed from docs/portfolio-metrics.yaml.",
-    "94.6%": "Use 95.5% accepted F1 baseline, with its 28-case source.",
-    "74-case": "Use 72-case scored eval corpus.",
-    "74 cases": "Use 72 scored eval cases.",
-    "52 golden": "Use 51 golden cases.",
-    "22 adversarial": "Use 21 adversarial cases.",
-    "90%+": "Use the current 81.54% local coverage result and 80% gate.",
+    "1,155": "Test counts are not a public claim; cite the 80% coverage gate only.",
+    "1,185": "Test counts are not a public claim; cite the 80% coverage gate only.",
+    "94.6%": "Use 95.5% (0.9555) case-weighted field-level replay score.",
+    "74-case": "The replay lookup set is 72 cases (28 replayed, 44 pending).",
+    "74 cases": "The replay lookup set is 72 cases (28 replayed, 44 pending).",
+    "52 golden": "The authoring corpus is 150 golden + 50 adversarial (200 cases in 202 lines).",
+    "22 adversarial": "The authoring corpus is 150 golden + 50 adversarial (200 cases in 202 lines).",
+    "151 golden": "The authoring corpus is 150 golden + 50 adversarial (200 cases in 202 lines).",
+    "51 adversarial": "The authoring corpus is 150 golden + 50 adversarial (200 cases in 202 lines).",
+    "90%+": "Use the 80% coverage gate.",
 }
 
 
@@ -47,9 +46,11 @@ class PortfolioMetrics:
     extraction_f1_percent: float
 
 
-def _extract_number(text: str, key: str, cast=int):
+def _extract_number(text: str, key: str, cast=int, default=None):
     match = re.search(rf"^\s*{re.escape(key)}:\s*([0-9.]+)", text, re.MULTILINE)
     if not match:
+        if default is not None:
+            return default
         raise ValueError(f"Missing {key} in metrics file")
     return cast(match.group(1))
 
@@ -59,7 +60,7 @@ def _extract_latest_result(text: str) -> tuple[int, int, int]:
         r'latest_result:\s*"(\d+) passed, (\d+) skipped, (\d+) deselected"', text
     )
     if not match:
-        raise ValueError("Missing latest_result in metrics file")
+        return (0, 0, 0)
     return tuple(int(part) for part in match.groups())
 
 
@@ -67,7 +68,7 @@ def load_metrics(path: Path = DEFAULT_METRICS_PATH) -> PortfolioMetrics:
     text = path.read_text()
     passed, skipped, deselected = _extract_latest_result(text)
     return PortfolioMetrics(
-        collected_tests=_extract_number(text, "collected_tests"),
+        collected_tests=_extract_number(text, "collected_tests", default=0),
         latest_passed=passed,
         latest_skipped=skipped,
         latest_deselected=deselected,
@@ -136,7 +137,7 @@ def validate_metrics(metrics: PortfolioMetrics, root: Path = ROOT) -> list[str]:
         expected = getattr(metrics, key)
         if actual != expected:
             findings.append(f"{key}: expected {expected}, found {actual}")
-    if metrics.latest_passed + metrics.latest_skipped + metrics.latest_deselected != metrics.collected_tests:
+    if metrics.collected_tests and metrics.latest_passed + metrics.latest_skipped + metrics.latest_deselected != metrics.collected_tests:
         findings.append(
             "testing.latest_result does not add up to testing.collected_tests: "
             f"{metrics.latest_passed} + {metrics.latest_skipped} + "

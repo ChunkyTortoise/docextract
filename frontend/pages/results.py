@@ -9,7 +9,7 @@ from frontend.components.json_viewer import display_extraction
 
 @st.fragment
 def _render_extraction_panel(full_record: dict) -> None:
-    """Partial-rerun panel — updating this section won't reload the full page."""
+    """Partial-rerun panel - updating this section won't reload the full page."""
     record_id = full_record["id"]
 
     col1, col2 = st.columns([1, 1])

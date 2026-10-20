@@ -19,8 +19,9 @@ Requires provider API key:
 Output JSON:
   {
     "timestamp": "...",
-    "provider": "anthropic",
-    "model": "claude-haiku-4-5-20251001",
+    "provider": "gemini",
+    "model": "gemini-2.5-flash",
+    "judge_model": "gemini-2.5-flash",
     "case_count": 16,
     "pass_rate": 0.94,
     "avg_scores": {"faithfulness": 4.2, "completeness": 4.1, ...},
@@ -34,10 +35,12 @@ import argparse
 import asyncio
 import datetime
 import json
+import logging
 import os
 import re
 import statistics
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -56,6 +59,23 @@ DEFAULT_JUDGE_MODELS = {
     "openai": "gpt-4o-mini",
     "gemini": "gemini-2.5-flash",
 }
+
+logger = logging.getLogger(__name__)
+
+
+def resolve_provider(provider: str, env: Mapping[str, str] | None = None) -> str:
+    """Resolve the judge provider; fall back to anthropic without the key.
+
+    The judge is Gemini-first (README); a missing GEMINI_API_KEY falls back to
+    anthropic with a logged warning instead of failing at request time.
+    """
+    env = os.environ if env is None else env
+    if provider == "gemini" and not env.get(PROVIDER_ENV_KEYS["gemini"]):
+        logger.warning(
+            "GEMINI_API_KEY not set — judge falling back to provider 'anthropic'"
+        )
+        return "anthropic"
+    return provider
 
 # ── Rubric (cached — sent once per batch via prompt caching) ─────────────────
 RUBRIC_MD = """
@@ -323,6 +343,7 @@ def summarize(
         "timestamp": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
         "provider": provider,
         "model": model or DEFAULT_JUDGE_MODELS[provider],
+        "judge_model": model or DEFAULT_JUDGE_MODELS[provider],
         "case_count": len(results),
         "pass_count": len(passed),
         "fail_count": len(failed),
@@ -343,8 +364,8 @@ def main() -> None:
     parser.add_argument(
         "--provider",
         choices=PROVIDER_CHOICES,
-        default="anthropic",
-        help="Judge provider (eval-time only; default anthropic)",
+        default="gemini",
+        help="Judge provider (eval-time only; default gemini, falls back to anthropic when GEMINI_API_KEY is unset)",
     )
     parser.add_argument(
         "--model",
@@ -366,9 +387,10 @@ def main() -> None:
             print(f"Case {args.single!r} not found")
             sys.exit(1)
 
-    resolved_model = args.model or DEFAULT_JUDGE_MODELS[args.provider]
+    provider = resolve_provider(args.provider)
+    resolved_model = args.model or DEFAULT_JUDGE_MODELS[provider]
     print(
-        f"Running LLM-judge ({args.provider}/{resolved_model}) on "
+        f"Running LLM-judge ({provider}/{resolved_model}) on "
         f"{len(cases)} cases (n_samples={args.n_samples})...",
         file=sys.stderr,
     )
@@ -376,18 +398,18 @@ def main() -> None:
     results = asyncio.run(
         run_judge(
             cases,
-            provider=args.provider,
+            provider=provider,
             model=resolved_model,
             concurrency=args.concurrency,
             n_samples=args.n_samples,
         )
     )
-    summary = summarize(results, provider=args.provider, model=resolved_model)
+    summary = summarize(results, provider=provider, model=resolved_model)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(summary, indent=2))
 
-    print(f"\nLLM-judge results ({summary['case_count']} cases, {args.provider}):")
+    print(f"\nLLM-judge results ({summary['case_count']} cases, {provider}):")
     print(f"  pass_rate: {summary['pass_rate']:.4f}  ({summary['pass_count']}/{summary['case_count']})")
     for metric, val in summary["avg_scores"].items():
         print(f"  avg_{metric}: {val:.2f}/5")

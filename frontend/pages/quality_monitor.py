@@ -1,4 +1,4 @@
-"""Quality Monitor — LLM-judge quality trend dashboard."""
+"""Quality Monitor - LLM-judge quality trend dashboard."""
 from __future__ import annotations
 
 import os
@@ -94,7 +94,7 @@ def _fetch_trend(days: int) -> dict | None:
 
 def render() -> None:
     st.title("Quality Monitor")
-    st.caption("LLM-judge evaluation scores — 4-dimension rubric, EWMA smoothed.")
+    st.caption("LLM-judge evaluation scores - 4-dimension rubric, EWMA smoothed.")
 
     if guard_demo_mode_dashboard("Quality Monitor"):
         return
@@ -147,7 +147,7 @@ def render() -> None:
             annotation_position="bottom right",
         )
         fig_line.update_layout(
-            yaxis=dict(title="Score (0–1)", range=[0.5, 1.0]),
+            yaxis=dict(title="Score (0-1)", range=[0.5, 1.0]),
             xaxis_title="Date",
             height=320,
             margin=dict(t=20, b=20),
@@ -176,7 +176,7 @@ def render() -> None:
         )
     )
     fig_bar.update_layout(
-        yaxis=dict(title="Score (0–1)", range=[0.0, 1.1]),
+        yaxis=dict(title="Score (0-1)", range=[0.0, 1.1]),
         xaxis_title="Dimension",
         height=320,
         margin=dict(t=20, b=20),
@@ -202,7 +202,7 @@ def render() -> None:
                     )
                 )
         fig_multi.update_layout(
-            yaxis=dict(title="Score (0–1)", range=[0.5, 1.0]),
+            yaxis=dict(title="Score (0-1)", range=[0.5, 1.0]),
             xaxis_title="Date",
             height=320,
             margin=dict(t=20, b=20),

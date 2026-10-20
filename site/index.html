@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DocExtract AI — eval-gated document intelligence</title>
-  <meta name="description" content="Ship-gate first: versioned corpus, offline replay, variance-calibrated CI. Then extraction and agentic RAG over structured records." />
-  <meta property="og:title" content="DocExtract AI — deterministic proof first" />
-  <meta property="og:description" content="95.5% field-level score from a deterministic 28-fixture replay. 202-case authoring corpus labeled separately." />
+  <title>DocExtract AI - eval-gated document intelligence</title>
+  <meta name="description" content="Versioned corpus, offline replay, variance-calibrated CI. Then extraction and agentic RAG over structured records." />
+  <meta property="og:title" content="DocExtract AI - eval-gated document intelligence" />
+  <meta property="og:description" content="95.5% field-level score from a deterministic 28-fixture replay. 200-case authoring corpus labeled separately." />
   <meta property="og:image" content="eval-proof.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,11 +26,11 @@
 
   <main>
     <section class="hero" id="top">
-      <p class="eyebrow">Ship-gate discipline before features</p>
-      <h1>Measure extraction quality<br /><em>before</em> you ship prompts.</h1>
+      <p class="eyebrow">Static preview of the project page (not the live app)</p>
+      <h1>DocExtract AI: document extraction with an offline eval gate</h1>
       <p class="lede">
-        DocExtract AI is a document-intelligence stack where a <strong>versioned eval corpus</strong>,
-        <strong>offline replay</strong>, and <strong>variance-calibrated CI gate</strong> are the front door —
+        The stack puts a <strong>versioned eval corpus</strong>,
+        <strong>offline replay</strong>, and a <strong>variance-calibrated CI gate</strong> at the front door -
         then two-pass Claude extraction, pgvector search, and an agentic ReAct retrieval loop.
       </p>
       <div class="hero-actions">
@@ -38,7 +38,7 @@
         <a class="btn ghost" href="https://github.com/ChunkyTortoise/docextract">View on GitHub</a>
       </div>
       <figure class="proof-visual">
-        <img src="eval-proof.svg" width="620" height="620" alt="DocExtract deterministic evaluation proof: 95.5% field-level score from a 28-fixture replay, with a separately labeled 202-case authoring corpus, then extraction pass 1, pass 2, and the eval gate." />
+        <img src="eval-proof.svg" width="620" height="620" alt="DocExtract deterministic evaluation proof: 95.5% field-level score from a 28-fixture replay, with a separately labeled 200-case authoring corpus, then extraction pass 1, pass 2, and the eval gate." />
       </figure>
       <dl class="proof-strip">
         <div>
@@ -47,7 +47,7 @@
         </div>
         <div>
           <dt>Corpus</dt>
-          <dd>202 cases (151 golden + 51 adversarial)</dd>
+          <dd>200 cases (150 golden + 50 adversarial)</dd>
         </div>
         <div>
           <dt>Baseline</dt>
@@ -57,13 +57,15 @@
     </section>
 
     <section class="panel" id="gate">
-      <h2>Eval gate, not vibes</h2>
+      <h2>Eval gate</h2>
       <div class="two-col">
         <div>
           <p>
-            Every PR that touches prompts or extraction services runs
-            <code>scripts/eval_offline_replay.py</code> against committed golden responses.
-            The badge on the README is driven by this job — not a one-off notebook score.
+            PRs that touch prompts or extraction services run
+            <code>scripts/eval_offline_replay.py</code> against committed recorded responses.
+            The badge on the README is driven by this job. The replay guards the scorer and
+            fixture set; prompt and extractor regressions are covered by code review and the
+            paid live path (unfunded).
           </p>
           <ul class="checklist">
             <li>Deterministic 28-case offline replay on every eval-gated PR</li>
@@ -73,18 +75,19 @@
           </ul>
         </div>
         <aside class="callout">
-          <h3>Red blocked PR</h3>
+          <h3>Intentionally failing check</h3>
           <p>
-            Public regression PR that the gate blocks intentionally — see the README
-            <em>Eval gate proof</em> section for the link once published.
+            Public regression PR with a corrupted fixture set that makes the offline replay
+            check fail on purpose. The check fails; merge enforcement depends on branch
+            protection settings (recorded audit: not enforced).
           </p>
-          <p class="muted"><a href="https://github.com/ChunkyTortoise/docextract/pull/32">PR #32</a> — intentional red eval-gate regression (do not merge).</p>
+          <p class="muted"><a href="https://github.com/ChunkyTortoise/docextract/pull/32">PR #32</a>: intentional failing eval check (do not merge).</p>
         </aside>
       </div>
     </section>
 
     <section class="panel" id="extraction">
-      <h2>Then extraction — with agentic RAG</h2>
+      <h2>Then extraction - with agentic RAG</h2>
       <p class="section-lede">
         Upload PDFs and images, classify with cost-aware routing, extract structured fields with a
         two-pass Claude pipeline, embed into pgvector, and query with a ReAct agent that streams
@@ -116,7 +119,7 @@
         <li>
           <a href="https://github.com/ChunkyTortoise/docextract/blob/main/DEMO.md">
             <span class="link-label">DEMO.md</span>
-            <span class="link-url">90–120s reviewer walkthrough</span>
+            <span class="link-url">90-120s reviewer walkthrough</span>
           </a>
         </li>
         <li>
@@ -139,8 +142,8 @@
         </li>
         <li>
           <a href="https://github.com/ChunkyTortoise/docextract/pull/32">
-            <span class="link-label">Blocked eval PR</span>
-            <span class="link-url">#32 — intentional red replay (do not merge)</span>
+            <span class="link-label">Failing eval check</span>
+            <span class="link-url">#32: intentional failing replay (do not merge)</span>
           </a>
         </li>
       </ul>

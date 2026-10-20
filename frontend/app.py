@@ -65,7 +65,7 @@ def main() -> None:
         return
 
     if DEMO_MODE:
-        st.info("Demo mode — read-only access")
+        st.info("Demo mode - read-only access")
 
     # Sidebar navigation
     with st.sidebar:

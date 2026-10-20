@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from app.config import settings
 from app.services.ingestion import UnsupportedMimeType, ingest
 from app.services.pdf_extractor import ExtractedContent
 
@@ -20,7 +21,7 @@ async def test_pdf_routing(mock_extract: MagicMock) -> None:
 
     result = await ingest(b"pdf-bytes", "application/pdf", "doc.pdf")
 
-    mock_extract.assert_called_once_with(b"pdf-bytes")
+    mock_extract.assert_called_once_with(b"pdf-bytes", deadline=None)
     assert result.text == "pdf text"
 
 
@@ -36,7 +37,9 @@ async def test_jpeg_routing(
 
     result = await ingest(b"jpeg-bytes", "image/jpeg", "photo.jpg")
 
-    mock_preprocess.assert_called_once_with(b"jpeg-bytes")
+    mock_preprocess.assert_called_once_with(
+        b"jpeg-bytes", max_pixels=settings.parser_max_image_pixels
+    )
     mock_extract.assert_called_once()
     assert result.text == "image text"
 
@@ -65,7 +68,7 @@ async def test_eml_routing(mock_extract: MagicMock) -> None:
 
     result = await ingest(b"eml-bytes", "message/rfc822", "mail.eml")
 
-    mock_extract.assert_called_once_with(b"eml-bytes")
+    mock_extract.assert_called_once_with(b"eml-bytes", deadline=None)
     assert result.text == "email text"
 
 
@@ -77,8 +80,23 @@ async def test_msg_routing(mock_extract: MagicMock) -> None:
 
     result = await ingest(b"msg-bytes", "application/vnd.ms-outlook", "mail.msg")
 
-    mock_extract.assert_called_once_with(b"msg-bytes")
+    mock_extract.assert_called_once_with(b"msg-bytes", deadline=None)
     assert result.text == "msg text"
+
+
+@pytest.mark.asyncio
+async def test_deadline_forwarded_to_extractors(monkeypatch) -> None:
+    seen: dict = {}
+
+    def fake_extract_pdf(data, deadline=None):
+        seen["deadline"] = deadline
+        return _mock_result("pdf text")
+
+    monkeypatch.setattr("app.services.ingestion.extract_pdf", fake_extract_pdf)
+
+    await ingest(b"pdf-bytes", "application/pdf", "doc.pdf", deadline=123.0)
+
+    assert seen["deadline"] == 123.0
 
 
 @pytest.mark.asyncio

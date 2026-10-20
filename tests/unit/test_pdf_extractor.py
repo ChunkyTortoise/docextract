@@ -152,6 +152,8 @@ def test_extract_pdf_scanned_page_ocr(
     """Scanned pages (no text blocks) are OCR'd via image_extractor."""
     mock_settings.max_pages = 100
     mock_settings.ocr_engine = "tesseract"
+    mock_settings.parser_max_image_pixels = 40_000_000
+    mock_settings.parser_max_document_pixels = 200_000_000
 
     # Page with no text blocks -> triggers OCR path
     scanned_page = MagicMock()

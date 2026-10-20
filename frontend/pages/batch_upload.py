@@ -109,7 +109,7 @@ def render() -> None:
         job_id = job.get("job_id", "unknown")
         filename = filenames.get(job_id, job_id)
         status = job.get("status", "unknown")
-        with st.expander(f"{filename} — {status.title()}", expanded=(status not in TERMINAL_STATUSES)):
+        with st.expander(f"{filename} - {status.title()}", expanded=(status not in TERMINAL_STATUSES)):
             st.caption(f"Job ID: `{job_id}`")
             display_progress(job)
             if status not in TERMINAL_STATUSES and not demo_mode:

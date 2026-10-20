@@ -128,7 +128,7 @@ def render() -> None:
                 report_id = r.get("report_id") or r.get("id", "")
                 created = r.get("created_at", "")
                 fmt = r.get("format", "")
-                with st.expander(f"Report {report_id[:8]}... — {created[:10]} ({fmt})"):
+                with st.expander(f"Report {report_id[:8]}... - {created[:10]} ({fmt})"):
                     st.json(r)
         else:
             st.info("No reports generated yet.")

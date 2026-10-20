@@ -10,7 +10,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
-from app.auth.middleware import get_api_key
+from app.auth.middleware import get_api_key, require_roles
 from app.dependencies import get_db, get_redis
 from app.models.api_key import APIKey
 from app.models.job import ExtractionJob
@@ -127,7 +127,7 @@ async def cancel_job(
     body: dict = Body(...),
     db: AsyncSession = Depends(get_db),
     redis: aioredis.Redis = Depends(get_redis),
-    api_key: APIKey = Depends(get_api_key),
+    api_key: APIKey = Depends(require_roles("operator")),
 ):
     """Cancel a job. Request body: {"action": "cancel"}."""
     if body.get("action") != "cancel":

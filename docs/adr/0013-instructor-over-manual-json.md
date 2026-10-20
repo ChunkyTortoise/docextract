@@ -19,6 +19,6 @@ Use the `instructor` library to wrap the Anthropic client for Pass 1 extraction 
 
 ## Consequences
 
-**Why:** `instructor` handles retry logic, JSON repair, and Pydantic validation in a single call. `max_retries=3` means transient malformed responses are retried before surfacing an error. The typed response from `response.model_dump()` replaces manual parsing and eliminates the fence-stripping regex. Schema validation errors become `InstructorRetryError`, which the extraction pipeline catches and converts to `schema_valid=False` with `confidence=0.0` — a clean signal for HITL escalation.
+**Why:** `instructor` handles retry logic, JSON repair, and Pydantic validation in a single call. `max_retries=3` means transient malformed responses are retried before surfacing an error. The typed response from `response.model_dump()` replaces manual parsing and eliminates the fence-stripping regex. Schema validation errors become `InstructorRetryError`, which the extraction pipeline catches and converts to `schema_valid=False` with `confidence=0.0` - a clean signal for HITL escalation.
 
 **Tradeoff:** Adds a dependency (`instructor>=1.0`) and couples extraction to instructor's release cadence. The fallback raw-JSON path remains active for unregistered document types, so the dependency is not hard-required for all extractions. If instructor's API changes, the impact is contained to `claude_extractor.py`.

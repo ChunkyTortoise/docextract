@@ -45,7 +45,7 @@ On #32, vendor / merchant and total fields in eight recorded fixtures were repla
 
 That is fixture corruption, which is the correct way to trip a **replay** gate. A prompt-only edit cannot change this job's inputs.
 
-CI log (Offline replay job on head `21d4e802`): `FAIL: combined F1 0.8432 < floor 0.85`. That line is a public check-run quote, not a new README metric.
+CI log (Offline replay job on head `21d4e802`): FAIL: replayed score `0.8432 < floor 0.85` (the check-run printed the scorer's old metric label, renamed to field accuracy in 2026-09; the check-run text itself predates the rename). That line reports a public check-run, not a new README metric.
 
 Job: https://github.com/ChunkyTortoise/docextract/actions/runs/29670515963/job/88148512559
 

@@ -10,7 +10,7 @@ Unverified planning assumptions per 1,000 tokens, retained only to illustrate th
 | Claude Haiku 4.5 | $0.00025 | $0.00125 | Classification, simple queries |
 | Claude Opus 4.6 | $0.015 | $0.075 | Evaluation, edge cases |
 
-Classification defaults to Haiku-first (failover chain in config); extraction uses Sonnet. A z-test A/B tool lives in `app/services/model_ab_test.py` for offline model comparison; it is not wired as a live traffic split.
+Classification defaults to Haiku-first (failover chain in config); extraction uses Sonnet.
 
 ## Per-Operation Costs
 

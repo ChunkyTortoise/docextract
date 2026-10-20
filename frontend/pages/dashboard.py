@@ -108,7 +108,7 @@ def render() -> None:
 
         st.divider()
 
-        # Charts row 1 — existing
+        # Charts row 1 - existing
         col1, col2 = st.columns(2)
 
         with col1:
@@ -148,7 +148,7 @@ def render() -> None:
         # Fetch jobs for the new charts
         jobs = api.list_jobs(page=1, page_size=100)
 
-        # Charts row 2 — new
+        # Charts row 2 - new
         col3, col4 = st.columns(2)
 
         with col3:

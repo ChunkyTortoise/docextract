@@ -1,6 +1,6 @@
 # DocExtract MCP Integration
 
-DocExtract exposes document extraction and semantic search as [MCP (Model Context Protocol)](https://modelcontextprotocol.io) tools, allowing any MCP-compatible agent — Claude Desktop, custom agent frameworks — to process documents and query knowledge bases without custom integration code.
+DocExtract exposes document extraction and semantic search as [MCP (Model Context Protocol)](https://modelcontextprotocol.io) tools, allowing any MCP-compatible agent - Claude Desktop, custom agent frameworks - to process documents and query knowledge bases without custom integration code.
 
 ## Available MCP Tools
 

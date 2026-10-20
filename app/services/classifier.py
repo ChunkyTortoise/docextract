@@ -94,13 +94,11 @@ async def classify(text: str, db: AsyncSession | None = None) -> ClassificationR
         logger.info("Local adapter unavailable or failed — falling back to Claude")
 
     from app.services.llm_tracer import trace_llm_call
-    from app.services.model_router import AllModelsUnavailableError, ModelRouter
+    from app.services.model_router import AllModelsUnavailableError, get_shared_router
 
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
-    router = ModelRouter(
-        failure_threshold=settings.circuit_breaker_failure_threshold,
-        recovery_timeout=settings.circuit_breaker_recovery_seconds,
-    )
+    # Shared router: breaker cooldowns persist across requests and jobs.
+    router = get_shared_router("classify")
     sample = text[: prompt_config.params.classify_text_limit]
 
     try:

@@ -1,7 +1,6 @@
-"""HMAC-SHA256 signed webhook sender with retry logic, DLQ, and AES-GCM encryption."""
+"""HMAC-SHA256 signed webhook sender with deferred retries, DLQ, and AES-GCM encryption."""
 from __future__ import annotations
 
-import asyncio
 import base64
 import hashlib
 import hmac
@@ -12,8 +11,6 @@ from datetime import UTC, datetime
 
 import httpx
 import redis.asyncio as aioredis
-
-from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -49,17 +46,15 @@ def _sign_payload(payload: bytes, secret: str) -> str:
     return f"sha256={sig}"
 
 
-async def send_webhook(url: str, payload: dict, secret: str, webhook_id: str | None = None) -> bool:
-    """Send HMAC-signed webhook with retries and dead-letter queue.
+async def attempt_webhook(
+    url: str, payload: dict, secret: str, attempt: int = 1
+) -> tuple[bool, str]:
+    """Make exactly one signed delivery attempt: no retries, no sleeps, no DLQ.
 
-    Args:
-        url: Webhook destination URL
-        payload: JSON-serializable payload dict
-        secret: Raw (unencrypted) signing secret
-        webhook_id: Optional identifier for DLQ tracking
+    Retries are scheduled as deferred ARQ jobs by worker.webhook_tasks so each
+    attempt runs inside its own job timeout instead of sleeping inline.
 
-    Returns:
-        True on success, False after all retries exhausted (pushed to DLQ)
+    Returns (delivered, error) with error empty on success.
     """
     body = json.dumps(payload).encode()
     signature = _sign_payload(body, secret)
@@ -70,48 +65,47 @@ async def send_webhook(url: str, payload: dict, secret: str, webhook_id: str | N
         "X-Timestamp": datetime.now(UTC).isoformat(),
     }
 
-    last_error: str = ""
-
-    for attempt, delay in enumerate(RETRY_DELAYS):
-        if delay > 0:
-            logger.info("Webhook retry %d/%d in %ds: %s", attempt + 1, MAX_ATTEMPTS, delay, url)
-            await asyncio.sleep(delay)
-
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.post(url, content=body, headers=headers)
-                if resp.is_success:
-                    logger.info("Webhook delivered to %s (attempt %d)", url, attempt + 1)
-                    return True
-                last_error = f"HTTP {resp.status_code}"
-                logger.warning(
-                    "Webhook attempt %d/%d failed: %s %s",
-                    attempt + 1, MAX_ATTEMPTS, resp.status_code, url,
-                )
-        except httpx.HTTPError as e:
-            last_error = str(e)
-            logger.warning("Webhook attempt %d/%d error: %s (%s)", attempt + 1, MAX_ATTEMPTS, e, url)
-
-    logger.error("Webhook permanently failed after %d attempts: %s", MAX_ATTEMPTS, url)
-    await _push_to_dlq(url, payload, last_error, webhook_id)
-    return False
-
-
-async def _push_to_dlq(url: str, payload: dict, error: str, webhook_id: str | None) -> None:
-    """Push failed webhook to the Redis dead-letter queue."""
     try:
-        redis = aioredis.from_url(settings.redis_url, decode_responses=True)
-        try:
-            dlq_entry = json.dumps({
-                "endpoint": url,
-                "payload": payload,
-                "error": error,
-                "timestamp": datetime.now(UTC).isoformat(),
-                "webhook_id": webhook_id,
-            })
-            await redis.rpush(DLQ_KEY, dlq_entry)
-            logger.info("Webhook pushed to DLQ (%s): %s", DLQ_KEY, url)
-        finally:
-            await redis.aclose()
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, content=body, headers=headers)
+            if resp.is_success:
+                logger.info("Webhook delivered to %s (attempt %d)", url, attempt)
+                return True, ""
+            logger.warning(
+                "Webhook attempt %d/%d failed: %s %s",
+                attempt, MAX_ATTEMPTS, resp.status_code, url,
+            )
+            return False, f"HTTP {resp.status_code}"
+    except httpx.HTTPError as e:
+        logger.warning(
+            "Webhook attempt %d/%d error: %s (%s)",
+            attempt, MAX_ATTEMPTS, e, url,
+        )
+        return False, str(e)
+
+
+async def send_webhook(url: str, payload: dict, secret: str) -> bool:
+    """Send a single signed webhook attempt (used by POST /webhooks/test).
+
+    Delivery retries and DLQ handling belong to the deferred delivery job.
+    """
+    delivered, _error = await attempt_webhook(url, payload, secret)
+    return delivered
+
+
+async def _push_to_dlq(
+    redis: aioredis.Redis, url: str, payload: dict, error: str, webhook_id: str | None
+) -> None:
+    """Push failed webhook to the Redis dead-letter queue on the caller's client."""
+    try:
+        dlq_entry = json.dumps({
+            "endpoint": url,
+            "payload": payload,
+            "error": error,
+            "timestamp": datetime.now(UTC).isoformat(),
+            "webhook_id": webhook_id,
+        })
+        await redis.rpush(DLQ_KEY, dlq_entry)
+        logger.info("Webhook pushed to DLQ (%s): %s", DLQ_KEY, url)
     except Exception as e:
         logger.error("Failed to push webhook to DLQ: %s", e)

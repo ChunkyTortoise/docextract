@@ -1,4 +1,4 @@
-# DocExtract AI — Client Onboarding Runbook
+# DocExtract AI - Client Onboarding Runbook
 
 ## Prerequisites
 
@@ -6,7 +6,7 @@
 - PostgreSQL connection string (Render managed DB, Supabase, or your own)
 - Redis connection string (Render managed KV, Upstash, or your own)
 - Anthropic API key (for Claude extraction)
-- Gemini API key (for embedding — `text-embedding-004`)
+- Gemini API key (for embedding, `gemini-embedding-2-preview`)
 
 ---
 
@@ -14,11 +14,11 @@
 
 Click **New → Blueprint** in your Render dashboard and point it at this repo. Render reads `render.yaml` and provisions:
 
-- `docextract-api` — FastAPI web service
-- `docextract-worker` — ARQ background worker
-- `docextract-frontend` — Streamlit dashboard
-- `docextract-redis` — Redis KV store
-- `docextract-db` — PostgreSQL 16 database
+- `docextract-api` - FastAPI web service
+- `docextract-worker` - ARQ background worker
+- `docextract-frontend` - Streamlit dashboard
+- `docextract-redis` - Redis KV store
+- `docextract-db` - PostgreSQL 16 database
 
 Set these env vars via the Render dashboard after the initial deploy:
 
@@ -40,9 +40,9 @@ alembic upgrade head
 ```
 
 Three migrations apply:
-- `001_initial_schema` — core tables
-- `002_pgvector_extension` — embedding column (uses `Text`, not `Vector`)
-- `003_review_queue` — review lifecycle columns
+- `001_initial_schema` - core tables
+- `002_pgvector_extension` - embedding column (uses `Text`, not `Vector`)
+- `003_review_queue` - review lifecycle columns
 
 ---
 
@@ -56,9 +56,9 @@ curl -X POST "$API_URL/api/v1/api-keys" \
   -d '{"name": "client-prod", "role": "operator"}'
 ```
 
-Save the returned `key` value — it is shown only once.
+Save the returned `key` value - it is shown only once.
 
-For read-only integrations (dashboards, reporting), use `"role": "viewer"`.
+Roles: `"admin"` manages API keys. Write routes (upload, batch, delete, cancel, record review, feedback, webhook test) require an `"operator"` or `"admin"` key; `"viewer"` keys are read-only and get 403 on writes. See [SECURITY.md](../../SECURITY.md).
 
 ---
 
@@ -111,7 +111,7 @@ curl -X POST "$API_URL/api/v1/webhooks/test" \
 
 ## 6. Enable demo mode (optional)
 
-Add `DEMO_MODE=true` to the API service env vars. This enables the demo page at `/demo` and accepts the key `demo-key-docextract-2026` for read-only access.
+Add `DEMO_MODE=true` to the API service env vars. This enables the demo page at `/demo` and accepts the key `demo-key-docextract-2026`. Treat this key as public; do not enable DEMO_MODE on a deployment that holds real documents.
 
 Run the seed script to populate demo data:
 

@@ -82,6 +82,11 @@ class TestWorkerSettings:
         from worker.tasks import process_document
         assert process_document in [arq.func(f).coroutine for f in WorkerSettings.functions]
 
+    def test_functions_include_deliver_webhook(self):
+        from worker.main import WorkerSettings
+        from worker.webhook_tasks import deliver_webhook
+        assert deliver_webhook in WorkerSettings.functions
+
 
 class TestRecoverStaleJobsCron:
     """Tests for the cron wrapper."""

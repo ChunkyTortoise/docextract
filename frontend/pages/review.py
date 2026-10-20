@@ -99,7 +99,7 @@ def _review_record_form(record_id: str, demo_mode: bool) -> None:
                         "negative",
                         doc_type=record.get("document_type"),
                     )
-                    st.error("Feedback recorded — flagged for review")
+                    st.error("Feedback recorded - flagged for review")
                 except Exception:
                     st.warning("Feedback unavailable")
     except Exception as e:
@@ -178,7 +178,7 @@ def render() -> None:
                     item_id = item.get("id", "")
                     item_status = item.get("status", "")
 
-                    st.subheader(f"Action Panel — `{item_id[:8]}...`")
+                    st.subheader(f"Action Panel - `{item_id[:8]}...`")
 
                     if demo_mode:
                         st.info("Queue actions are disabled in demo mode.")
@@ -233,7 +233,7 @@ def render() -> None:
                                         "negative",
                                         doc_type=item.get("document_type"),
                                     )
-                                    st.error("Feedback recorded — flagged for review")
+                                    st.error("Feedback recorded - flagged for review")
                                 except Exception:
                                     st.warning("Feedback unavailable")
 

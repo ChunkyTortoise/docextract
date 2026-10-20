@@ -7,7 +7,9 @@ import logging
 from html.parser import HTMLParser
 from io import StringIO
 
+from app.config import settings
 from app.services.pdf_extractor import ExtractedContent
+from app.services.preprocessor import ParserBudgetError, check_parse_deadline
 
 try:
     import extract_msg
@@ -54,7 +56,7 @@ def strip_html(html: str) -> str:
     return stripper.get_text()
 
 
-def extract_eml(data: bytes) -> ExtractedContent:
+def extract_eml(data: bytes, deadline: float | None = None) -> ExtractedContent:
     """Extract content from an EML file.
 
     Parses headers, body (prefers text/plain, falls back to text/html with
@@ -86,10 +88,13 @@ def extract_eml(data: bytes) -> ExtractedContent:
         else:
             body = content if isinstance(content, str) else content.decode("utf-8", errors="replace")
 
-    # Process attachments
+    # Process attachments under a shared decoded-resource budget (lane B B8):
+    # attachment-heavy inputs must fail within explicit budgets.
     attachment_texts: list[str] = []
     attachment_count = 0
+    budget_used = 0
     for part in msg.walk():
+        check_parse_deadline(deadline)
         content_disp = part.get_content_disposition()
         if content_disp != "attachment":
             continue
@@ -102,7 +107,21 @@ def extract_eml(data: bytes) -> ExtractedContent:
         if payload is None:
             continue
 
-        extracted = _process_attachment(payload, mime, filename, _depth=0)
+        budget_used += len(payload)
+        if len(payload) > settings.parser_max_attachment_bytes:
+            raise ParserBudgetError(
+                f"Attachment {filename} exceeds per-attachment decoded budget "
+                f"({len(payload)} > {settings.parser_max_attachment_bytes} bytes)"
+            )
+        if budget_used > settings.parser_attachment_budget_bytes:
+            raise ParserBudgetError(
+                f"Email attachment decoded-resource budget exceeded at {filename} "
+                f"({budget_used} > {settings.parser_attachment_budget_bytes} bytes)"
+            )
+
+        extracted = _process_attachment(
+            payload, mime, filename, _depth=0, deadline=deadline
+        )
         if extracted:
             attachment_texts.append(
                 f"\n--- ATTACHMENT: {filename} ---\n{extracted}"
@@ -127,7 +146,7 @@ def extract_eml(data: bytes) -> ExtractedContent:
     )
 
 
-def extract_msg_file(data: bytes) -> ExtractedContent:
+def extract_msg_file(data: bytes, deadline: float | None = None) -> ExtractedContent:
     """Extract content from an Outlook .msg file.
 
     Args:
@@ -164,13 +183,25 @@ def extract_msg_file(data: bytes) -> ExtractedContent:
         attachment_texts: list[str] = []
         attachment_count = len(msg.attachments) if msg.attachments else 0
 
+        budget_used = 0
         if msg.attachments:
             for att in msg.attachments:
+                check_parse_deadline(deadline)
                 att_data = att.data
                 att_name = att.longFilename or att.shortFilename or "attachment"
                 mime = _guess_mime_from_filename(att_name)
                 if att_data and mime:
-                    extracted = _process_attachment(att_data, mime, att_name, _depth=0)
+                    budget_used += len(att_data)
+                    if (
+                        len(att_data) > settings.parser_max_attachment_bytes
+                        or budget_used > settings.parser_attachment_budget_bytes
+                    ):
+                        raise ParserBudgetError(
+                            f"Email attachment decoded-resource budget exceeded at {att_name}"
+                        )
+                    extracted = _process_attachment(
+                        att_data, mime, att_name, _depth=0, deadline=deadline
+                    )
                     if extracted:
                         attachment_texts.append(
                             f"\n--- ATTACHMENT: {att_name} ---\n{extracted}"
@@ -199,7 +230,11 @@ def extract_msg_file(data: bytes) -> ExtractedContent:
 
 
 def _process_attachment(
-    payload: bytes, mime: str, filename: str, _depth: int = 0
+    payload: bytes,
+    mime: str,
+    filename: str,
+    _depth: int = 0,
+    deadline: float | None = None,
 ) -> str | None:
     """Recursively process a PDF or image attachment."""
     if _depth >= 3:
@@ -210,16 +245,18 @@ def _process_attachment(
         if mime == _PDF_MIME:
             from app.services.pdf_extractor import extract_pdf
 
-            result = extract_pdf(payload)
+            result = extract_pdf(payload, deadline=deadline)
             return result.text
         elif mime in _IMAGE_MIMES:
             from app.config import settings
             from app.services.image_extractor import extract_image
             from app.services.preprocessor import preprocess_bytes
 
-            image = preprocess_bytes(payload)
+            image = preprocess_bytes(payload, max_pixels=settings.parser_max_image_pixels)
             result = extract_image(image, engine=settings.ocr_engine)
             return result.text
+    except (ParserBudgetError, TimeoutError):
+        raise
     except Exception:
         logger.warning("Failed to process attachment: %s", filename, exc_info=True)
     return None

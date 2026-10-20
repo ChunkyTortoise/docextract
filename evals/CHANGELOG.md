@@ -1,6 +1,6 @@
 # Eval Corpus Changelog
 
-## [2.0.0] — 2026-07-18
+## [2.0.0] - 2026-07-18
 
 **Phase B hireability expansion** 120 → 200 cases. All new `ground_truth_contexts` are verbatim spans from `input_text`.
 
@@ -30,15 +30,15 @@ Distribution after expansion: invoice ×36, receipt ×27, purchase_order ×24, b
 
 ### Labeling protocol (Phase B)
 
-- Single annotator (Cayman Roden); IAA N/A — documented limitation.
-- Each new case: author `input_text` → manually compute `expected_output` → select 1–5 verbatim `ground_truth_contexts` spans.
+- Single annotator (Cayman Roden); IAA N/A - documented limitation.
+- Each new case: author `input_text` → manually compute `expected_output` → select 1-5 verbatim `ground_truth_contexts` spans.
 - Spot-check ~10% of new labels before citing corpus as interview-defensible hand-verified.
 - Regenerate multi-metric baseline after API budget (`make eval && make eval-baseline`).
 - Deterministic fixtures remain 28; live-metered remainder grows with corpus (172 pending).
 
 ### Follow-ups
 
-- Run `make eval-fast` to validate harness picks up all 200 cases.
+- Run `make eval-fast` to validate the runner picks up all 200 cases.
 - Human spot-check on adversarial safe-behavior rubrics recommended before W3 multi-provider gate.
 
 ---
@@ -47,7 +47,7 @@ All additions, retirements, and schema changes to `golden_set.jsonl` and `advers
 
 ---
 
-## [1.2.0] — 2026-07-17
+## [1.2.0] - 2026-07-17
 
 **Evalgate W1 expansion** 72 → 120 cases. All new `ground_truth_contexts` are verbatim spans from `input_text`.
 
@@ -81,7 +81,7 @@ Distribution after expansion: invoice ×24, receipt ×16, purchase_order ×14, b
 
 ---
 
-## [1.1.0] — 2026-04-15
+## [1.1.0] - 2026-04-15
 
 **Corpus expansion** 28 → 72 cases. All `ground_truth_contexts` replaced with manually-selected verbatim spans. Zero `needs_review` tags remaining.
 
@@ -123,13 +123,13 @@ All 28 original cases had auto-derived sliding-window regex stubs. Replaced with
 
 The multi-metric baseline (`autoresearch/baseline.json`, written by `eval_gate.py --accept-baseline`) requires running `make eval` which calls the Anthropic API for extraction scoring. Blocked pending API credit top-up.
 
-Current `autoresearch/baseline.json` reflects the **legacy 28-case golden eval** (overall_score: 0.9555, case_count: 28, last updated 2026-04-15). This is the v1.0.0 floor from `run_eval_ci.py`, NOT the multi-metric harness baseline.
+Current `autoresearch/baseline.json` reflects the **legacy 28-case golden eval** (overall_score: 0.9555, case_count: 28, last updated 2026-04-15). This is the v1.0.0 floor from `run_eval_ci.py`, NOT the multi-metric eval baseline.
 
 Action required: run `make eval && make eval-baseline` after topping up API credits. The post-expansion score is expected to drop below 0.9555 because the 9 new adversarial cases (pii_leak, hallucination_bait) are harder. This is expected expansion behavior, not a prompt regression.
 
 ---
 
-## [1.0.0] — 2026-04-14
+## [1.0.0] - 2026-04-14
 
 **Initial migration** from `autoresearch/eval_dataset.json` (28 cases, bespoke JSON format) to industry-standard JSONL.
 
@@ -150,7 +150,7 @@ Action required: run `make eval && make eval-baseline` after topping up API cred
 
 **Schema additions vs old format:**
 - `expected_output` (renamed from `expected`)
-- `ground_truth_contexts` (new — auto-derived; needs manual review)
+- `ground_truth_contexts` (new - auto-derived; needs manual review)
 - `tags` (encodes weight + critical_fields + currency)
 - `attack_type` + `expected_safe_behavior` (adversarial only)
 

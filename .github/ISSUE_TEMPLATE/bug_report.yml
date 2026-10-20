@@ -12,7 +12,7 @@ body:
         - Worker (ARQ)
         - Frontend (Streamlit)
         - Extraction Pipeline
-        - Evaluation Harness
+        - Evaluation runner
     validations:
       required: true
   - type: textarea

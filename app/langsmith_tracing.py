@@ -112,7 +112,12 @@ def emit_rag_trace(ctx: TraceContext, *, retrieval_scores: list[float] | None = 
             if retrieval_scores:
                 outputs["mean_retrieval_score"] = sum(retrieval_scores) / len(retrieval_scores)
         if ctx._error_message is not None:
-            outputs["error"] = ctx._error_message
+            error_message = ctx._error_message
+            if settings.pii_redaction_enabled:
+                from app.services.pii_sanitizer import redact_pii
+
+                error_message = redact_pii(error_message)
+            outputs["error"] = error_message
 
         _client.create_run(
             id=run_id,

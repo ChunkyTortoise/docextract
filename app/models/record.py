@@ -67,6 +67,9 @@ class ExtractedRecord(Base):
             "validation_status IN ('pending_review','claimed','approved','corrected','passed','failed')",
             name="ck_extracted_records_validation_status_domain",
         ),
+        # One logical extraction record per job: redelivery can never create a
+        # second record even if the idempotency guard is bypassed.
+        Index("uq_extracted_records_job_id", "job_id", unique=True),
         Index("idx_records_type", "document_type"),
         Index(
             "idx_records_review",

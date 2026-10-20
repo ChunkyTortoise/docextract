@@ -1,4 +1,4 @@
-"""Agent Trace Viewer — visualize the agentic RAG ReAct reasoning loop."""
+"""Agent Trace Viewer - visualize the agentic RAG ReAct reasoning loop."""
 from __future__ import annotations
 
 import json

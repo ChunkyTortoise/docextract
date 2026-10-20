@@ -1,4 +1,4 @@
-"""Evaluation Dashboard — RAGAS and LLM-judge metrics over time."""
+"""Evaluation Dashboard - RAGAS and LLM-judge metrics over time."""
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -250,7 +250,7 @@ def render() -> None:
                     status, score = val
                     entry[label] = f"{status} ({score:.3f})"
                 else:
-                    entry[label] = "—"
+                    entry[label] = "-"
             table_data.append(entry)
 
         st.dataframe(

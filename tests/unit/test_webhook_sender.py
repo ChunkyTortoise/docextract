@@ -12,9 +12,9 @@ import pytest
 
 from app.services.webhook_sender import (
     DLQ_KEY,
-    MAX_ATTEMPTS,
     _push_to_dlq,
     _sign_payload,
+    attempt_webhook,
     decrypt_secret,
     encrypt_secret,
     send_webhook,
@@ -69,7 +69,7 @@ class TestAESEncryption:
 
     def test_different_encryptions_are_unique(self, aes_key_b64):
         """Each encryption uses a random nonce, so outputs differ."""
-        original = "same-secret"
+        original = "webhook-secret-value"
         enc1 = encrypt_secret(original, aes_key_b64)
         enc2 = encrypt_secret(original, aes_key_b64)
         assert enc1 != enc2
@@ -111,137 +111,99 @@ def _fail_response(status: int = 500):
     return r
 
 
-class TestSendWebhook:
+class TestAttemptWebhook:
+    """One attempt = one HTTP call. No retries, no sleeps, no DLQ here."""
+
     @pytest.mark.asyncio
-    async def test_successful_delivery(self):
-        """Test webhook delivered on first attempt -- no DLQ push."""
+    async def test_successful_attempt(self):
         mock_client = _make_mock_client(_ok_response())
 
-        with (
-            patch("app.services.webhook_sender.httpx.AsyncClient", return_value=mock_client),
-            patch("app.services.webhook_sender._push_to_dlq", new_callable=AsyncMock) as mock_dlq,
-        ):
-            result = await send_webhook(
+        with patch("app.services.webhook_sender.httpx.AsyncClient", return_value=mock_client):
+            delivered, error = await attempt_webhook(
                 "https://example.com/hook",
                 {"event": "job.completed"},
                 "my-secret",
             )
 
-        assert result is True
+        assert delivered is True
+        assert error == ""
         mock_client.post.assert_called_once()
         # Verify signature header was included
-        call_kwargs = mock_client.post.call_args
-        assert "X-Signature-256" in call_kwargs.kwargs["headers"]
-        mock_dlq.assert_not_called()
+        assert "X-Signature-256" in mock_client.post.call_args.kwargs["headers"]
 
     @pytest.mark.asyncio
-    async def test_retry_on_failure_then_success(self):
-        """Test retries on server error then succeeds on second attempt."""
-        mock_client = _make_mock_client([_fail_response(), _ok_response()])
+    async def test_http_failure_returns_error_after_single_attempt(self):
+        mock_client = _make_mock_client(_fail_response(500))
+
+        with patch("app.services.webhook_sender.httpx.AsyncClient", return_value=mock_client):
+            delivered, error = await attempt_webhook(
+                "https://example.com/hook",
+                {"event": "test"},
+                "secret",
+            )
+
+        assert delivered is False
+        assert error == "HTTP 500"
+        mock_client.post.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_network_error_returns_error(self):
+        # side_effect list makes the mock RAISE the transport error
+        mock_client = _make_mock_client([httpx.ConnectError("Connection refused")])
+
+        with patch("app.services.webhook_sender.httpx.AsyncClient", return_value=mock_client):
+            delivered, error = await attempt_webhook(
+                "https://example.com/hook",
+                {"event": "test"},
+                "secret",
+            )
+
+        assert delivered is False
+        assert "Connection refused" in error
+
+
+class TestSendWebhookSingleAttempt:
+    """send_webhook is the synchronous /webhooks/test ping: exactly one attempt.
+
+    The old inline retry sleeps are gone, so no test patches asyncio.sleep to
+    hide them; a guard patch below fails if any code path tries to sleep.
+    """
+
+    @pytest.mark.asyncio
+    async def test_returns_true_on_success(self):
+        mock_client = _make_mock_client(_ok_response())
 
         with (
             patch("app.services.webhook_sender.httpx.AsyncClient", return_value=mock_client),
-            patch("app.services.webhook_sender.asyncio.sleep", new_callable=AsyncMock),
-            patch("app.services.webhook_sender._push_to_dlq", new_callable=AsyncMock) as mock_dlq,
+            patch("asyncio.sleep", new_callable=AsyncMock) as sleep_mock,
         ):
             result = await send_webhook(
                 "https://example.com/hook",
-                {"event": "test"},
+                {"event": "webhook.test"},
                 "secret",
             )
 
         assert result is True
-        assert mock_client.post.call_count == 2
-        mock_dlq.assert_not_called()
+        assert mock_client.post.call_count == 1
+        sleep_mock.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_all_retries_exhausted_pushes_to_dlq(self):
-        """Test returns False after all retries fail and pushes to DLQ."""
-        mock_client = _make_mock_client(_fail_response())
+    async def test_returns_false_on_failure_without_retrying(self):
+        mock_client = _make_mock_client(_fail_response(503))
 
         with (
             patch("app.services.webhook_sender.httpx.AsyncClient", return_value=mock_client),
-            patch("app.services.webhook_sender.asyncio.sleep", new_callable=AsyncMock),
-            patch("app.services.webhook_sender._push_to_dlq", new_callable=AsyncMock) as mock_dlq,
+            patch("asyncio.sleep", new_callable=AsyncMock) as sleep_mock,
         ):
             result = await send_webhook(
                 "https://example.com/hook",
-                {"event": "test"},
+                {"event": "webhook.test"},
                 "secret",
-                webhook_id="wh-123",
             )
 
         assert result is False
-        assert mock_client.post.call_count == MAX_ATTEMPTS
-        mock_dlq.assert_called_once_with(
-            "https://example.com/hook",
-            {"event": "test"},
-            "HTTP 500",
-            "wh-123",
-        )
-
-    @pytest.mark.asyncio
-    async def test_retry_on_network_error(self):
-        """Test retries on httpx.HTTPError then succeeds."""
-        mock_client = _make_mock_client([
-            httpx.ConnectError("Connection refused"),
-            _ok_response(),
-        ])
-
-        with (
-            patch("app.services.webhook_sender.httpx.AsyncClient", return_value=mock_client),
-            patch("app.services.webhook_sender.asyncio.sleep", new_callable=AsyncMock),
-        ):
-            result = await send_webhook(
-                "https://example.com/hook",
-                {"event": "test"},
-                "secret",
-            )
-
-        assert result is True
-
-    @pytest.mark.asyncio
-    async def test_network_errors_exhaust_retries_push_dlq(self):
-        """All attempts fail with network errors -- pushes to DLQ."""
-        mock_client = _make_mock_client(
-            [httpx.ConnectError("refused")] * MAX_ATTEMPTS
-        )
-
-        with (
-            patch("app.services.webhook_sender.httpx.AsyncClient", return_value=mock_client),
-            patch("app.services.webhook_sender.asyncio.sleep", new_callable=AsyncMock),
-            patch("app.services.webhook_sender._push_to_dlq", new_callable=AsyncMock) as mock_dlq,
-        ):
-            result = await send_webhook(
-                "https://example.com/hook",
-                {"event": "test"},
-                "secret",
-                webhook_id="wh-456",
-            )
-
-        assert result is False
-        assert mock_client.post.call_count == MAX_ATTEMPTS
-        mock_dlq.assert_called_once()
-        call_args = mock_dlq.call_args
-        assert call_args[0][0] == "https://example.com/hook"
-        assert "refused" in call_args[0][2]
-
-    @pytest.mark.asyncio
-    async def test_sleep_delays_match_retry_schedule(self):
-        """Verify asyncio.sleep is called with the correct delay values."""
-        mock_client = _make_mock_client(_fail_response())
-        sleep_mock = AsyncMock()
-
-        with (
-            patch("app.services.webhook_sender.httpx.AsyncClient", return_value=mock_client),
-            patch("app.services.webhook_sender.asyncio.sleep", sleep_mock),
-            patch("app.services.webhook_sender._push_to_dlq", new_callable=AsyncMock),
-        ):
-            await send_webhook("https://example.com/hook", {"event": "test"}, "secret")
-
-        # First attempt has delay=0 (skipped), remaining attempts sleep with 30, 300, 1800
-        sleep_calls = [call.args[0] for call in sleep_mock.call_args_list]
-        assert sleep_calls == [30, 300, 1800]
+        assert mock_client.post.call_count == 1
+        sleep_mock.assert_not_called()
 
 
 class TestPushToDlq:
@@ -249,19 +211,14 @@ class TestPushToDlq:
     async def test_push_to_dlq_writes_correct_payload(self):
         """Verify DLQ entry structure and Redis RPUSH call."""
         mock_redis = AsyncMock()
-        mock_redis.rpush = AsyncMock()
-        mock_redis.aclose = AsyncMock()
 
-        with patch(
-            "app.services.webhook_sender.aioredis.from_url",
-            return_value=mock_redis,
-        ):
-            await _push_to_dlq(
-                "https://example.com/hook",
-                {"event": "job.completed", "job_id": "j-1"},
-                "HTTP 500",
-                "wh-789",
-            )
+        await _push_to_dlq(
+            mock_redis,
+            "https://example.com/hook",
+            {"event": "job.completed", "job_id": "j-1"},
+            "HTTP 500",
+            "wh-789",
+        )
 
         mock_redis.rpush.assert_called_once()
         key, value = mock_redis.rpush.call_args[0]
@@ -278,14 +235,8 @@ class TestPushToDlq:
     async def test_push_to_dlq_with_none_webhook_id(self):
         """DLQ entry stores None when no webhook_id provided."""
         mock_redis = AsyncMock()
-        mock_redis.rpush = AsyncMock()
-        mock_redis.aclose = AsyncMock()
 
-        with patch(
-            "app.services.webhook_sender.aioredis.from_url",
-            return_value=mock_redis,
-        ):
-            await _push_to_dlq("https://x.com/h", {}, "timeout", None)
+        await _push_to_dlq(mock_redis, "https://x.com/h", {}, "timeout", None)
 
         entry = json.loads(mock_redis.rpush.call_args[0][1])
         assert entry["webhook_id"] is None
@@ -293,24 +244,8 @@ class TestPushToDlq:
     @pytest.mark.asyncio
     async def test_push_to_dlq_redis_failure_does_not_raise(self):
         """If Redis itself fails, _push_to_dlq logs but does not raise."""
-        with patch(
-            "app.services.webhook_sender.aioredis.from_url",
-            side_effect=Exception("Redis down"),
-        ):
-            # Should NOT raise
-            await _push_to_dlq("https://x.com/h", {}, "err", None)
-
-    @pytest.mark.asyncio
-    async def test_push_to_dlq_closes_redis(self):
-        """Redis connection is always closed, even on rpush failure."""
         mock_redis = AsyncMock()
-        mock_redis.rpush = AsyncMock(side_effect=Exception("write error"))
-        mock_redis.aclose = AsyncMock()
+        mock_redis.rpush.side_effect = Exception("Redis down")
 
-        with patch(
-            "app.services.webhook_sender.aioredis.from_url",
-            return_value=mock_redis,
-        ):
-            await _push_to_dlq("https://x.com/h", {}, "err", None)
-
-        mock_redis.aclose.assert_called_once()
+        # Should NOT raise
+        await _push_to_dlq(mock_redis, "https://x.com/h", {}, "err", None)

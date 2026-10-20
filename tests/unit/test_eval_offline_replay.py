@@ -22,14 +22,14 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def test_offline_replay_passes_deterministically() -> None:
-    """Default invocation passes and reproduces the ~0.955 baseline F1, no API key."""
+    """Default invocation passes and reproduces the ~0.955 baseline score, no API key."""
     r = _run()
     assert r.returncode == 0, r.stdout + r.stderr
     assert "PASS" in r.stdout
     summary = json.loads((REPO / "eval_artifacts" / "offline_replay.json").read_text())
     assert summary["replayed"] >= 28
-    assert 0.90 <= summary["extraction_f1_combined"] <= 1.0
-    assert summary["extraction_f1_combined"] >= summary["floor"]
+    assert 0.90 <= summary["field_acc_combined"] <= 1.0
+    assert summary["field_acc_combined"] >= summary["floor"]
 
 
 def test_offline_replay_fails_below_floor() -> None:

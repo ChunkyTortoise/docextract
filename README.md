@@ -128,7 +128,7 @@ The chart is generated from the replay output by `python scripts/render_eval_cha
 <details>
 <summary>Replay score by document type (weighted field-level score)</summary>
 
-| Document type | Score | Cases |
+| Document type | Score | Replayed fixtures |
 |---|---|---|
 | invoice | 0.9669 | 13 |
 | receipt | 0.9091 | 4 |
