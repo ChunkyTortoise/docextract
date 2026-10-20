@@ -36,10 +36,9 @@ def _parse_child(
     file_bytes: bytes,
     mime_type: str,
     filename: str,
-    budget: float | None,
+    deadline: float | None,
 ) -> None:
     try:
-        deadline = None if budget is None else time.monotonic() + budget
         result = _resolve_target(target)(
             file_bytes, mime_type, filename, deadline=deadline
         )
@@ -62,14 +61,17 @@ def run_parse_subprocess(
 ) -> ExtractedContent:
     """Run one parse in a killable child process.
 
-    The child receives the remaining wall-clock budget and forwards it to the
-    parse entrypoint as its cooperative deadline. The parent join is
+    The child receives the parent's absolute ``time.monotonic()`` deadline and
+    forwards it unchanged to the parse entrypoint as its cooperative deadline.
+    The monotonic clock is system-wide (CLOCK_MONOTONIC on Linux,
+    mach_absolute_time on macOS), so the value is valid across the spawn
+    boundary; re-anchoring a relative budget in the child would silently
+    extend the deadline by the spawn and import latency. The parent join is
     authoritative: when the budget elapses the child is killed regardless of
     cooperation, so an unresponsive parser cannot outlive its budget.
     """
     ctx = multiprocessing.get_context("spawn")
     recv_conn, send_conn = ctx.Pipe(duplex=False)
-    budget = None if deadline is None else max(0.0, deadline - time.monotonic())
     proc = ctx.Process(
         target=_parse_child,
         args=(
@@ -78,13 +80,16 @@ def run_parse_subprocess(
             file_bytes,
             mime_type,
             filename,
-            budget,
+            deadline,
         ),
         daemon=True,
     )
     proc.start()
     send_conn.close()
-    proc.join(budget)
+    # Measure the remaining budget after start() so spawn latency is charged
+    # against the deadline rather than added on top of it.
+    remaining = None if deadline is None else max(0.0, deadline - time.monotonic())
+    proc.join(remaining)
     if proc.is_alive():
         proc.kill()
         proc.join(_KILL_GRACE_SECONDS)

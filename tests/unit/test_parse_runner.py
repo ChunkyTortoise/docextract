@@ -13,6 +13,7 @@ import pytest
 
 from app.services.parse_runner import (
     ParseSubprocessError,
+    _parse_child,
     run_parse_subprocess,
 )
 from app.services.pdf_extractor import ExtractedContent
@@ -61,9 +62,29 @@ class TestRunParseSubprocess:
         result = run_parse_subprocess(
             b"pdf-bytes", "application/pdf", "doc.pdf", deadline=deadline, target=_OK
         )
-        forwarded = result.metadata["deadline"]
-        assert forwarded is not None
-        assert 0.0 < forwarded <= deadline + 1.0
+        # The child must see the parent's absolute deadline exactly; any
+        # re-anchoring in the child would push it later by spawn latency.
+        assert result.metadata["deadline"] == deadline
+
+    def test_child_does_not_reanchor_deadline_after_spawn_latency(self):
+        # Simulate spawn/import latency between the parent computing the
+        # deadline and the child starting; the forwarded deadline must not move.
+        class _Conn:
+            sent = None
+
+            def send(self, payload):
+                self.sent = payload
+
+            def close(self):
+                pass
+
+        deadline = time.monotonic() + 5.0
+        time.sleep(0.2)
+        conn = _Conn()
+        _parse_child(conn, _OK, b"x", "application/pdf", "doc.pdf", deadline)
+        status, result = conn.sent
+        assert status == "ok"
+        assert result.metadata["deadline"] == deadline
 
     def test_child_exception_propagates_by_type(self):
         with pytest.raises(ValueError, match="boom"):
