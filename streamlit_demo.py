@@ -8,7 +8,6 @@ Deploy to Streamlit Cloud:
 
 from __future__ import annotations
 
-import logging
 import os
 import sys
 
@@ -20,6 +19,7 @@ os.environ["DEMO_MODE"] = "true"
 
 import streamlit as st
 
+from frontend.demo_result import apply_demo_styles
 from frontend.pages.demo_sandbox import show
 
 st.set_page_config(
@@ -29,44 +29,29 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Apply the project theme if available
-try:
-    from frontend.theme import apply_theme
+# Scope the standalone fixture shell without changing other product pages.
+with st.container(key="fixture-explorer"):
+    apply_demo_styles()
+    # Run the demo sandbox
+    show()
 
-    apply_theme()
-except ImportError:
-    logging.getLogger(__name__).warning("Optional demo theme could not be imported", exc_info=True)
+    col_links = st.columns(3)
+    with col_links[0]:
+        st.link_button("GitHub", "https://github.com/ChunkyTortoise/docextract")
+    with col_links[1]:
+        st.link_button(
+            "Case Study", "https://github.com/ChunkyTortoise/docextract/blob/main/CASE_STUDY.md"
+        )
+    with col_links[2]:
+        st.link_button(
+            "Product API reference",
+            "https://github.com/ChunkyTortoise/docextract/blob/main/docs/productization_api.md",
+        )
 
-st.markdown(
-    """<style>
-    .block-container { padding-top: 1rem; }
-    @media (max-width: 600px) {
-        h1 { font-size: 1.8rem !important; }
-        h3 { font-size: 1.25rem !important; }
-    }
-    </style>""",
-    unsafe_allow_html=True,
-)
-
-# Run the demo sandbox
-show()
-
-col_links = st.columns(3)
-with col_links[0]:
-    st.link_button("GitHub", "https://github.com/ChunkyTortoise/docextract")
-with col_links[1]:
-    st.link_button(
-        "Case Study", "https://github.com/ChunkyTortoise/docextract/blob/main/CASE_STUDY.md"
+    st.divider()
+    st.caption(
+        "This demo uses pre-cached extraction results. "
+        "Run the offline explorer with `python -m streamlit run streamlit_demo.py` "
+        "or deploy the full stack via `docker compose up`. "
+        "Source: [github.com/ChunkyTortoise/docextract](https://github.com/ChunkyTortoise/docextract)"
     )
-with col_links[2]:
-    st.link_button("Product API reference",
-        "https://github.com/ChunkyTortoise/docextract/blob/main/docs/productization_api.md")
-
-
-st.divider()
-st.caption(
-    "This demo uses pre-cached extraction results. "
-    "Run the offline explorer with `python -m streamlit run streamlit_demo.py` "
-    "or deploy the full stack via `docker compose up`. "
-    "Source: [github.com/ChunkyTortoise/docextract](https://github.com/ChunkyTortoise/docextract)"
-)
