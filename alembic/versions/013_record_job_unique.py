@@ -1,7 +1,7 @@
 """Unique record-per-job constraint: redelivery creates one logical record.
 
 Revision ID: 013_record_job_unique
-Revises: 012_eval_log
+Revises: 013_eval_log_uuid_repair
 Create Date: 2026-09-25
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "013_record_job_unique"
-down_revision = "012_eval_log"
+down_revision = "013_eval_log_uuid_repair"
 branch_labels = None
 depends_on = None
 

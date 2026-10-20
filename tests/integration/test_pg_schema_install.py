@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 ROOT = Path(__file__).resolve().parents[2]
-HEAD = "013_eval_log_uuid_repair"
+HEAD = "015_validation_status_default"
 SCENARIOS = (
     "metadata", "fresh", "upgrade_011", "legacy", "uuid", "missing_fk",
     "bad_uuid", "orphan", "collision",
