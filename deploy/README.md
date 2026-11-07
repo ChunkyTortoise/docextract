@@ -2,6 +2,8 @@
 
 This directory contains infrastructure configuration for deploying DocExtract to production environments. Four subdirectories cover Kubernetes, AWS Terraform, Grafana dashboards, and Prometheus scrape config.
 
+For AWS, use `aws-ecs/` (Fargate + ALB + RDS + S3, built for deploy, measure and teardown) with the runbook in [docs/aws-deploy.md](../docs/aws-deploy.md). `aws/` below is the older EC2 + ElastiCache module.
+
 ---
 
 ## Directory Structure
