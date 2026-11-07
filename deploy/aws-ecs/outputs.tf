@@ -34,3 +34,23 @@ output "project_tag" {
   description = "Project tag applied to all resources — use in the billable-resource sweep."
   value       = var.project_tag
 }
+
+output "public_subnet_ids" {
+  description = "Subnets for one-off ops tasks (aws ecs run-task)."
+  value       = aws_subnet.public[*].id
+}
+
+output "ecs_tasks_security_group_id" {
+  description = "Security group for one-off ops tasks; it is the one RDS admits."
+  value       = aws_security_group.ecs_tasks.id
+}
+
+output "ops_task_family" {
+  description = "Task definition family for migrations and key seeding."
+  value       = aws_ecs_task_definition.ops.family
+}
+
+output "api_service_name" {
+  description = "ECS service name, for update-service and wait services-stable."
+  value       = aws_ecs_service.api.name
+}

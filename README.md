@@ -193,7 +193,7 @@ The ADRs live in [docs/adr/](docs/adr/). The key ones:
 - The package requires Python 3.12+ (`pyproject.toml` `requires-python`); the standalone replay script runs on Python 3.10+.
 
 **Feature scope**
-- Deployment files are repository artifacts; a current live AWS deployment is not established here.
+- Deployment files are repository artifacts; a current live AWS deployment is not established here. The ECS deploy, measurement and teardown steps are in [docs/aws-deploy.md](docs/aws-deploy.md); live latency and cost stay unpublished until that run is committed.
 - PII filtering is pattern-based redaction (SSNs, credit cards, phone numbers, emails) in trace data. It does not establish complete PII detection or regulatory compliance.
 - GraphRAG hybrid retrieval is opt-in (`GRAPH_RETRIEVAL_ENABLED=false` by default): regex entity graph, file-backed.
 - The semantic cache ([ADR-0017](docs/adr/0017-semantic-cache-l1-l2.md)) is implemented but feature-flagged off and not wired into the extraction hot path.
