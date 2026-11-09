@@ -1,6 +1,6 @@
 # DocExtract: document extraction with an eval gate in CI
 
-DocExtract turns invoices, receipts, statements and other PDFs or scans into validated structured records you can search. Every pull request that touches prompts or the extractor re-scores a committed set of extraction outputs, and the check fails if the score falls below a floor or drops from baseline. This offline check scores frozen predictions; it does not rerun the extractor or detect prompt/model regressions. Those require a live evaluation.
+DocExtract turns invoices, receipts, statements and other PDFs or scans into validated structured records you can search. On eval-relevant pull requests, CI scores 28 saved extraction outputs and fails if the weighted score falls below 0.85 or drops by more than 0.03 from baseline. The check scores saved outputs; catching prompt or model regressions needs a live run (see [Methodology & limits](#methodology--limits)).
 
 Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and agentic RAG for questions over stored documents.
 
@@ -8,6 +8,8 @@ Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and ag
 [![Eval Gate](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml/badge.svg)](https://github.com/ChunkyTortoise/docextract/actions/workflows/eval-gate.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+**Built by [Cayman Roden](https://github.com/ChunkyTortoise)**, AI engineer in Los Angeles. Available now for contract, part-time or full-time work, US remote. [Portfolio](https://chunkytortoise.github.io) · [LinkedIn](https://linkedin.com/in/caymanroden)
 
 <p align="center">
   <img src="./docs/screenshots/demo-hero.png" width="720" alt="DocExtract fixture explorer showing stored invoice fields, sample values, and explicitly labeled sample confidence." />
