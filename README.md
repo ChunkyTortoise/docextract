@@ -1,6 +1,6 @@
 # DocExtract: document extraction with an eval gate in CI
 
-DocExtract turns invoices, receipts, statements and other PDFs or scans into validated structured records you can search. Every pull request that touches prompts or the extractor re-scores a committed set of extraction outputs, and the check fails if the score falls below a floor or drops from baseline. The check scores saved outputs; catching prompt or model regressions needs a live run (see [Methodology & limits](#methodology--limits)).
+DocExtract turns invoices, receipts, statements and other PDFs or scans into validated structured records you can search. On eval-relevant pull requests, CI scores 28 saved extraction outputs and fails if the weighted score falls below 0.85 or drops by more than 0.03 from baseline. The check scores saved outputs; catching prompt or model regressions needs a live run (see [Methodology & limits](#methodology--limits)).
 
 Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and agentic RAG for questions over stored documents.
 
