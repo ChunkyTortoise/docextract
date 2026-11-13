@@ -47,9 +47,10 @@ Payment Terms: Net 30
 Bank: Silicon Valley Bank — Account: 987654321 — Routing: 121140399
 """
 
+# Per 1K tokens, from platform.claude.com/docs/en/about-claude/pricing (read 2026-11-13); cache_write is the 5-minute rate.
 ANTHROPIC_COST_PER_1K = {
     "claude-sonnet-4-6": {"input": 0.003, "output": 0.015, "cache_read": 0.0003, "cache_write": 0.00375},
-    "claude-haiku-4-5-20251001": {"input": 0.0008, "output": 0.004, "cache_read": 0.00008, "cache_write": 0.001},
+    "claude-haiku-4-5-20251001": {"input": 0.001, "output": 0.005, "cache_read": 0.0001, "cache_write": 0.00125},
 }
 
 

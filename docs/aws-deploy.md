@@ -42,13 +42,18 @@ Pass `--infra-hourly-usd 0.083` to `scripts/bench_live.py`.
 ## Before you start (on your own machine)
 
 1. An AWS account with billing set up, and credentials for it in your shell
-   (`aws configure` or `AWS_PROFILE`). An IAM user or SSO role that can manage
-   VPC, ECS, ECR, RDS, S3, IAM roles, SSM, ELB and CloudWatch Logs.
+   (`aws login` with a recent AWS CLI v2, or `aws configure` / `AWS_PROFILE`).
+   An IAM user or SSO role that can manage VPC, ECS, ECR, RDS, S3, IAM roles,
+   SSM, ELB and CloudWatch Logs.
 2. A budget alarm, so a forgotten stack can't run up a bill (the first two
    AWS Budgets are free). In the AWS console: Billing → Budgets → Create budget,
    or with the CLI.
 3. Tools: AWS CLI v2, Terraform ≥ 1.5, Docker with buildx, Python 3.12.
-4. An Anthropic API key with credit. Gemini is optional (embeddings).
+4. An Anthropic API key with credit, made in its own workspace with a monthly
+   spend limit: in the Claude Console, Settings → Workspaces → Create workspace,
+   then select it and click Spend limits; create the key in that workspace. The
+   limit is the hard cap; `bench_live.py` also stops early on its own dollar
+   cap. Gemini is optional (embeddings).
 5. Secrets exported in your shell, never written to a file in the repo:
 
    ```bash
@@ -79,18 +84,27 @@ the VPC (RDS is private), waits for the service and checks `/api/v1/health`.
 scripts/aws/deploy.sh seed-key    # key generated locally; only its hash goes to AWS
 export DOCEXTRACT_API_KEY="$(cat ~/.docextract-aws/bench_api_key)"
 python scripts/bench_live.py --base-url "http://$(terraform -chdir=deploy/aws-ecs output -raw alb_dns_name)" \
-  --runs 10 --infra-hourly-usd 0.083
+  --runs 10 --infra-hourly-usd 0.083 --max-llm-usd 2
 ```
 
 `bench_live.py` uploads each sample document, polls its job to completion one at
 a time, and writes `eval_artifacts/bench_live_<timestamp>.json` with end-to-end
 p50/p95, server processing time, the run's LLM tokens by model (from the
-deployment's own traces) and infrastructure cost per document. Re-price the token
-counts at current list prices before publishing; the app's price table is
-approximate.
+deployment's own traces), their cost at Claude list prices, and infrastructure
+cost per document.
+
+Spend guard: it refuses to start more than `--max-docs` documents (default 40),
+and after each document it prices the new Claude tokens and stops before the
+next one could take spend past `--max-llm-usd` (default $2). It also stops if it
+can't see the spend (a Claude model it has no price for, or a document that
+finished with no new traces), and exits 3 when it stopped early. Prompt-cache
+writes are not in the traces and the first document has no estimate yet, so the
+Console spend limit stays the hard cap. The list prices in `LIST_PRICE_PER_1M`
+were read on 2026-11-13; check them before publishing numbers.
 
 For extraction accuracy and per-document LLM cost over the 72-case corpus, also
-run `scripts/benchmark.py` locally with the same API key.
+run `scripts/benchmark.py` locally with the same API key. It has no dollar cap of
+its own, so only run it with the Console spend limit in place.
 
 ## Tear down
 
