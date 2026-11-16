@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
-import subprocess
 import sys
 from pathlib import Path
 
@@ -87,15 +87,23 @@ def test_brand_swapped_for_generic_drug_name_is_flagged() -> None:
     ) == {"medications[0].name"}
 
 
-def test_replay_script_passes_and_catches_planted_hallucinations(tmp_path: Path) -> None:
-    out = tmp_path / "hallucination.json"
-    proc = subprocess.run(
-        [sys.executable, "scripts/eval_hallucination.py", "--out", str(out)],
-        cwd=REPO,
-        capture_output=True,
-        text=True,
+def _load_script():
+    spec = importlib.util.spec_from_file_location(
+        "eval_hallucination", REPO / "scripts" / "eval_hallucination.py"
     )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_replay_script_passes_and_catches_planted_hallucinations(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    out = tmp_path / "hallucination.json"
+    script = _load_script()
+    monkeypatch.setattr(sys, "argv", ["eval_hallucination.py", "--verbose", "--out", str(out)])
+    assert script.main() == 0
     summary = json.loads(out.read_text())
     assert summary["cases"] >= 28
     assert summary["self_test"]["planted"] > 0

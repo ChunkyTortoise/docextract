@@ -30,6 +30,22 @@ metrics:
     artifact_path: "pyproject.toml"
     date: "2026-07-17"
     context: "CI coverage gate enforced via --cov-fail-under=80; latest measured 81.55% on main CI"
+  - id: hallucination_grounded_rate
+    value: "98.3%"
+    value_percent: 98.3
+    status: measured
+    source_command: "python scripts/eval_hallucination.py --verbose"
+    artifact_path: "evals/README.md#hallucination-scoring"
+    date: "2026-11-16"
+    context: "Claim-level faithfulness over the 28 recorded replay fixtures: 474 of 482 extracted field values found in the source document (deterministic grounding check, DeepEval custom metric). Self-test caught 46/46 planted hallucinations. Not an LLM-judge score."
+  - id: hallucination_rate
+    value: "1.7%"
+    value_percent: 1.7
+    status: measured
+    source_command: "python scripts/eval_hallucination.py --verbose"
+    artifact_path: "evals/README.md#hallucination-scoring"
+    date: "2026-11-16"
+    context: "8 of 482 extracted field values unsupported by the source document on the 28-fixture replay; CI fails above 5%."
   - id: avg_cost_per_document_usd
     value: "$0.03/doc"
     status: modeled
