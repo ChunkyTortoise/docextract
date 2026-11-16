@@ -19,6 +19,7 @@ Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and ag
 | Kind | Result | Value | Source |
 |---|---|---|---|
 | Measured | Weighted field-level extraction score (critical fields 2×, partial credit for near matches) | **95.5%** on a 28-fixture offline replay | [`scripts/eval_offline_replay.py`](scripts/eval_offline_replay.py) · [`autoresearch/baseline.json`](autoresearch/baseline.json) · [evidence note](docs/retrieval-extraction-evidence.md#extraction-replay) |
+| Measured | Hallucination scoring: share of extracted field values found in the source document (deterministic, DeepEval custom metric) | **98.3%** of 482 field values grounded (8 unsupported, 1.7%); 46/46 planted hallucinations caught | [`scripts/eval_hallucination.py`](scripts/eval_hallucination.py) · [`autoresearch/grounding.py`](autoresearch/grounding.py) · [eval notes](evals/README.md#hallucination-scoring) |
 | CI gate | Replay floor: the Offline replay check fails below it, or on a drop of more than 0.03 from baseline | **0.85** | [`eval-gate.yml`](.github/workflows/eval-gate.yml) · [recorded failing run](https://github.com/ChunkyTortoise/docextract/actions/runs/29670515963/job/88148512559) |
 | CI gate | Test coverage floor | **80%** | [`ci.yml`](.github/workflows/ci.yml) (`--cov-fail-under=80`) · [metrics ledger](docs/portfolio-metrics.yaml) |
 | Inventory | Eval authoring corpus | **200 cases** (150 golden + 50 adversarial) | [`evals/golden_set.jsonl`](evals/golden_set.jsonl) · [`evals/adversarial_set.jsonl`](evals/adversarial_set.jsonl) |

@@ -54,6 +54,8 @@ jobs:
         run: pip install -r requirements_ci.txt
       - name: Replay + score committed fixtures
         run: python scripts/eval_offline_replay.py --floor 0.85 --out eval_artifacts/offline_replay.json
+      - name: Hallucination scoring (claim-level faithfulness + planted-hallucination self-test)
+        run: python scripts/eval_hallucination.py --max-rate 0.05 --verbose --out eval_artifacts/hallucination.json
       - name: Upload offline replay artifact
         if: always()
         uses: actions/upload-artifact@v7
