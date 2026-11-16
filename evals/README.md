@@ -86,3 +86,39 @@ python scripts/eval_variance_baseline.py \
 ```
 
 `scripts/eval_gate.py` loads `relative_drop_tolerance` from that artifact when present (else falls back to the fixed 0.03).
+
+## Hallucination scoring
+
+`scripts/eval_hallucination.py` checks every field value in the 28 committed replay
+fixtures against the document it was extracted from. A value the document does not
+contain is an unsupported claim: the model asserted something the source does not say.
+
+```bash
+python scripts/eval_hallucination.py --verbose          # deterministic, no API key
+python scripts/eval_hallucination.py --judge            # + DeepEval FaithfulnessMetric / HallucinationMetric (needs a judge key, costs money)
+```
+
+- **Metric:** claim-level faithfulness = grounded values / scored values; hallucination rate = 1 − faithfulness.
+  Same definition as DeepEval's `FaithfulnessMetric`, with a deterministic check in place of the LLM judge.
+  Runs as a DeepEval `BaseMetric` (`FieldGroundingMetric`) when `deepeval` is installed and as plain Python
+  otherwise; the numbers are identical.
+- **Matching:** exact text, numbers (US and EU formats) and dates in any common format; then OCR look-alikes
+  (`1OO.OO` → 100.00), comma-joined lists, and name fields built from separate lines. Every claim records which
+  rule matched it. Normalized labels (currency codes, `transaction_type`, document type, sex) are not scored.
+- **Self-test:** for each fixture, one fabricated string and one wrong number are planted; the run fails unless
+  all of them are flagged. This shows the metric catches hallucinations, not only that clean data passes.
+- **Gate:** the Offline replay job fails above a 5% claim-level hallucination rate.
+
+**First run (2026-11-16, recorded `claude-sonnet-4-6` fixtures):** 482 field values scored, 474 grounded
+(98.3%), 8 unsupported (1.7%); 24 of 28 cases fully grounded; 46/46 planted hallucinations caught.
+
+| Case | Unsupported value | What happened |
+|---|---|---|
+| `receipt_01` | `subtotal = 21.99` | Document prints $22.00 |
+| `purchase_order_01` | `line_items[2].total = 650.0` | Document prints $675.00 |
+| `purchase_order_large` | line 5: `USB-C Hub + Webcam HD`, qty 15, unit price 0.0, total 950 | Two lines merged into one invented line |
+| `medical_multi_icd` | `medications[1].name = Semaglutide` | Document says Ozempic; the generic name came from the model, not the record |
+| `medical_multi_icd` | `diagnoses[0].description` | Dropped "mellitus" from the printed diagnosis (paraphrase, flagged by design) |
+
+Limits: a number the model computed but the document does not print is flagged, and so is a paraphrase longer
+than four words. Both are deliberate; the per-claim report separates them from invention.
