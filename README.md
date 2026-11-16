@@ -1,5 +1,7 @@
 # DocExtract: document extraction with an eval gate in CI
 
+> **Client work.** I built DocExtract under a paid engagement for a client I can't name. This repository is the version I can share publicly. An authorized walkthrough is available on request.
+
 DocExtract turns invoices, receipts, statements and other PDFs or scans into validated structured records you can search. Every pull request that touches prompts or the extractor re-scores a committed set of extraction outputs, and the check fails if the score falls below a floor or drops from baseline. This offline check scores frozen predictions; it does not rerun the extractor or detect prompt/model regressions. Those require a live evaluation.
 
 Under the hood: FastAPI, a two-pass Claude extraction pipeline, pgvector, and agentic RAG for questions over stored documents.
@@ -200,8 +202,6 @@ The ADRs live in [docs/adr/](docs/adr/). The key ones:
 - Langfuse, LangSmith and OpenTelemetry integrations require configuration and are not presented as verified live telemetry ([`app/observability.py`](app/observability.py)).
 - There are two separate judges. The in-app judge (Gemini 2.5 Flash, Claude Haiku fallback) is off by default (`llm_judge_enabled = False` in `app/config.py`). The CI judge (`scripts/eval_llm_judge.py`) runs only in the paid live job, which skips without an API key, and uses its default provider (Anthropic) because the workflow passes no `--provider`.
 - The two-pass figures in [ADR-0003](docs/adr/0003-two-pass-extraction.md) (trigger rate, improvement, added latency) have no committed run artifact and are not cited as results here.
-
-**Provenance:** built under a paid client engagement; an authorized walkthrough is available on request.
 
 </details>
 
