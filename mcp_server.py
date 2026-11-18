@@ -107,9 +107,39 @@ _BLOCKED_HOSTS = {"localhost", "metadata", "metadata.google.internal", "instance
 _BLOCKED_SUFFIXES = (".localhost", ".internal", ".local")
 
 
+# IPv6 prefixes whose low 32 bits carry an IPv4 address a gateway or stack may route to.
+_IPV4_EMBEDDING_V6_NETS = (
+    ipaddress.IPv6Network("::/96"),  # IPv4-compatible (deprecated, RFC 4291)
+    ipaddress.IPv6Network("::ffff:0:0:0/96"),  # IPv4-translated (RFC 2765)
+    ipaddress.IPv6Network("64:ff9b::/96"),  # NAT64 well-known prefix (RFC 6052)
+    ipaddress.IPv6Network("64:ff9b:1::/48"),  # NAT64 local-use prefix (RFC 8215)
+)
+
+
+def _embedded_ipv4(addr: ipaddress.IPv6Address) -> list[ipaddress.IPv4Address]:
+    """Return IPv4 addresses embedded in an IPv6 address (mapped, 6to4, Teredo, NAT64, compat)."""
+    found: list[ipaddress.IPv4Address] = []
+    if addr.ipv4_mapped:
+        found.append(addr.ipv4_mapped)
+    if addr.sixtofour:
+        found.append(addr.sixtofour)
+    if addr.teredo:
+        found.extend(addr.teredo)
+    if any(addr in net for net in _IPV4_EMBEDDING_V6_NETS):
+        found.append(ipaddress.IPv4Address(int(addr) & 0xFFFFFFFF))
+    return found
+
+
 def _is_public_ip(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    if isinstance(addr, ipaddress.IPv6Address) and addr.ipv4_mapped:
-        addr = addr.ipv4_mapped
+    if isinstance(addr, ipaddress.IPv6Address):
+        if addr.ipv4_mapped:
+            addr = addr.ipv4_mapped
+        else:
+            # is_global alone misses NAT64 / IPv4-compatible forms (and 6to4 on older
+            # Pythons), so every embedded IPv4 must be public as well.
+            embedded = _embedded_ipv4(addr)
+            if embedded and not all(_is_public_ip(v4) for v4 in embedded):
+                return False
     # is_global also rejects shared address space (100.64/10), which is_private misses.
     return addr.is_global and not addr.is_multicast
 
