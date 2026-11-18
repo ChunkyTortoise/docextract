@@ -29,7 +29,7 @@ Every number below comes from a committed artifact and a command that needs no A
 | Weighted field-level extraction score (critical fields 2x, partial credit for near matches; not F1) | **0.9555** | 28 fixtures (of 72 lookup cases) | [`autoresearch/golden_responses/`](autoresearch/golden_responses/) scored against [`eval_dataset_72.json`](autoresearch/eval_dataset_72.json) | rerun 2026-11-17 | claude-sonnet-4-6 (frozen) | 0.95546 in [`baseline.json`](autoresearch/baseline.json); CI floor 0.85, max drop 0.03 | `python3 scripts/eval_offline_replay.py --floor 0.85` |
 | Extracted values found in the source text (faithfulness) | **0.9834** (8 unsupported) | 482 values, 28 cases | same 28 fixtures | rerun 2026-11-17 | claude-sonnet-4-6 (frozen) | gate: hallucination rate at most 0.05 | `python3 scripts/eval_hallucination.py` |
 | Planted hallucinations caught by the grounding scorer | **46/46** | 46 planted values | self-test inside the same script | rerun 2026-11-17 | none (synthetic) | none | `python3 scripts/eval_hallucination.py` |
-| Tests on a fresh clone, no API key | **1632 passed, 27 skipped** | full `tests/` tree, 2 e2e deselected | repository tests | 2026-11-17 | none | CI coverage floor 80% ([`ci.yml`](.github/workflows/ci.yml)) | see [Run the tests](#run-the-tests) |
+| Tests on a fresh clone, no API key | **1638 passed, 27 skipped** | full `tests/` tree, 2 e2e deselected | repository tests | 2026-11-17 | none | CI coverage floor 80% ([`ci.yml`](.github/workflows/ci.yml)) | see [Run the tests](#run-the-tests) |
 
 Per-document-type replay scores, the eval corpus inventory (200 authoring cases, 20 ADRs) and what each number does not cover are in [How it's evaluated](#how-its-evaluated) and [Methodology & limits](#methodology--limits).
 
