@@ -140,6 +140,10 @@ def _is_public_ip(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
             embedded = _embedded_ipv4(addr)
             if embedded and not all(_is_public_ip(v4) for v4 in embedded):
                 return False
+            # Deprecated site-local space (fec0::/10, RFC 3879) still counts as global
+            # in CPython's ipaddress, but it is internal wherever a network keeps it.
+            if addr.is_site_local:
+                return False
     # is_global also rejects shared address space (100.64/10), which is_private misses.
     return addr.is_global and not addr.is_multicast
 

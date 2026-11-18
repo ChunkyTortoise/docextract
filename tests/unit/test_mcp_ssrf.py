@@ -48,6 +48,8 @@ BYPASSES = [
     "https://[64:ff9b:1::a00:5]/",  # NAT64 local-use -> 10.0.0.5
     "https://[2002:7f00:1::]/",  # 6to4 -> 127.0.0.1
     "https://[2001:0:4136:e378:8000:63bf:80ff:fffe]/",  # Teredo, client 127.0.0.1
+    "https://[fec0::1]/",  # deprecated site-local (RFC 3879)
+    "https://[feff::1]/",  # top of fec0::/10
 ]
 
 
@@ -71,6 +73,7 @@ def test_blocked(url):
         ["64:ff9b::a00:1"],
         ["::7f00:1"],
         ["2002:a9fe:a9fe::1"],
+        ["fec0::1"],
     ],
 )
 def test_hostname_resolving_to_internal_blocked(resolved):
