@@ -24,7 +24,7 @@ The command exited with status 0. It replayed 28 of 72 lookup cases and reported
 
 The JSON output artifact is `/tmp/hero-hf-ra11-offline-replay.json`, SHA-256 `16c267869038d8aaa90febb474d34ab5a78d0eca94fe7514103e523dfa8f39ed`, 958 bytes. The committed comparison artifact is [autoresearch/baseline.json](../autoresearch/baseline.json), with `case_count` 28 and `overall_score` 0.95546.
 
-The extraction score is weighted field-level accuracy over committed prediction fixtures. Legacy output field names contain `f1`, but this result is not F1. It is also not a live model result.
+The extraction score is weighted field-level accuracy over committed prediction fixtures. Output recorded before 2026-09 used `f1` key names and current output uses `field_acc`; neither is F1. It is also not a live model result.
 
 ## Three separate denominators
 
@@ -50,7 +50,7 @@ The 0.9555 extraction replay score establishes none of retrieval recall, support
 
 ## Optional LLM judge implementation
 
-[app/services/ragas_evaluator.py](../app/services/ragas_evaluator.py) defines `context_recall`, `faithfulness`, and `answer_relevancy` as Claude LLM-as-judge measures. Their configured weights are 0.35, 0.40, and 0.25. Evaluation is gated by `RAGAS_ENABLED`, which defaults off. When the flag is off, the evaluator returns `None` for all three measures and for the overall score. Therefore, the implementation does not provide a measured retrieval score in the committed tree.
+The in-app Ragas evaluator (`app/services/ragas_evaluator.py`) was removed in PR #56. The `ragas_enabled` flag is still defined in `app/config.py` and defaults to off, but no application code reads it. Ragas now runs only through `scripts/eval_ragas.py` in the paid live job of `.github/workflows/eval-gate.yml`, which skips without an API key. The committed tree therefore holds no measured retrieval score.
 
 ## Demo fixture provenance trap
 
