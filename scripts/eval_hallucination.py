@@ -43,7 +43,12 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from autoresearch.grounding import NORMALIZED_FIELDS, GroundingResult, iter_claims, score_grounding  # noqa: E402
+from autoresearch.grounding import (  # noqa: E402
+    NORMALIZED_FIELDS,
+    GroundingResult,
+    iter_claims,
+    score_grounding,
+)
 
 DATASET = REPO / "autoresearch" / "eval_dataset_72.json"
 FIXTURE_DIR = REPO / "autoresearch" / "golden_responses"
@@ -133,7 +138,7 @@ def _plant(extraction: dict, kind: str) -> tuple[dict, str] | None:
             continue
         if kind == "string" and isinstance(value, str) and not value[:4].isdigit():
             planted, new = copy.deepcopy(extraction), FABRICATED_STRING
-        elif kind == "number" and isinstance(value, (int, float)) and not isinstance(value, bool):
+        elif kind == "number" and isinstance(value, int | float) and not isinstance(value, bool):
             planted, new = copy.deepcopy(extraction), round(float(value) * 1.37 + 11.11, 2)
         else:
             continue
