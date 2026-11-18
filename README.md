@@ -47,7 +47,7 @@ python3 scripts/eval_offline_replay.py --floor 0.85
 python3 scripts/eval_hallucination.py
 ```
 
-The first script ends with `PASS: replayed 28/72 corpus cases, combined field accuracy 0.9555 ...` and the second with `PASS: hallucination rate 0.0166 <= 0.05; self-test 46/46`. Both write JSON to `eval_artifacts/`.
+The first script ends with a `PASS: replayed 28/72 corpus cases` line reporting combined field accuracy 0.9555, and the second with `PASS: hallucination rate 0.0166 <= 0.05; self-test 46/46`. Both write JSON to `eval_artifacts/`. To browse the same fixtures field by field, run `streamlit run space_app.py` after installing `requirements_demo.txt` (below); [docs/deploy-hf-space.md](docs/deploy-hf-space.md) has the steps to host it.
 
 ### Explore stored extractions in the UI
 
@@ -187,7 +187,7 @@ The ADRs live in [docs/adr/](docs/adr/). The key ones:
 - The prompt-injection scan is a regex first layer. It misses paraphrases such as "Ignore the instructions above", "disregard earlier guidance" and "Ign0re previous instructions", and flags benign contract text such as "shall act as an independent contractor". The output sanitizer strips exfiltration keys only, so leaked text inside a normal field value passes. The text extraction path fences and sanitizes but does not run the scan. No attack success rate is measured, and the 11 `prompt_injection` cases in `evals/adversarial_set.jsonl` are not scored against the guard.
 - If the Gemini embedding call fails, the job fails at the embed step and follows the ARQ retry policy (`worker/tasks.py`); there is no extract-without-search fallback.
 - 44 of the 72 lookup cases have no recorded prediction, so the replay covers 28. Retrieval recall, answer faithfulness, agent tool choice and held-out live accuracy are unmeasured; cost and latency are modeled, not metered ([Roadmap](#roadmap)).
-- Failure modes the eval set is built around (OCR noise, ambiguous dates, missing totals, non-USD currency) are listed in [eval-failure-analysis.md](docs/eval-failure-analysis.md).
+- The 8 unsupported values from the grounding run are categorized in [error-taxonomy.md](docs/error-taxonomy.md): 4 from one merged line item, 2 wrong numbers, 1 brand-to-generic drug name swap, 1 paraphrase. Failure modes the eval set is built around (OCR noise, ambiguous dates, missing totals, non-USD currency) are listed in [eval-failure-analysis.md](docs/eval-failure-analysis.md).
 
 ## Methodology & limits
 
