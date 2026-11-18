@@ -93,4 +93,4 @@ The same `mcp_server.py` works with any MCP-compatible host. For Cursor or other
 
 ## Related Projects
 
-- **[mcp-server-toolkit](https://github.com/ChunkyTortoise/mcp-server-toolkit)**: 9 pre-built MCP servers and a framework for building new ones. Published to PyPI (`pip install mcp-server-toolkit==0.2.0`). Provides boilerplate for building MCP servers with caching, rate limiting, and OpenTelemetry instrumentation, the same patterns used in this server.
+- **[mcp-server-toolkit](https://github.com/ChunkyTortoise/mcp-server-toolkit)**: 9 pre-built MCP servers and a framework for building new ones. Published to PyPI (`pip install mcp-server-toolkit==0.1.0`, the only release as of 2026-11-17). Provides boilerplate for building MCP servers with caching, rate limiting, and OpenTelemetry instrumentation; this server's `mcp_server.py` does not use those three features.
