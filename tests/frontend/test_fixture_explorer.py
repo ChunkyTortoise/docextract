@@ -11,14 +11,14 @@ def test_each_document_selection_renders_its_own_stored_fields():
     app = AppTest.from_file(str(ENTRY)).run(timeout=20)
     assert not app.exception
     expected_fields = {
-        "invoice": "Invoice Number",
-        "contract": "Contract Type",
-        "receipt": "Merchant Name",
+        "invoice": "invoice number",
+        "contract": "contract type",
+        "receipt": "merchant name",
     }
     for sample, expected in expected_fields.items():
         app.selectbox[0].select(sample).run()
         assert not app.exception
-        assert expected in app.table[0].value["Field"].tolist()
+        assert any(f"<dt>{expected}</dt>" in h.proto.body for h in app.get("html"))
         assert any(f"{sample}_sample.json" in c.value for c in app.caption)
 
 
@@ -40,7 +40,8 @@ def test_seeded_metrics_cannot_be_mistaken_for_measured_results():
     warnings = " ".join(w.value for w in app.warning)
     assert "not measured RAGAS" in warnings
     assert "not metered spend" in warnings
-    assert "Sample confidence" in app.table[0].value.columns
+    assert any("not calibrated accuracy" in c.value for c in app.caption)
+    assert any("field_confidence" in j.value for j in app.json)
 
 
 def test_recorded_search_survives_sample_changes_until_explicit_reset():

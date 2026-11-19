@@ -16,13 +16,15 @@ Open the local URL printed by Streamlit. No credentials, `.env`, API, PostgreSQL
 
 ## Offline walkthrough
 
-1. **Fields:** select Invoice, Contract and Receipt. Compare stored fields and sample confidence. Expand **Compare a synthetic source sample** for a preview and **Download synthetic comparison HTML** for a standalone accessible copy. Expand the complete fixture JSON for line items and parties.
+1. **Fields:** select Invoice, Contract and Receipt. Read the stored summary and complete structured fields, including line items, parties and receipt entries. Open **Stored sample metadata** for stored confidence and processing time; these are not calibrated quality or live measurements. **Inspect the complete fixture JSON** and **Download stored JSON** retain the full fixture. The summary links to **Reproduce / setup**, before the optional reconstruction on phones. Expand **Synthetic comparison, not the original PDF** for the reconstruction and **Download synthetic comparison HTML** for a standalone copy. Reconstruction cannot verify extraction correctness.
 2. **Search:** read the fixed invoice question and click **Replay stored search**. Two stored results appear. Return to Fields, change sample and return to Search, the recorded invoice output stays visible. **Reset recorded search** clears it. Selecting Contract or Receipt does not change the fixed invoice question.
 3. **Trace:** expand the stored reasoning steps and read the stored answer. This is an illustrative trace, not a trace from this session.
 4. **Eval:** inspect seeded UI scores and their warning. Follow the separate measured offline replay evidence link for the evaluation population and limitations.
 5. **Cost:** inspect the seeded display and warning. These amounts are not metered spend, savings or a completed A/B experiment.
 
 There is no measured time-to-complete claim for this route. Optional [capture provenance](docs/screenshots/PROVENANCE.md) identifies the existing completed-fields screenshot and three-state walkthrough.
+
+The explorer startup command opens stored results. The separate `python scripts/eval_offline_replay.py --floor 0.85` command runs an offline evaluation; neither command performs a fresh extraction.
 
 ## Synthetic comparison provenance
 
