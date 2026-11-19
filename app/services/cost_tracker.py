@@ -9,24 +9,25 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
-# Claude API pricing (as of 2026) — cost per 1,000 tokens in USD
+# Claude API list prices, cost per 1,000 tokens in USD, from
+# platform.claude.com/docs/en/about-claude/pricing (read 2026-11-13).
 COST_PER_1K_TOKENS: dict[str, dict[str, Decimal]] = {
     "claude-sonnet-4-6": {
         "input": Decimal("0.003"),
         "output": Decimal("0.015"),
     },
     "claude-haiku-4-5": {
-        "input": Decimal("0.00025"),
-        "output": Decimal("0.00125"),
+        "input": Decimal("0.001"),
+        "output": Decimal("0.005"),
     },
     # Haiku version variants used in model chains
     "claude-haiku-4-5-20251001": {
-        "input": Decimal("0.00025"),
-        "output": Decimal("0.00125"),
+        "input": Decimal("0.001"),
+        "output": Decimal("0.005"),
     },
     "claude-opus-4-6": {
-        "input": Decimal("0.015"),
-        "output": Decimal("0.075"),
+        "input": Decimal("0.005"),
+        "output": Decimal("0.025"),
     },
     # Gemini for embeddings (approximate)
     "gemini-embedding": {

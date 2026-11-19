@@ -38,12 +38,12 @@ class TestComputeCostHaiku:
     def test_haiku_input_cost_correct(self):
         tracker = CostTracker()
         result = tracker.compute_cost("claude-haiku-4-5", 1000, 0, "classify", 50.0)
-        assert result.input_cost_usd == Decimal("0.00025")
+        assert result.input_cost_usd == Decimal("0.001")
 
     def test_haiku_output_cost_correct(self):
         tracker = CostTracker()
         result = tracker.compute_cost("claude-haiku-4-5", 0, 1000, "classify", 50.0)
-        assert result.output_cost_usd == Decimal("0.00125")
+        assert result.output_cost_usd == Decimal("0.005")
 
     def test_haiku_cheaper_than_sonnet(self):
         tracker = CostTracker()
@@ -93,9 +93,9 @@ class TestComputeCostEdgeCases:
     def test_opus_pricing_correct(self):
         tracker = CostTracker()
         result = tracker.compute_cost("claude-opus-4-6", 1000, 1000, "extract", 200.0)
-        assert result.input_cost_usd == Decimal("0.015")
-        assert result.output_cost_usd == Decimal("0.075")
-        assert result.total_cost_usd == Decimal("0.090")
+        assert result.input_cost_usd == Decimal("0.005")
+        assert result.output_cost_usd == Decimal("0.025")
+        assert result.total_cost_usd == Decimal("0.030")
 
     def test_gemini_embedding_zero_output_cost(self):
         tracker = CostTracker()
@@ -152,8 +152,8 @@ class TestGetCostSummary:
         summary = await tracker.get_cost_summary(mock_db)
         op_data = summary["claude-haiku-4-5"]["classify"]
 
-        # 1000 input tokens at haiku rate = 0.00025
-        assert abs(op_data["total_cost"] - 0.00025) < 1e-9
+        # 1000 input tokens at haiku rate = 0.001
+        assert abs(op_data["total_cost"] - 0.001) < 1e-9
         assert op_data["avg_cost"] == op_data["total_cost"]  # 1 call
 
     @pytest.mark.asyncio

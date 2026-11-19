@@ -40,6 +40,10 @@ async def get_storage():
             from app.storage.r2 import R2StorageBackend
 
             _storage = R2StorageBackend()
+        elif settings.storage_backend == "s3":
+            from app.storage.s3 import S3StorageBackend
+
+            _storage = S3StorageBackend()
         else:
             from app.storage.local import LocalStorageBackend
 

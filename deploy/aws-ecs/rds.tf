@@ -3,17 +3,10 @@
 # db.t4g.micro: ~$0.016/hr on-demand.  Single-AZ for cost.
 # skip_final_snapshot=true and deletion_protection=false are required for teardown.
 #
-# pgvector extension installation (one-time, post-apply):
-#   psql "host=$(terraform output -raw rds_endpoint) port=5432 \
-#         dbname=docextract user=docextract_admin sslmode=require" \
-#     -c "CREATE EXTENSION IF NOT EXISTS vector;"
-# This must be run from a host in aws_security_group.rds.  A temporary inbound
-# rule is needed:
-#   aws ec2 authorize-security-group-ingress \
-#     --group-id <rds_sg_id> \
-#     --protocol tcp --port 5432 \
-#     --cidr <your_laptop_public_ip>/32
-# Revoke it immediately after the extension is created and migrations run.
+# pgvector: migration 002 runs CREATE EXTENSION vector. RDS is private, so
+# migrations run inside the VPC as a one-off ECS task:
+#   scripts/aws/deploy.sh migrate
+# (the RDS master user has rds_superuser, which may create the extension).
 # ──────────────────────────────────────────────────────────────────────────────
 
 resource "aws_db_subnet_group" "main" {

@@ -21,8 +21,11 @@ class Settings(BaseSettings):
     api_key_secret: SecretStr = SecretStr("change-me-32-chars-minimum-secret")
 
     # Storage
-    storage_backend: str = "local"  # "local" or "r2"
+    storage_backend: str = "local"  # "local", "r2" or "s3"
     storage_local_path: str = "./storage/local"
+    # Amazon S3 (STORAGE_BACKEND=s3): credentials and region come from boto3's
+    # default chain, e.g. the ECS task role and AWS_REGION on Fargate.
+    s3_bucket_name: str = ""
     r2_account_id: str = ""
     # r2_access_key_id/r2_secret_access_key are consumed as plain str by
     # app/storage/r2.py and mocked as plain str in tests/unit/test_storage.py

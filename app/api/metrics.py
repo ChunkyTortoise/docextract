@@ -22,9 +22,12 @@ from app.schemas.responses import (
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
-# Approximate cost per 1M tokens (USD)
+# Anthropic list prices per 1M tokens (USD), base input and output, from
+# platform.claude.com/docs/en/about-claude/pricing (read 2026-11-13). Prompt-cache
+# reads and writes are billed differently and are not in llm_traces, so this is
+# an estimate. Gemini is Google's price and is approximate.
 COST_PER_1M = {
-    "claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.00},
+    "claude-haiku-4-5-20251001": {"input": 1.00, "output": 5.00},
     "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
     "gemini-embedding-2-preview": {"input": 0.10, "output": 0.00},
 }

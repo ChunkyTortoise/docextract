@@ -52,3 +52,4 @@ results/
 
 # GraphRAG corpus (runtime)
 data/knowledge_graph.json
+.coverage.*
