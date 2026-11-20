@@ -79,10 +79,10 @@ graph TB
                    Enqueue job → Redis/ARQ
 
 2. MIME Detect     Worker picks job from queue
-                   python-magic identifies file type
+                   Magic-byte sniffing (app/utils/mime.py) identifies file type
                    Route to appropriate text extractor
 
-3. Text Extract    PDF → pdfplumber (text-layer) or Tesseract (OCR)
+3. Text Extract    PDF → PyMuPDF text layer, pdfplumber for tables, Tesseract (OCR) for scans
                    Image → Tesseract OCR
                    Email → email.parser (headers + body + attachments)
 
@@ -136,9 +136,9 @@ Query text → Gemini embedding (768-dim)
 |---------|-----------|----------|--------|
 | Sonnet unavailable | Circuit breaker opens after 5 failures | Auto-failover to Haiku; recovery probe every 60s | Accuracy drops ~14%, latency drops ~50% |
 | Haiku unavailable | Circuit breaker opens | Failover to Sonnet for classification | Cost increases ~10x for classification |
-| Redis down | Connection error on queue/rate-limit | API returns 503; queued jobs preserved in Redis AOF | No new jobs accepted; existing jobs resume on recovery |
+| Redis down | Connection error on queue/rate-limit | API returns 503; queued jobs survive only if Redis persistence is enabled (not set in `docker-compose.yml`) | No new jobs accepted; existing jobs resume on recovery |
 | PostgreSQL down | Connection pool exhaustion | API returns 503; worker retries with backoff | Full outage until DB recovery |
-| Gemini embedding down | API error on embed call | Skip embedding; document extracted but not searchable | Search degraded; extraction pipeline continues |
+| Gemini embedding down | API error on embed call | The `embed` call in `worker/tasks.py` is not caught, so the job fails at the embed step; errors classed as transient are retried (max 3 tries) | Document is not stored unless a retry succeeds |
 | Webhook target down | HTTP 4xx/5xx or timeout | 4-attempt exponential backoff; dead letter after exhaustion | Downstream notified late; SSE still works |
 | Storage backend down | I/O error on file write | Job fails; retryable via ARQ retry policy | Upload fails; client retries |
 
@@ -168,8 +168,8 @@ Query text → Gemini embedding (768-dim)
 - PostgreSQL + Redis: Docker-managed services
 
 ### AWS (Terraform)
-- RDS PostgreSQL 16 + ElastiCache Redis 7
-- ECS Fargate for API + Worker
+- `deploy/aws/` (EC2 host): RDS PostgreSQL 16 + ElastiCache Redis 7.1
+- `deploy/aws-ecs/` (ECS Fargate): RDS PostgreSQL (engine default 15.8 in `variables.tf`) + a `redis:7-alpine` sidecar container, no ElastiCache
 - Cloudflare R2 for document storage
 
 ### Kubernetes (Kustomize)
@@ -182,7 +182,7 @@ Query text → Gemini embedding (768-dim)
 
 - **Prometheus**: `llm_call_duration_ms`, `llm_calls_total`, `circuit_breaker_state`, custom extraction metrics
 - **OpenTelemetry**: Feature-flagged span export to Jaeger/Tempo (`OTEL_ENABLED=true`)
-- **Grafana**: Pre-built dashboard (`deploy/grafana/docextract-dashboard.json`) with 9 panels
+- **Grafana**: Pre-built dashboard (`deploy/grafana/docextract-dashboard.json`) with 7 panels in 4 rows
 - **Cost tracking**: Per-request USD via `cost_tracker.py`, exposed on `/stats` endpoint
 - **Alert rules**: `deploy/prometheus/alerts.yml` (6 rules tied to SLOs)
 

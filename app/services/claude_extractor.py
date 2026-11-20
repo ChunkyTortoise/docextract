@@ -93,6 +93,18 @@ async def extract(
     # Shared router: breaker cooldowns persist across requests and jobs.
     router = get_shared_router("extract")
 
+    # Flag known injection markers in the text the model will see. Observability
+    # only: a hit is logged (pattern names, never document text) and does not
+    # block, because the output is sanitized whether or not the scan fires.
+    scan_hits = injection_guard.scan(text[: prompt_config.params.extract_text_limit])
+    if scan_hits:
+        logger.warning(
+            "injection_guard scan matched %d pattern(s) for %s: %s",
+            len(scan_hits),
+            doc_type,
+            scan_hits,
+        )
+
     # Inject few-shot correction examples if active learning enabled
     few_shot_prefix = ""
     if settings.active_learning_enabled and db is not None:

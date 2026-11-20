@@ -16,7 +16,7 @@ Related:
 - Replay command: `python scripts/eval_offline_replay.py --floor 0.85`
 - Committed baseline: `autoresearch/baseline.json` (`overall_score` 0.95546, `case_count` 28)
 - Methodology: [eval-methodology.md](eval-methodology.md)
-- Replay vs 202-case authoring corpus: `docs/eval-boundary.md` (draft [PR #44](https://github.com/ChunkyTortoise/docextract/pull/44); not merged here)
+- Replay vs 202-case authoring corpus: [eval-boundary.md](eval-boundary.md) (merged in [PR #44](https://github.com/ChunkyTortoise/docextract/pull/44))
 
 ## What #32 changed
 
@@ -163,4 +163,4 @@ Expect exit 0. This is the fixture-vs-prompt split: the offline gate does not se
 
 - A live extractor run against the degraded prompt. Those jobs were skipped.
 - A new field-level accuracy number. Public 95.5% remains the 28-fixture baseline on `main`.
-- Held-out freshness of the 28 recorded fixtures. See `docs/eval-boundary.md` after PR #44 for that boundary.
+- Held-out freshness of the 28 recorded fixtures. See [eval-boundary.md](eval-boundary.md) for that boundary.
