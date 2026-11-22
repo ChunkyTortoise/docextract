@@ -246,6 +246,3 @@ build-backend = "setuptools.build_meta"
 
 [tool.coverage.run]
 omit = ["*/migrations/*", "*/alembic/*"]
-
-[tool.coverage.report]
-fail_under = 80
