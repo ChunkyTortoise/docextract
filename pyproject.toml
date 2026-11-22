@@ -245,7 +245,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.coverage.run]
-omit = ["tests/*", "*/migrations/*", "*/alembic/*"]
+omit = ["*/migrations/*", "*/alembic/*"]
 
 [tool.coverage.report]
-fail_under = 65
+fail_under = 80
