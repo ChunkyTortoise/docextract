@@ -1,4 +1,5 @@
 """Document viewer component with page navigation."""
+
 import streamlit as st
 
 
@@ -23,7 +24,9 @@ def display_document(
     total_pages = len(pages)
 
     if total_pages > 1:
-        page_num = st.slider("Page", min_value=1, max_value=total_pages, value=1, key=f"{title}_page")
+        page_num = st.slider(
+            "Page", min_value=1, max_value=total_pages, value=1, key=f"{title}_page"
+        )
     else:
         page_num = 1
 

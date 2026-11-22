@@ -1,4 +1,5 @@
 """Statistics and dashboard data endpoint."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -24,36 +25,26 @@ async def get_stats(
     api_key: APIKey = Depends(get_api_key),
 ) -> StatsResponse:
     """Get aggregate statistics for dashboard."""
-    total_docs = (
-        await db.execute(select(func.count(Document.id)))
-    ).scalar() or 0
+    total_docs = (await db.execute(select(func.count(Document.id)))).scalar() or 0
 
-    total_jobs = (
-        await db.execute(select(func.count(ExtractionJob.id)))
-    ).scalar() or 0
+    total_jobs = (await db.execute(select(func.count(ExtractionJob.id)))).scalar() or 0
 
     completed = (
         await db.execute(
-            select(func.count(ExtractionJob.id)).where(
-                ExtractionJob.status == "completed"
-            )
+            select(func.count(ExtractionJob.id)).where(ExtractionJob.status == "completed")
         )
     ).scalar() or 0
 
     failed = (
         await db.execute(
-            select(func.count(ExtractionJob.id)).where(
-                ExtractionJob.status == "failed"
-            )
+            select(func.count(ExtractionJob.id)).where(ExtractionJob.status == "failed")
         )
     ).scalar() or 0
 
     success_rate = (completed / total_jobs * 100) if total_jobs > 0 else 0.0
 
     # Avg confidence score across records
-    avg_confidence = (
-        await db.execute(select(func.avg(ExtractedRecord.confidence_score)))
-    ).scalar()
+    avg_confidence = (await db.execute(select(func.avg(ExtractedRecord.confidence_score)))).scalar()
 
     # Records needing review
     needs_review_count = (
@@ -68,9 +59,7 @@ async def get_stats(
     cutoff = datetime.now(UTC) - timedelta(hours=24)
     jobs_last_24h = (
         await db.execute(
-            select(func.count(ExtractionJob.id)).where(
-                ExtractionJob.created_at >= cutoff
-            )
+            select(func.count(ExtractionJob.id)).where(ExtractionJob.created_at >= cutoff)
         )
     ).scalar() or 0
 

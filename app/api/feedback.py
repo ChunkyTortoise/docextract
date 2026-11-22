@@ -4,6 +4,7 @@ Users can signal thumbs-up / thumbs-down on any extraction result.
 Feedback aggregates by document type to surface categories that need
 prompt tuning — a data flywheel feeding into the PromptRegressionTester.
 """
+
 from __future__ import annotations
 
 from typing import Literal
@@ -72,9 +73,7 @@ async def get_feedback_summary(
     """Return aggregate feedback stats."""
     rows = await db.execute(
         text(
-            "SELECT rating, doc_type, COUNT(*) as cnt "
-            "FROM feedback "
-            "GROUP BY rating, doc_type"
+            "SELECT rating, doc_type, COUNT(*) as cnt " "FROM feedback " "GROUP BY rating, doc_type"
         )
     )
     results = rows.fetchall()

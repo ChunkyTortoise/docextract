@@ -71,11 +71,10 @@ def resolve_provider(provider: str, env: Mapping[str, str] | None = None) -> str
     """
     env = os.environ if env is None else env
     if provider == "gemini" and not env.get(PROVIDER_ENV_KEYS["gemini"]):
-        logger.warning(
-            "GEMINI_API_KEY not set — judge falling back to provider 'anthropic'"
-        )
+        logger.warning("GEMINI_API_KEY not set — judge falling back to provider 'anthropic'")
         return "anthropic"
     return provider
+
 
 # ── Rubric (cached — sent once per batch via prompt caching) ─────────────────
 RUBRIC_MD = """
@@ -122,8 +121,13 @@ EMIT_SCORE_TOOL: dict[str, Any] = {
             "reasoning": {"type": "string", "description": "1–2 sentence justification"},
         },
         "required": [
-            "faithfulness", "completeness", "hallucination_free",
-            "schema_compliance", "safety", "verdict", "reasoning",
+            "faithfulness",
+            "completeness",
+            "hallucination_free",
+            "schema_compliance",
+            "safety",
+            "verdict",
+            "reasoning",
         ],
     },
 }
@@ -317,7 +321,11 @@ async def run_judge(
     async def _bounded(case: dict) -> dict:
         async with sem:
             result = await judge_case(backend, case, n_samples=n_samples)
-            status = "✅" if result["verdict"] == "pass" else ("❌" if result["verdict"] == "fail" else "⚠️")
+            status = (
+                "✅"
+                if result["verdict"] == "pass"
+                else ("❌" if result["verdict"] == "fail" else "⚠️")
+            )
             print(f"  {status} {result['id']}", file=sys.stderr)
             return result
 
@@ -359,7 +367,9 @@ def main() -> None:
     parser.add_argument("--adv", action="store_true", help="Also eval adversarial set")
     parser.add_argument("--out", type=Path, default=REPO_ROOT / "eval_artifacts" / "llm_judge.json")
     parser.add_argument("--single", type=str, default=None)
-    parser.add_argument("--n-samples", type=int, default=3, help="Samples per case for self-consistency")
+    parser.add_argument(
+        "--n-samples", type=int, default=3, help="Samples per case for self-consistency"
+    )
     parser.add_argument("--concurrency", type=int, default=3)
     parser.add_argument(
         "--provider",
@@ -410,7 +420,9 @@ def main() -> None:
     args.out.write_text(json.dumps(summary, indent=2))
 
     print(f"\nLLM-judge results ({summary['case_count']} cases, {provider}):")
-    print(f"  pass_rate: {summary['pass_rate']:.4f}  ({summary['pass_count']}/{summary['case_count']})")
+    print(
+        f"  pass_rate: {summary['pass_rate']:.4f}  ({summary['pass_count']}/{summary['case_count']})"
+    )
     for metric, val in summary["avg_scores"].items():
         print(f"  avg_{metric}: {val:.2f}/5")
     print(f"\nWritten to {args.out}")

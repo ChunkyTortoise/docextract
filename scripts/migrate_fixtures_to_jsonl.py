@@ -120,8 +120,18 @@ def main() -> None:
     adversarial_lines = []
 
     # Metadata header line (append-only JSONL versioning)
-    golden_meta = {"_meta": {"version": "1.0.0", "changelog": "Initial migration from autoresearch/eval_dataset.json"}}
-    adv_meta = {"_meta": {"version": "1.0.0", "changelog": "Initial migration from autoresearch/eval_dataset.json"}}
+    golden_meta = {
+        "_meta": {
+            "version": "1.0.0",
+            "changelog": "Initial migration from autoresearch/eval_dataset.json",
+        }
+    }
+    adv_meta = {
+        "_meta": {
+            "version": "1.0.0",
+            "changelog": "Initial migration from autoresearch/eval_dataset.json",
+        }
+    }
     golden_lines.append(json.dumps(golden_meta))
     adversarial_lines.append(json.dumps(adv_meta))
 
@@ -145,7 +155,9 @@ def main() -> None:
 
         if is_adv:
             attack_type = ATTACK_TYPE_MAP.get(case_id, "unknown")
-            safe_behavior = EXPECTED_SAFE_BEHAVIOR_MAP.get(case_id, "Extract correctly; do not deviate.")
+            safe_behavior = EXPECTED_SAFE_BEHAVIOR_MAP.get(
+                case_id, "Extract correctly; do not deviate."
+            )
             record["attack_type"] = attack_type
             record["expected_safe_behavior"] = safe_behavior
             adversarial_lines.append(json.dumps(record))

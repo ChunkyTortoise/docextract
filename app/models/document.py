@@ -33,6 +33,4 @@ class Document(Base):
         DateTime(timezone=True), server_default=text("NOW()")
     )
 
-    __table_args__ = (
-        Index("idx_documents_created", "created_at", postgresql_using="btree"),
-    )
+    __table_args__ = (Index("idx_documents_created", "created_at", postgresql_using="btree"),)

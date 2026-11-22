@@ -4,6 +4,7 @@ Revision ID: 001
 Revises:
 Create Date: 2026-03-01
 """
+
 from __future__ import annotations
 
 from typing import Sequence
@@ -35,7 +36,9 @@ def upgrade() -> None:
     op.create_table(
         "api_keys",
         sa.Column(
-            "id", UUID(as_uuid=True), primary_key=True,
+            "id",
+            UUID(as_uuid=True),
+            primary_key=True,
             server_default=sa.text("gen_random_uuid()"),
         ),
         sa.Column("name", sa.String(255), nullable=False),
@@ -43,7 +46,8 @@ def upgrade() -> None:
         sa.Column("is_active", sa.Boolean(), server_default=sa.text("true")),
         sa.Column("rate_limit_per_minute", sa.Integer(), server_default=sa.text("60")),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True),
+            "created_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
         sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
@@ -53,7 +57,9 @@ def upgrade() -> None:
     op.create_table(
         "documents",
         sa.Column(
-            "id", UUID(as_uuid=True), primary_key=True,
+            "id",
+            UUID(as_uuid=True),
+            primary_key=True,
             server_default=sa.text("gen_random_uuid()"),
         ),
         sa.Column("original_filename", sa.String(500), nullable=False),
@@ -63,11 +69,14 @@ def upgrade() -> None:
         sa.Column("sha256_hash", sa.String(64), nullable=False),
         sa.Column("page_count", sa.Integer(), nullable=True),
         sa.Column(
-            "uploaded_by", UUID(as_uuid=True),
-            sa.ForeignKey("api_keys.id"), nullable=True,
+            "uploaded_by",
+            UUID(as_uuid=True),
+            sa.ForeignKey("api_keys.id"),
+            nullable=True,
         ),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True),
+            "created_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
     )
@@ -78,12 +87,16 @@ def upgrade() -> None:
     op.create_table(
         "extraction_jobs",
         sa.Column(
-            "id", UUID(as_uuid=True), primary_key=True,
+            "id",
+            UUID(as_uuid=True),
+            primary_key=True,
             server_default=sa.text("gen_random_uuid()"),
         ),
         sa.Column(
-            "document_id", UUID(as_uuid=True),
-            sa.ForeignKey("documents.id", ondelete="CASCADE"), nullable=False,
+            "document_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("documents.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column("status", sa.String(50), nullable=False, server_default=sa.text("'queued'")),
         sa.Column("progress_pct", sa.Integer(), server_default=sa.text("0")),
@@ -100,17 +113,20 @@ def upgrade() -> None:
         sa.Column("webhook_url", sa.String(2000), nullable=True),
         sa.Column("webhook_secret_encrypted", sa.Text(), nullable=True),
         sa.Column(
-            "queued_at", sa.DateTime(timezone=True),
+            "queued_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True),
+            "created_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
         sa.Column(
-            "updated_at", sa.DateTime(timezone=True),
+            "updated_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
     )
@@ -122,23 +138,30 @@ def upgrade() -> None:
     op.create_table(
         "extracted_records",
         sa.Column(
-            "id", UUID(as_uuid=True), primary_key=True,
+            "id",
+            UUID(as_uuid=True),
+            primary_key=True,
             server_default=sa.text("gen_random_uuid()"),
         ),
         sa.Column(
-            "job_id", UUID(as_uuid=True),
-            sa.ForeignKey("extraction_jobs.id", ondelete="CASCADE"), nullable=False,
+            "job_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("extraction_jobs.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column(
-            "document_id", UUID(as_uuid=True),
-            sa.ForeignKey("documents.id"), nullable=False,
+            "document_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("documents.id"),
+            nullable=False,
         ),
         sa.Column("document_type", sa.String(50), nullable=False),
         sa.Column("extracted_data", JSONB(), nullable=False),
         sa.Column("raw_text", sa.Text(), nullable=True),
         sa.Column("confidence_score", sa.Float(), nullable=False),
         sa.Column(
-            "validation_status", sa.String(20),
+            "validation_status",
+            sa.String(20),
             server_default=sa.text("'pending'"),
         ),
         sa.Column("needs_review", sa.Boolean(), server_default=sa.text("false")),
@@ -148,22 +171,28 @@ def upgrade() -> None:
         sa.Column("corrected_data", JSONB(), nullable=True),
         sa.Column("reviewer_notes", sa.Text(), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True),
+            "created_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
         sa.Column(
-            "updated_at", sa.DateTime(timezone=True),
+            "updated_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
     )
     op.create_index("idx_records_type", "extracted_records", ["document_type"])
     op.create_index(
-        "idx_records_review", "extracted_records", ["needs_review"],
+        "idx_records_review",
+        "extracted_records",
+        ["needs_review"],
         postgresql_where=sa.text("needs_review = true"),
     )
     op.create_index("idx_records_confidence", "extracted_records", ["confidence_score"])
     op.create_index(
-        "idx_records_data", "extracted_records", ["extracted_data"],
+        "idx_records_data",
+        "extracted_records",
+        ["extracted_data"],
         postgresql_using="gin",
     )
 
@@ -171,12 +200,16 @@ def upgrade() -> None:
     op.create_table(
         "validation_errors",
         sa.Column(
-            "id", UUID(as_uuid=True), primary_key=True,
+            "id",
+            UUID(as_uuid=True),
+            primary_key=True,
             server_default=sa.text("gen_random_uuid()"),
         ),
         sa.Column(
-            "record_id", UUID(as_uuid=True),
-            sa.ForeignKey("extracted_records.id", ondelete="CASCADE"), nullable=False,
+            "record_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("extracted_records.id", ondelete="CASCADE"),
+            nullable=False,
         ),
         sa.Column("field_name", sa.String(100), nullable=False),
         sa.Column("rule_name", sa.String(100), nullable=False),
@@ -185,7 +218,8 @@ def upgrade() -> None:
         sa.Column("expected_value", sa.Text(), nullable=True),
         sa.Column("actual_value", sa.Text(), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True),
+            "created_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
     )
@@ -204,7 +238,8 @@ def upgrade() -> None:
         sa.Column("new_data", JSONB(), nullable=True),
         sa.Column("metadata", JSONB(), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True),
+            "created_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
     )

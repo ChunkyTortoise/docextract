@@ -77,9 +77,7 @@ class KnowledgeGraph:
         for i, chunk_body in enumerate(chunks):
             chunk_key = f"{doc_id}:{i}"
             entities = self._extractor.extract_entities(chunk_body, chunk_id=i)
-            relationships = self._extractor.extract_relationships(
-                chunk_body, entities, chunk_id=i
-            )
+            relationships = self._extractor.extract_relationships(chunk_body, entities, chunk_id=i)
 
             self._chunks[chunk_key] = ChunkRecord(
                 doc_id=doc_id, chunk_id=i, text=chunk_body, entities=entities

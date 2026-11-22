@@ -10,6 +10,7 @@ Provider order: Gemini 2.5 Flash (independent reviewer) → Claude Haiku (fallba
 Using a different provider as the primary judge eliminates self-grading bias where
 Claude evaluates its own extractions.
 """
+
 from __future__ import annotations
 
 import json
@@ -69,10 +70,10 @@ Required JSON shape:
 
 
 class JudgeResult(BaseModel):
-    score: float          # 0-1
+    score: float  # 0-1
     reasoning: str
-    passed: bool          # score >= threshold
-    evidence: list[str]   # specific quotes from context supporting score
+    passed: bool  # score >= threshold
+    evidence: list[str]  # specific quotes from context supporting score
     threshold: float
     judge_model: str = "unknown"  # which model produced this verdict
 
@@ -96,10 +97,17 @@ class LLMJudge:
     def _get_gemini_client(self):
         if self._gemini_client is None:
             from app.services.providers.gemini_provider import GeminiJudgeClient
-            gemini_key = getattr(settings, "gemini_api_key", None) or getattr(settings, "google_api_key", None)
+
+            gemini_key = getattr(settings, "gemini_api_key", None) or getattr(
+                settings, "google_api_key", None
+            )
             if not gemini_key:
                 return None
-            key_value = gemini_key.get_secret_value() if hasattr(gemini_key, "get_secret_value") else gemini_key
+            key_value = (
+                gemini_key.get_secret_value()
+                if hasattr(gemini_key, "get_secret_value")
+                else gemini_key
+            )
             self._gemini_client = GeminiJudgeClient(api_key=key_value)
         return self._gemini_client
 
@@ -135,7 +143,9 @@ class LLMJudge:
         # Fallback: Claude Haiku
         return await self._evaluate_with_claude(prompt, threshold)
 
-    async def _evaluate_with_gemini(self, gemini_client, prompt: str, threshold: float) -> JudgeResult | None:
+    async def _evaluate_with_gemini(
+        self, gemini_client, prompt: str, threshold: float
+    ) -> JudgeResult | None:
         from app.services.providers.gemini_provider import DEFAULT_JUDGE_MODEL
 
         try:

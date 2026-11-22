@@ -1,4 +1,5 @@
 """Pydantic schemas for structured document extraction output."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -71,11 +72,7 @@ class StructuredExtractionResponse(BaseModel):
     doc_id: str
     doc_type: str
     extraction: (
-        InvoiceExtraction
-        | ContractExtraction
-        | ReceiptExtraction
-        | MedicalRecordExtraction
-        | None
+        InvoiceExtraction | ContractExtraction | ReceiptExtraction | MedicalRecordExtraction | None
     )
     error: str | None = None
     latency_ms: float

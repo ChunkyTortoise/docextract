@@ -1,4 +1,5 @@
 """Screen 3: Extraction results viewer."""
+
 import json
 
 import streamlit as st
@@ -18,11 +19,13 @@ def _render_extraction_panel(full_record: dict) -> None:
         st.subheader("Document Info")
         confidence = full_record.get("confidence_score", 0) or 0
         needs_review = full_record.get("needs_review", False)
-        st.json({
-            "document_type": full_record.get("document_type"),
-            "confidence_score": confidence,
-            "needs_review": needs_review,
-        })
+        st.json(
+            {
+                "document_type": full_record.get("document_type"),
+                "confidence_score": confidence,
+                "needs_review": needs_review,
+            }
+        )
 
         # Confidence badge
         if confidence >= 0.9:

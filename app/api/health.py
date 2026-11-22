@@ -1,4 +1,5 @@
 """Health check endpoints -- no auth required."""
+
 from __future__ import annotations
 
 import asyncio

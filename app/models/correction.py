@@ -1,4 +1,5 @@
 """Correction model for storing HITL correction history."""
+
 from __future__ import annotations
 
 import uuid

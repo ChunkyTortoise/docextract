@@ -1,4 +1,5 @@
 """Screen 4: Records browser with filtering."""
+
 import os
 
 import pandas as pd
@@ -6,14 +7,29 @@ import streamlit as st
 
 import frontend.api_client as api
 
-DOCUMENT_TYPES = ["All", "Invoice", "Purchase Order", "Receipt", "Bank Statement", "Identity Document", "Medical Record"]
+DOCUMENT_TYPES = [
+    "All",
+    "Invoice",
+    "Purchase Order",
+    "Receipt",
+    "Bank Statement",
+    "Identity Document",
+    "Medical Record",
+]
 
 
 def _render_records_table(items: list[dict]) -> None:
     """Render a records table with row selection."""
     demo_mode = os.environ.get("DEMO_MODE", "").lower() in ("1", "true", "yes")
     df = pd.DataFrame(items)
-    display_cols = ["id", "document_type", "confidence_score", "needs_review", "review_status", "created_at"]
+    display_cols = [
+        "id",
+        "document_type",
+        "confidence_score",
+        "needs_review",
+        "review_status",
+        "created_at",
+    ]
     display_df = df[[c for c in display_cols if c in df.columns]]
 
     selected = st.dataframe(
@@ -66,13 +82,19 @@ def render() -> None:
     st.title("Extracted Records")
 
     # Semantic search
-    search_query = st.text_input("Search records", placeholder="e.g. invoice total, contract date...")
+    search_query = st.text_input(
+        "Search records", placeholder="e.g. invoice total, contract date..."
+    )
     if search_query:
         try:
             results = api.search_records(search_query, limit=10)
-            items = [r["record"] for r in results] if isinstance(results, list) else results.get("items", [])
+            items = (
+                [r["record"] for r in results]
+                if isinstance(results, list)
+                else results.get("items", [])
+            )
             if items:
-                st.caption(f"Found {len(items)} results for \"{search_query}\"")
+                st.caption(f'Found {len(items)} results for "{search_query}"')
                 _render_records_table(items)
             else:
                 st.info("No records matched your search.")
@@ -84,7 +106,9 @@ def render() -> None:
     with st.sidebar:
         st.subheader("Filters")
         doc_type_filter = st.selectbox("Document Type", DOCUMENT_TYPES, index=0)
-        needs_review_filter = st.selectbox("Review Status", ["All", "Needs Review", "Reviewed"], index=0)
+        needs_review_filter = st.selectbox(
+            "Review Status", ["All", "Needs Review", "Reviewed"], index=0
+        )
         min_confidence = st.slider("Min Confidence", 0.0, 1.0, 0.0, step=0.05)
         page = st.number_input("Page", min_value=1, value=1, step=1)
 

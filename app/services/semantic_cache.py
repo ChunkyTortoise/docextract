@@ -7,6 +7,7 @@ exceeds a configurable threshold.
 
 Feature-flagged via SEMANTIC_CACHE_ENABLED (default false).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class CacheEntry(BaseModel):
     """Single cache entry with embedding, response, and metadata."""
+
     cache_id: str
     embedding: list[float]
     response: str
@@ -32,6 +34,7 @@ class CacheEntry(BaseModel):
 
 class CacheResult(BaseModel):
     """Result of a cache lookup."""
+
     hit: bool
     response: str | None = None
     similarity: float = 0.0
@@ -41,6 +44,7 @@ class CacheResult(BaseModel):
 
 class CacheStats(BaseModel):
     """Aggregate cache statistics."""
+
     total_entries: int
     hits: int
     misses: int
@@ -149,8 +153,8 @@ class SemanticCache:
 
         # Enforce max entries (FIFO eviction)
         if len(self._entries) > self._max_entries:
-            self._entries = self._entries[-self._max_entries:]
-            self._embeddings = self._embeddings[-self._max_entries:]
+            self._entries = self._entries[-self._max_entries :]
+            self._embeddings = self._embeddings[-self._max_entries :]
 
         return cache_id
 

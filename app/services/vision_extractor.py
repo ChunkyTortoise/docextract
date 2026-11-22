@@ -1,4 +1,5 @@
 """Vision-native document extraction using Claude's image understanding."""
+
 from __future__ import annotations
 
 import base64
@@ -62,9 +63,7 @@ async def extract_vision(
         ValueError: If mime_type is not a supported image type
     """
     if mime_type not in IMAGE_MIME_TYPES:
-        raise ValueError(
-            f"Vision extraction requires an image MIME type, got: {mime_type}"
-        )
+        raise ValueError(f"Vision extraction requires an image MIME type, got: {mime_type}")
 
     from anthropic import AsyncAnthropic
 
@@ -77,9 +76,7 @@ async def extract_vision(
     # reads it inside the same instruction hierarchy the text path uses.
     prompt = VISION_EXTRACT_PROMPT
     if doc_type:
-        prompt += "\n\n" + injection_guard.wrap_untrusted(
-            f"This document is a {doc_type}."
-        )
+        prompt += "\n\n" + injection_guard.wrap_untrusted(f"This document is a {doc_type}.")
 
     scan_hits = injection_guard.scan(prompt)
 
@@ -119,13 +116,9 @@ async def extract_vision(
     output_scan_hits = [k for k in all_scan_keys if k.startswith("output_scan:")]
     exfil_keys = [k for k in all_scan_keys if not k.startswith("output_scan:")]
     if exfil_keys:
-        logger.warning(
-            "Vision extraction stripped exfiltration keys: %s", exfil_keys
-        )
+        logger.warning("Vision extraction stripped exfiltration keys: %s", exfil_keys)
     if output_scan_hits:
-        logger.warning(
-            "Vision extraction output scan hits: %s", output_scan_hits
-        )
+        logger.warning("Vision extraction output scan hits: %s", output_scan_hits)
 
     logger.info(
         "Vision extraction complete: %d chars, mime=%s",
@@ -190,9 +183,7 @@ def _sanitize_extracted(extracted_text: str, raw_response: str) -> dict:
     except json.JSONDecodeError:
         pass
     if not structured:
-        match = re.search(
-            r"```(?:json)?\s*(\{.*?\})\s*```", raw_response, re.DOTALL
-        )
+        match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw_response, re.DOTALL)
         if match:
             try:
                 candidate = json.loads(match.group(1))
@@ -217,9 +208,7 @@ def _sanitize_extracted(extracted_text: str, raw_response: str) -> dict:
     # Scan the model output itself for injection markers (observability).
     output_hits = injection_guard.scan(extracted_text)
     if output_hits:
-        parsed.setdefault("exfil_keys", []).extend(
-            f"output_scan:{h}" for h in output_hits
-        )
+        parsed.setdefault("exfil_keys", []).extend(f"output_scan:{h}" for h in output_hits)
 
     parsed["exfil_keys"] = parsed.get("exfil_keys", [])
     return parsed

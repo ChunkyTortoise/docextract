@@ -18,6 +18,7 @@ normalised) equals or contains the extracted metric token AND the row's status i
 'measured'. A claim also matches if the row's 'id' appears as a substring in the
 surrounding markdown line.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -119,7 +120,9 @@ def check_file(md_path: Path, ledger_path: Path) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("markdown_file", type=Path, help="Markdown file to check")
     parser.add_argument(
         "--ledger",

@@ -1,4 +1,5 @@
 """Business rule validation per document type."""
+
 from __future__ import annotations
 
 import logging
@@ -91,18 +92,22 @@ def _validate_invoice(data: dict[str, Any]) -> list[ValidationError]:
     if total is not None:
         expected = subtotal + tax - discount
         if abs(total - expected) > TOLERANCE:
-            errors.append(ValidationError(
-                field_path="total_amount",
-                error_type="CALCULATION_MISMATCH",
-                message=f"Total {total} != subtotal {subtotal} + tax {tax} - discount {discount} = {expected:.2f} (tolerance +/-${TOLERANCE})",
-            ))
+            errors.append(
+                ValidationError(
+                    field_path="total_amount",
+                    error_type="CALCULATION_MISMATCH",
+                    message=f"Total {total} != subtotal {subtotal} + tax {tax} - discount {discount} = {expected:.2f} (tolerance +/-${TOLERANCE})",
+                )
+            )
 
         if total < 0:
-            errors.append(ValidationError(
-                field_path="total_amount",
-                error_type="NEGATIVE_AMOUNT",
-                message="Total amount cannot be negative",
-            ))
+            errors.append(
+                ValidationError(
+                    field_path="total_amount",
+                    error_type="NEGATIVE_AMOUNT",
+                    message="Total amount cannot be negative",
+                )
+            )
 
     # Date validation
     errors.extend(_validate_date_order(data, "invoice_date", "due_date"))
@@ -117,11 +122,13 @@ def _validate_purchase_order(data: dict[str, Any]) -> list[ValidationError]:
     for i, item in enumerate(data.get("line_items", [])):
         qty = item.get("quantity")
         if qty is not None and qty <= 0:
-            errors.append(ValidationError(
-                field_path=f"line_items[{i}].quantity",
-                error_type="NON_POSITIVE_QUANTITY",
-                message=f"Quantity must be positive, got {qty}",
-            ))
+            errors.append(
+                ValidationError(
+                    field_path=f"line_items[{i}].quantity",
+                    error_type="NON_POSITIVE_QUANTITY",
+                    message=f"Quantity must be positive, got {qty}",
+                )
+            )
 
     return errors
 
@@ -134,11 +141,13 @@ def _validate_receipt(data: dict[str, Any]) -> list[ValidationError]:
         items_sum = sum((item.get("total") or 0) for item in items)
         total = data.get("total")
         if total is not None and abs(total - items_sum) > 0.01:
-            errors.append(ValidationError(
-                field_path="total",
-                error_type="TOTAL_MISMATCH",
-                message=f"Total {total} != sum of items {items_sum:.2f} (tolerance +/-$0.01)",
-            ))
+            errors.append(
+                ValidationError(
+                    field_path="total",
+                    error_type="TOTAL_MISMATCH",
+                    message=f"Total {total} != sum of items {items_sum:.2f} (tolerance +/-$0.01)",
+                )
+            )
 
     return errors
 
@@ -154,11 +163,13 @@ def _validate_bank_statement(data: dict[str, Any]) -> list[ValidationError]:
     if opening is not None and closing is not None:
         expected_closing = opening + credits - debits
         if abs(closing - expected_closing) > 0.01:
-            errors.append(ValidationError(
-                field_path="closing_balance",
-                error_type="BALANCE_MISMATCH",
-                message=f"Closing balance {closing} != opening {opening} + credits {credits} - debits {debits} = {expected_closing:.2f}",
-            ))
+            errors.append(
+                ValidationError(
+                    field_path="closing_balance",
+                    error_type="BALANCE_MISMATCH",
+                    message=f"Closing balance {closing} != opening {opening} + credits {credits} - debits {debits} = {expected_closing:.2f}",
+                )
+            )
 
     return errors
 
@@ -167,12 +178,14 @@ def _validate_identity_document(data: dict[str, Any]) -> list[ValidationError]:
     errors: list[ValidationError] = []
 
     if not data.get("document_number"):
-        errors.append(ValidationError(
-            field_path="document_number",
-            error_type="MISSING_REQUIRED",
-            message="Document number is required",
-            severity=ErrorSeverity.ERROR,
-        ))
+        errors.append(
+            ValidationError(
+                field_path="document_number",
+                error_type="MISSING_REQUIRED",
+                message="Document number is required",
+                severity=ErrorSeverity.ERROR,
+            )
+        )
 
     errors.extend(_validate_date_order(data, "issue_date", "expiry_date"))
 
@@ -185,12 +198,14 @@ def _validate_medical_record(data: dict[str, Any]) -> list[ValidationError]:
     required_fields = ["patient_name", "visit_date"]
     for field_name in required_fields:
         if not data.get(field_name):
-            errors.append(ValidationError(
-                field_path=field_name,
-                error_type="MISSING_REQUIRED",
-                message=f"{field_name} is required",
-                severity=ErrorSeverity.WARNING,
-            ))
+            errors.append(
+                ValidationError(
+                    field_path=field_name,
+                    error_type="MISSING_REQUIRED",
+                    message=f"{field_name} is required",
+                    severity=ErrorSeverity.WARNING,
+                )
+            )
 
     # visit_date should not be in the future
     visit_date_str = data.get("visit_date")
@@ -198,19 +213,23 @@ def _validate_medical_record(data: dict[str, Any]) -> list[ValidationError]:
         try:
             visit_date = date.fromisoformat(visit_date_str[:10])
             if visit_date > date.today():
-                errors.append(ValidationError(
-                    field_path="visit_date",
-                    error_type="FUTURE_DATE",
-                    message=f"Visit date {visit_date} is in the future",
-                    severity=ErrorSeverity.WARNING,
-                ))
+                errors.append(
+                    ValidationError(
+                        field_path="visit_date",
+                        error_type="FUTURE_DATE",
+                        message=f"Visit date {visit_date} is in the future",
+                        severity=ErrorSeverity.WARNING,
+                    )
+                )
         except ValueError:
             pass
 
     return errors
 
 
-def _validate_date_order(data: dict[str, Any], start_field: str, end_field: str) -> list[ValidationError]:
+def _validate_date_order(
+    data: dict[str, Any], start_field: str, end_field: str
+) -> list[ValidationError]:
     """Validate that start_date <= end_date."""
     errors: list[ValidationError] = []
     start_str = data.get(start_field)
@@ -221,11 +240,13 @@ def _validate_date_order(data: dict[str, Any], start_field: str, end_field: str)
             start = date.fromisoformat(start_str[:10])
             end = date.fromisoformat(end_str[:10])
             if end < start:
-                errors.append(ValidationError(
-                    field_path=end_field,
-                    error_type="INVALID_DATE_ORDER",
-                    message=f"{end_field} ({end}) must be >= {start_field} ({start})",
-                ))
+                errors.append(
+                    ValidationError(
+                        field_path=end_field,
+                        error_type="INVALID_DATE_ORDER",
+                        message=f"{end_field} ({end}) must be >= {start_field} ({start})",
+                    )
+                )
         except ValueError:
             pass
 
@@ -249,7 +270,11 @@ def _has_conflicting_dates(data: dict[str, Any]) -> bool:
 def _has_missing_required_fields(data: dict[str, Any]) -> bool:
     """Check if critical identifying fields are all missing."""
     id_fields = [
-        "invoice_number", "po_number", "receipt_number",
-        "document_number", "mrn", "account_number",
+        "invoice_number",
+        "po_number",
+        "receipt_number",
+        "document_number",
+        "mrn",
+        "account_number",
     ]
     return not any(data.get(f) for f in id_fields)

@@ -4,6 +4,7 @@ Usage:
     python -m scripts.seed_sample_docs
     python -m scripts.seed_sample_docs --output-dir tests/fixtures
 """
+
 from __future__ import annotations
 
 import argparse
@@ -171,9 +172,9 @@ def create_fixtures(output_dir: Path) -> None:
         "sample_invoice_text.txt": SAMPLE_INVOICE_TEXT.encode("utf-8"),
         "sample_receipt_text.txt": SAMPLE_RECEIPT_TEXT.encode("utf-8"),
         "sample_lead_capture_text.txt": SAMPLE_LEAD_CAPTURE_TEXT.encode("utf-8"),
-        "sample_extracted_invoice.json": json.dumps(
-            SAMPLE_EXTRACTED_INVOICE, indent=2
-        ).encode("utf-8"),
+        "sample_extracted_invoice.json": json.dumps(SAMPLE_EXTRACTED_INVOICE, indent=2).encode(
+            "utf-8"
+        ),
     }
 
     for filename, content in files.items():
@@ -187,7 +188,9 @@ def create_fixtures(output_dir: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Seed sample test fixtures")
     parser.add_argument(
-        "--output-dir", type=Path, default=FIXTURES_DIR,
+        "--output-dir",
+        type=Path,
+        default=FIXTURES_DIR,
         help=f"Output directory (default: {FIXTURES_DIR})",
     )
     args = parser.parse_args()

@@ -13,6 +13,7 @@ Environment:
     LANGFUSE_SECRET_KEY  — required unless --dry-run
     LANGFUSE_HOST        — optional, defaults to https://cloud.langfuse.com
 """
+
 from __future__ import annotations
 
 import argparse
@@ -67,10 +68,7 @@ def _push_prompt(
     char_count = len(content)
 
     if dry_run:
-        print(
-            f"Would push {prompt_name}@{version} "
-            f"({char_count} chars, labels=[{label}])"
-        )
+        print(f"Would push {prompt_name}@{version} " f"({char_count} chars, labels=[{label}])")
         print(f"  Source: {prompt_path.relative_to(REPO_ROOT)}")
         print(f"  Preview: {content[:120].strip()!r}...")
         return
@@ -126,9 +124,7 @@ def _push_prompt(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Sync prompt files to Langfuse prompt registry."
-    )
+    parser = argparse.ArgumentParser(description="Sync prompt files to Langfuse prompt registry.")
     parser.add_argument(
         "--family",
         choices=list(PROMPT_REGISTRY),

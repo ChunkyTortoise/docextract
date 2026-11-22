@@ -1,4 +1,5 @@
 """Golden response fixture loader for API-free eval."""
+
 from __future__ import annotations
 
 import json

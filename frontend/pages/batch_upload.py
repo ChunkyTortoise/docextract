@@ -1,4 +1,5 @@
 """Batch upload page: upload multiple documents and track all jobs."""
+
 import os
 import time
 
@@ -37,8 +38,7 @@ def render() -> None:
         with st.spinner(f"Uploading {len(files)} file(s)..."):
             try:
                 file_tuples = [
-                    (f.name, f.read(), f.type or "application/octet-stream")
-                    for f in files
+                    (f.name, f.read(), f.type or "application/octet-stream") for f in files
                 ]
                 result = api.batch_upload(file_tuples, priority=priority.lower())
 
@@ -48,10 +48,7 @@ def render() -> None:
                 # Map job_id -> filename using order of non-duplicate files
                 dup_set = set(duplicates)
                 non_dup_files = [f for f in files if f.name not in dup_set]
-                filenames: dict[str, str] = {
-                    jid: f.name
-                    for jid, f in zip(job_ids, non_dup_files)
-                }
+                filenames: dict[str, str] = {jid: f.name for jid, f in zip(job_ids, non_dup_files)}
 
                 st.session_state["batch_job_ids"] = job_ids
                 st.session_state["batch_filenames"] = filenames
@@ -109,7 +106,9 @@ def render() -> None:
         job_id = job.get("job_id", "unknown")
         filename = filenames.get(job_id, job_id)
         status = job.get("status", "unknown")
-        with st.expander(f"{filename} - {status.title()}", expanded=(status not in TERMINAL_STATUSES)):
+        with st.expander(
+            f"{filename} - {status.title()}", expanded=(status not in TERMINAL_STATUSES)
+        ):
             st.caption(f"Job ID: `{job_id}`")
             display_progress(job)
             if status not in TERMINAL_STATUSES and not demo_mode:

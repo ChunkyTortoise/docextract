@@ -7,6 +7,7 @@ Fresh installs use the corrected 012 body. This forward revision preserves valid
 legacy score rows, rejects invalid casts/orphans/collisions, and restores a
 missing or incorrectly configured job FK without touching unrelated constraints.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -45,7 +46,9 @@ def upgrade() -> None:
         raise RuntimeError("Unexpected eval_log.job_id foreign key; inspect before repair")
     if len(job_keys) > 1:
         raise RuntimeError("Multiple eval_log.job_id foreign keys; inspect before repair")
-    correct_fk = bool(job_keys) and job_keys[0].get("options", {}).get("ondelete", "").upper() == "SET NULL"
+    correct_fk = (
+        bool(job_keys) and job_keys[0].get("options", {}).get("ondelete", "").upper() == "SET NULL"
+    )
     if not legacy_id and not legacy_job_id and correct_fk:
         return
 
@@ -61,7 +64,11 @@ def upgrade() -> None:
         op.execute("ALTER TABLE eval_log ALTER COLUMN job_id TYPE uuid USING job_id::uuid")
     if replace_fk:
         op.create_foreign_key(
-            "eval_log_job_id_fkey", "eval_log", "extraction_jobs", ["job_id"], ["id"],
+            "eval_log_job_id_fkey",
+            "eval_log",
+            "extraction_jobs",
+            ["job_id"],
+            ["id"],
             ondelete="SET NULL",
         )
 

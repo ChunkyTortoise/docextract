@@ -28,7 +28,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DRIFT_HISTORY = REPO_ROOT / "eval_artifacts" / "drift_history.jsonl"
 DRIFT_ISSUE_TEMPLATE = REPO_ROOT / "eval_artifacts" / "drift_issue.md"
 
-DRIFT_METRICS = ["faithfulness", "answer_relevancy", "context_precision", "extraction_f1", "judge_pass_rate"]
+DRIFT_METRICS = [
+    "faithfulness",
+    "answer_relevancy",
+    "context_precision",
+    "extraction_f1",
+    "judge_pass_rate",
+]
 Z_THRESHOLD = 2.0
 CONSECUTIVE_THRESHOLD = 3
 
@@ -112,7 +118,9 @@ def main() -> None:
         sys.exit(1)
 
     current = json.loads(args.scores.read_text())
-    current.setdefault("timestamp", datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"))
+    current.setdefault(
+        "timestamp", datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
+    )
 
     # Load history and append current sample
     history = load_history(DRIFT_HISTORY)
@@ -128,12 +136,14 @@ def main() -> None:
         write_drift_issue(flagged, current)
         # Signal to GitHub Actions
         import os
+
         if os.environ.get("GITHUB_OUTPUT"):
             with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                 f.write("drift_detected=true\n")
     else:
         print("No drift detected.", file=sys.stderr)
         import os
+
         if os.environ.get("GITHUB_OUTPUT"):
             with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                 f.write("drift_detected=false\n")

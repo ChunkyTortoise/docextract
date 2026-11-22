@@ -8,6 +8,7 @@ Usage:
     from app.services.pii_sanitizer import sanitize_for_trace
     clean_data = sanitize_for_trace(raw_data)
 """
+
 from __future__ import annotations
 
 import re
@@ -19,9 +20,7 @@ _CC_RE = re.compile(
     r"6(?:011|5[0-9]{2})[0-9]{12}|(?:2131|1800|35\d{3})\d{11})\b"
     r"|(?:\d{4}[\s\-]){3}\d{4}"
 )
-_PHONE_RE = re.compile(
-    r"\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b"
-)
+_PHONE_RE = re.compile(r"\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b")
 _EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 
 _PATTERNS: list[tuple[str, re.Pattern[str]]] = [

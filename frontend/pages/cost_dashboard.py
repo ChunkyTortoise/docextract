@@ -1,4 +1,5 @@
 """Cost & Performance Dashboard - LLM spend, model comparison, and A/B test status."""
+
 from __future__ import annotations
 
 import random
@@ -12,6 +13,7 @@ from frontend.theme import PLOTLY_DARK
 # ---------------------------------------------------------------------------
 # Mock data helpers
 # ---------------------------------------------------------------------------
+
 
 def _mock_cost_summary() -> dict:
     """Return plausible mock cost data grouped by model and operation."""
@@ -86,6 +88,7 @@ def _mock_ab_tests() -> list[dict]:
 # KPI computation helpers
 # ---------------------------------------------------------------------------
 
+
 def _compute_kpis(summary: dict) -> dict:
     """Derive top-level KPIs from the cost summary structure."""
     total_cost = 0.0
@@ -135,6 +138,7 @@ def _compute_weekly_savings(summary: dict) -> float:
 # Main render
 # ---------------------------------------------------------------------------
 
+
 def render() -> None:
     st.title("Cost & Performance Dashboard")
 
@@ -153,6 +157,7 @@ def render() -> None:
 
     try:
         import frontend.api_client as api  # noqa: PLC0415
+
         cost_summary = api.get_cost_summary(days=7)
         model_comparison = api.get_model_comparison(days=7)
     except Exception:
@@ -182,7 +187,10 @@ def render() -> None:
     with col3:
         st.metric(
             "Most Expensive Model",
-            kpis["most_expensive_model"].replace("claude-", "").replace("-4-6", "").replace("-4-5-20251001", ""),
+            kpis["most_expensive_model"]
+            .replace("claude-", "")
+            .replace("-4-6", "")
+            .replace("-4-5-20251001", ""),
         )
     with col4:
         st.metric(
@@ -201,11 +209,7 @@ def render() -> None:
         model_labels = []
         model_costs = []
         for model, ops in cost_summary.items():
-            short = (
-                model.replace("claude-", "")
-                .replace("-4-6", "")
-                .replace("-4-5-20251001", "")
-            )
+            short = model.replace("claude-", "").replace("-4-6", "").replace("-4-5-20251001", "")
             total = sum(op.get("total_cost", 0.0) for op in ops.values())
             model_labels.append(short)
             model_costs.append(round(total, 6))
@@ -280,16 +284,10 @@ def render() -> None:
     # ── Cost savings highlight ───────────────────────────────────────────
     weekly_savings = _compute_weekly_savings(cost_summary)
     haiku_classify = (
-        cost_summary.get("claude-haiku-4-5-20251001", {})
-        .get("classify", {})
-        .get("call_count", 0)
+        cost_summary.get("claude-haiku-4-5-20251001", {}).get("classify", {}).get("call_count", 0)
     )
     total_requests_val = kpis["total_requests"]
-    haiku_pct = (
-        round(haiku_classify / total_requests_val * 100)
-        if total_requests_val > 0
-        else 40
-    )
+    haiku_pct = round(haiku_classify / total_requests_val * 100) if total_requests_val > 0 else 40
 
     st.subheader("Cost Savings Analysis")
     savings_col, detail_col = st.columns([1, 2])
@@ -342,6 +340,4 @@ def render() -> None:
         st.info("No breakdown data available.")
 
     if using_mock:
-        st.caption(
-            "Showing mock data. Connect to the API and process documents to see real costs."
-        )
+        st.caption("Showing mock data. Connect to the API and process documents to see real costs.")

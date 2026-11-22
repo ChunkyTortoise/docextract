@@ -1,4 +1,5 @@
 """Evaluation Dashboard - RAGAS and LLM-judge metrics over time."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -33,7 +34,12 @@ def _generate_mock_runs(n: int = 10) -> list[dict]:
     for i in range(n):
         run_ts = now - timedelta(days=n - i - 1)
         for metric in _METRICS:
-            base = {"context_recall": 0.82, "faithfulness": 0.88, "answer_relevancy": 0.79, "llm_judge": 0.85}[metric]
+            base = {
+                "context_recall": 0.82,
+                "faithfulness": 0.88,
+                "answer_relevancy": 0.79,
+                "llm_judge": 0.85,
+            }[metric]
             score = round(min(1.0, max(0.0, base + random.uniform(-0.08, 0.08))), 3)
             rows.append(
                 {
@@ -146,6 +152,7 @@ def render() -> None:
     using_mock = False
     try:
         import frontend.api_client as api  # noqa: PLC0415
+
         rows = api.get_eval_history(limit=200)
     except Exception:
         rows = []
@@ -163,7 +170,10 @@ def render() -> None:
     regressions = _check_regression(latest_scores, prev_scores)
 
     if regressions:
-        st.error("**Regression detected (>0.05 drop from previous run):**\n\n" + "\n\n".join(f"- {r}" for r in regressions))
+        st.error(
+            "**Regression detected (>0.05 drop from previous run):**\n\n"
+            + "\n\n".join(f"- {r}" for r in regressions)
+        )
     else:
         st.success("No regressions detected since last run.")
 
@@ -233,7 +243,11 @@ def render() -> None:
         for row in table_rows:
             key = f"{row['run_id']} / {row['fixture_name']}"
             if key not in pivot:
-                pivot[key] = {"run": row["run_id"], "fixture": row["fixture_name"], "date": row["created_at"][:10]}
+                pivot[key] = {
+                    "run": row["run_id"],
+                    "fixture": row["fixture_name"],
+                    "date": row["created_at"][:10],
+                }
             pivot[key][row["metric_name"]] = ("PASS" if row["passed"] else "FAIL", row["score"])
 
         table_data = []
@@ -262,4 +276,6 @@ def render() -> None:
         st.info("No run data to display.")
 
     if using_mock:
-        st.caption("Synthetic seed pending live telemetry. Set RAGAS_ENABLED=true to collect measured metrics.")
+        st.caption(
+            "Synthetic seed pending live telemetry. Set RAGAS_ENABLED=true to collect measured metrics."
+        )

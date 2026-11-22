@@ -1,4 +1,5 @@
 """Per-request LLM cost computation and aggregation from llm_traces table."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -79,8 +80,7 @@ class CostTracker:
         pricing = COST_PER_1K_TOKENS.get(model)
         if pricing is None:
             raise ValueError(
-                f"Unknown model '{model}'. "
-                f"Known models: {list(COST_PER_1K_TOKENS.keys())}"
+                f"Unknown model '{model}'. " f"Known models: {list(COST_PER_1K_TOKENS.keys())}"
             )
 
         input_cost = Decimal(input_tokens) * pricing["input"] / Decimal("1000")
@@ -136,10 +136,9 @@ class CostTracker:
             if pricing is None:
                 continue
 
-            cost = (
-                Decimal(row.input_tokens) * pricing["input"] / Decimal("1000")
-                + Decimal(row.output_tokens) * pricing["output"] / Decimal("1000")
-            )
+            cost = Decimal(row.input_tokens) * pricing["input"] / Decimal("1000") + Decimal(
+                row.output_tokens
+            ) * pricing["output"] / Decimal("1000")
 
             if model not in summary:
                 summary[model] = {}
@@ -156,9 +155,7 @@ class CostTracker:
         for model_data in summary.values():
             for op_data in model_data.values():
                 count = op_data["call_count"]
-                op_data["avg_cost"] = (
-                    op_data["total_cost"] / count if count > 0 else Decimal("0")
-                )
+                op_data["avg_cost"] = op_data["total_cost"] / count if count > 0 else Decimal("0")
                 # Convert Decimals to float for JSON serialisation friendliness
                 op_data["total_cost"] = float(op_data["total_cost"])
                 op_data["avg_cost"] = float(op_data["avg_cost"])

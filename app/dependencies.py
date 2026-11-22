@@ -35,7 +35,6 @@ _storage = None
 async def get_storage():
     global _storage
     if _storage is None:
-
         if settings.storage_backend == "r2":
             from app.storage.r2 import R2StorageBackend
 

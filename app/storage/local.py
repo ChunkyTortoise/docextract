@@ -1,4 +1,5 @@
 """Local filesystem storage backend for development."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -24,7 +25,9 @@ class LocalStorageBackend(StorageBackend):
             raise ValueError(f"Invalid storage key: {key!r}")
         return file_path
 
-    async def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    async def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> str:
         file_path = self._resolve_key(key)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         async with aiofiles.open(file_path, "wb") as f:

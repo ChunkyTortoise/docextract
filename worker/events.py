@@ -1,4 +1,5 @@
 """Redis pub/sub event publisher for SSE streaming."""
+
 from __future__ import annotations
 
 import json
@@ -22,9 +23,7 @@ async def publish_event(redis: aioredis.Redis, job_id: str, event_data: dict) ->
     logger.debug("Published event to %s: %s", channel, payload[:100])
 
 
-async def subscribe_events(
-    redis: aioredis.Redis, job_id: str
-) -> AsyncGenerator[dict, None]:
+async def subscribe_events(redis: aioredis.Redis, job_id: str) -> AsyncGenerator[dict, None]:
     """Subscribe to job events and yield parsed event dicts.
 
     Yields events until COMPLETED or FAILED status received.

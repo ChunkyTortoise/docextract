@@ -1,4 +1,5 @@
 """LLM call trace model for observability."""
+
 from __future__ import annotations
 
 import uuid

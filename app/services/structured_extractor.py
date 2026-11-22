@@ -3,6 +3,7 @@
 Extracts typed, validated data from documents. Supports single and batch
 extraction with parallel processing controlled by an asyncio Semaphore.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -185,6 +186,7 @@ class StructuredExtractor:
         prompt: str,
     ) -> tuple[str, str]:
         """Call Claude via the model router and return (raw_text, model_used)."""
+
         async def _call_fn(model: str) -> object:
             return await client.messages.create(
                 model=model,
@@ -228,11 +230,7 @@ class StructuredExtractor:
         except ValueError:
             return None, doc_type
 
-        stmt = (
-            select(ExtractedRecord)
-            .where(ExtractedRecord.document_id == doc_uuid)
-            .limit(1)
-        )
+        stmt = select(ExtractedRecord).where(ExtractedRecord.document_id == doc_uuid).limit(1)
         result = await db.execute(stmt)
         record = result.scalar_one_or_none()
         if record is None:
@@ -246,6 +244,7 @@ class StructuredExtractor:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _parse_json_from_text(text: str) -> dict:
     """Extract a JSON object from a Claude response string."""

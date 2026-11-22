@@ -59,8 +59,10 @@ with col_links[1]:
         "Case Study", "https://github.com/ChunkyTortoise/docextract/blob/main/CASE_STUDY.md"
     )
 with col_links[2]:
-    st.link_button("Product API reference",
-        "https://github.com/ChunkyTortoise/docextract/blob/main/docs/productization_api.md")
+    st.link_button(
+        "Product API reference",
+        "https://github.com/ChunkyTortoise/docextract/blob/main/docs/productization_api.md",
+    )
 
 
 st.divider()

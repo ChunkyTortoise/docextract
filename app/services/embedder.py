@@ -1,4 +1,5 @@
 """Document embedding using Google Gemini Embedding API."""
+
 from __future__ import annotations
 
 import logging

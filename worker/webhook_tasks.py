@@ -1,4 +1,5 @@
 """ARQ task: webhook delivery retries scheduled as deferred jobs."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -29,15 +30,9 @@ async def deliver_webhook(
     # The secret is AES-GCM ciphertext on the queue; decrypt only here, at the
     # attempt that signs with it. A value that cannot decrypt is permanent.
     try:
-        secret = (
-            decrypt_secret(secret_encrypted, settings.aes_key)
-            if secret_encrypted
-            else ""
-        )
+        secret = decrypt_secret(secret_encrypted, settings.aes_key) if secret_encrypted else ""
     except Exception:
-        await _push_to_dlq(
-            ctx["redis"], url, payload, "secret decryption failed", webhook_id
-        )
+        await _push_to_dlq(ctx["redis"], url, payload, "secret decryption failed", webhook_id)
         return {"status": "dead_lettered", "attempt": attempt}
 
     ok, error = await attempt_webhook(url, payload, secret, attempt=attempt)

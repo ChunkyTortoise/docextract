@@ -6,6 +6,7 @@ hallucination boundary checking (validates extracted values appear in source).
 
 See ADR-010 for why regex was chosen over LLM-based safety filters.
 """
+
 from __future__ import annotations
 
 import re
@@ -20,9 +21,7 @@ _CC_RE = re.compile(
     r"6(?:011|5[0-9]{2})[0-9]{12}|(?:2131|1800|35\d{3})\d{11})\b"
     r"|(?:\d{4}[\s\-]){3}\d{4}"
 )
-_PHONE_RE = re.compile(
-    r"\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b"
-)
+_PHONE_RE = re.compile(r"\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b")
 _EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 
 
@@ -82,7 +81,9 @@ class PiiDetector:
         for pattern_type, pattern in self._PATTERNS:
             if pattern.search(value):
                 redacted = re.sub(r"\d", "*", value)
-                matches.append(PiiMatch(pattern_type=pattern_type, field_path=path, redacted=redacted))
+                matches.append(
+                    PiiMatch(pattern_type=pattern_type, field_path=path, redacted=redacted)
+                )
                 break  # one PII type per field is enough
         return matches
 
@@ -93,23 +94,25 @@ class HallucinationChecker:
     _MIN_VALUE_LENGTH = 3  # ignore single characters / very short values
     _SUBSTRING_THRESHOLD = 0.6  # fraction of value words that must appear in source
 
-    def check(
-        self, extracted: dict[str, Any], source_text: str
-    ) -> list[GroundingResult]:
+    def check(self, extracted: dict[str, Any], source_text: str) -> list[GroundingResult]:
         """Check grounding for all top-level string fields."""
         results: list[GroundingResult] = []
         source_lower = source_text.lower()
 
         for key, value in extracted.items():
             if not isinstance(value, str) or len(value) < self._MIN_VALUE_LENGTH:
-                results.append(GroundingResult(field=key, status="skipped", reason="non-string or too short"))
+                results.append(
+                    GroundingResult(field=key, status="skipped", reason="non-string or too short")
+                )
                 continue
 
             value_lower = value.lower()
 
             # Full substring match (best case)
             if value_lower in source_lower:
-                results.append(GroundingResult(field=key, status="grounded", reason="exact substring found"))
+                results.append(
+                    GroundingResult(field=key, status="grounded", reason="exact substring found")
+                )
                 continue
 
             # Partial word overlap
@@ -119,15 +122,21 @@ class HallucinationChecker:
             fraction = overlap / len(value_words) if value_words else 0.0
 
             if fraction >= self._SUBSTRING_THRESHOLD:
-                results.append(GroundingResult(
-                    field=key, status="partial",
-                    reason=f"{overlap}/{len(value_words)} words found in source"
-                ))
+                results.append(
+                    GroundingResult(
+                        field=key,
+                        status="partial",
+                        reason=f"{overlap}/{len(value_words)} words found in source",
+                    )
+                )
             else:
-                results.append(GroundingResult(
-                    field=key, status="ungrounded",
-                    reason=f"only {overlap}/{len(value_words)} words found in source"
-                ))
+                results.append(
+                    GroundingResult(
+                        field=key,
+                        status="ungrounded",
+                        reason=f"only {overlap}/{len(value_words)} words found in source",
+                    )
+                )
 
         return results
 

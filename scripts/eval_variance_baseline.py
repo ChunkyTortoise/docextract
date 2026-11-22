@@ -96,8 +96,7 @@ def compute_tolerance(
 
     if not calibrated:
         raise ValueError(
-            "Need at least 2 numeric samples for one of "
-            f"{metrics} to compute variance tolerance"
+            "Need at least 2 numeric samples for one of " f"{metrics} to compute variance tolerance"
         )
 
     overall = max(calibrated)
@@ -158,16 +157,13 @@ def main(argv: list[str] | None = None) -> int:
     paths = resolve_score_paths(args.scores, args.scores_glob)
     if len(paths) < 2:
         print(
-            "ERROR: need at least 2 score JSON files "
-            "(pass paths or --scores-glob).",
+            "ERROR: need at least 2 score JSON files " "(pass paths or --scores-glob).",
             file=sys.stderr,
         )
         return 2
 
     runs = load_score_files(paths)
-    payload = compute_tolerance(
-        runs, floor=args.floor, stdev_mult=args.stdev_mult
-    )
+    payload = compute_tolerance(runs, floor=args.floor, stdev_mult=args.stdev_mult)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(payload, indent=2) + "\n")
     print(

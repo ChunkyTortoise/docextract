@@ -42,7 +42,7 @@ ABSOLUTE_FLOORS: dict[str, float] = {
     "faithfulness": 0.85,
     "answer_relevancy": 0.80,
     "context_precision": 0.75,
-    "extraction_f1": 0.90,   # mapped from run_eval_ci overall_score
+    "extraction_f1": 0.90,  # mapped from run_eval_ci overall_score
     "judge_pass_rate": 0.80,
 }
 
@@ -126,9 +126,7 @@ def check_thresholds(
     """Return list of failures: [{metric, value, floor/baseline, reason}]."""
     failures = []
     tolerance = (
-        RELATIVE_DROP_TOLERANCE
-        if relative_drop_tolerance is None
-        else relative_drop_tolerance
+        RELATIVE_DROP_TOLERANCE if relative_drop_tolerance is None else relative_drop_tolerance
     )
 
     # Absolute floors
@@ -137,12 +135,14 @@ def check_thresholds(
         if val is None:
             continue
         if val < floor:
-            failures.append({
-                "metric": metric,
-                "value": val,
-                "threshold": floor,
-                "reason": f"below absolute floor {floor}",
-            })
+            failures.append(
+                {
+                    "metric": metric,
+                    "value": val,
+                    "threshold": floor,
+                    "reason": f"below absolute floor {floor}",
+                }
+            )
 
     # Relative drops vs baseline
     for metric, current_val in combined.items():
@@ -153,13 +153,15 @@ def check_thresholds(
             continue
         drop = (baseline_val - current_val) / baseline_val
         if drop > tolerance:
-            failures.append({
-                "metric": metric,
-                "value": current_val,
-                "baseline": baseline_val,
-                "drop": round(drop, 4),
-                "reason": f"dropped {drop:.1%} vs baseline (tolerance {tolerance:.1%})",
-            })
+            failures.append(
+                {
+                    "metric": metric,
+                    "value": current_val,
+                    "baseline": baseline_val,
+                    "drop": round(drop, 4),
+                    "reason": f"dropped {drop:.1%} vs baseline (tolerance {tolerance:.1%})",
+                }
+            )
 
     return failures
 
@@ -217,13 +219,11 @@ def build_pr_comment(
 def build_html_report(combined: dict, failures: list[dict]) -> str:
     status_color = "#2da44e" if not failures else "#cf222e"
     status_text = "PASS" if not failures else "FAIL"
+
     def _fmt(v: object) -> str:
         return f"{v:.4f}" if isinstance(v, float) else str(v)
 
-    rows = "".join(
-        f"<tr><td>{k}</td><td>{_fmt(v)}</td></tr>"
-        for k, v in sorted(combined.items())
-    )
+    rows = "".join(f"<tr><td>{k}</td><td>{_fmt(v)}</td></tr>" for k, v in sorted(combined.items()))
     fail_rows = "".join(
         f"<tr><td>{f['metric']}</td><td>{f['value']:.4f}</td><td>{f['reason']}</td></tr>"
         for f in failures
@@ -251,15 +251,28 @@ def build_html_report(combined: dict, failures: list[dict]) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Eval gate: enforce thresholds, diff baseline")
-    parser.add_argument("--promptfoo", type=Path, default=REPO_ROOT / "eval_artifacts" / "promptfoo.json")
+    parser.add_argument(
+        "--promptfoo", type=Path, default=REPO_ROOT / "eval_artifacts" / "promptfoo.json"
+    )
     parser.add_argument("--ragas", type=Path, default=REPO_ROOT / "eval_artifacts" / "ragas.json")
-    parser.add_argument("--judge", type=Path, default=REPO_ROOT / "eval_artifacts" / "llm_judge.json")
-    parser.add_argument("--baseline", type=Path, default=REPO_ROOT / "autoresearch" / "baseline.json")
+    parser.add_argument(
+        "--judge", type=Path, default=REPO_ROOT / "eval_artifacts" / "llm_judge.json"
+    )
+    parser.add_argument(
+        "--baseline", type=Path, default=REPO_ROOT / "autoresearch" / "baseline.json"
+    )
     parser.add_argument("--out", type=Path, default=REPO_ROOT / "eval_artifacts" / "scores.json")
-    parser.add_argument("--report", type=Path, default=REPO_ROOT / "eval_artifacts" / "eval_report.html")
-    parser.add_argument("--mode", default="local", choices=["pull_request", "push", "schedule", "local"])
-    parser.add_argument("--accept-baseline", action="store_true",
-                        help="Write combined scores as new baseline; requires --out already exists")
+    parser.add_argument(
+        "--report", type=Path, default=REPO_ROOT / "eval_artifacts" / "eval_report.html"
+    )
+    parser.add_argument(
+        "--mode", default="local", choices=["pull_request", "push", "schedule", "local"]
+    )
+    parser.add_argument(
+        "--accept-baseline",
+        action="store_true",
+        help="Write combined scores as new baseline; requires --out already exists",
+    )
     args = parser.parse_args()
 
     # Load all inputs
@@ -281,10 +294,13 @@ def main() -> None:
     if args.accept_baseline:
         # Write scores as new baseline section
         new_baseline = dict(baseline_data or {})
-        new_baseline.update({
-            k: v for k, v in combined.items()
-            if k not in ("timestamp", "mode") and isinstance(v, int | float)
-        })
+        new_baseline.update(
+            {
+                k: v
+                for k, v in combined.items()
+                if k not in ("timestamp", "mode") and isinstance(v, int | float)
+            }
+        )
         new_baseline["timestamp"] = combined["timestamp"]
         args.baseline.write_text(json.dumps(new_baseline, indent=2))
         print(f"Baseline updated from current scores at {args.baseline}")
@@ -316,8 +332,7 @@ def main() -> None:
     # Emit GitHub Actions outputs
     if os.environ.get("GITHUB_OUTPUT"):
         improved = not failures and any(
-            combined.get(m, 0) > baseline_combined.get(m, 0) + 0.01
-            for m in ABSOLUTE_FLOORS
+            combined.get(m, 0) > baseline_combined.get(m, 0) + 0.01 for m in ABSOLUTE_FLOORS
         )
         overall = combined.get("extraction_f1") or combined.get("judge_pass_rate", 0)
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:

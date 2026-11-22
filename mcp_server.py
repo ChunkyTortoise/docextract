@@ -8,6 +8,7 @@ Config via env:
   DOCEXTRACT_API_URL  (default: http://localhost:8000/api/v1)
   DOCEXTRACT_API_KEY  (required)
 """
+
 from __future__ import annotations
 
 import asyncio
