@@ -1,4 +1,5 @@
 """Structured extraction endpoints — typed Pydantic output per document type."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

@@ -265,7 +265,7 @@ def iter_claims(obj: Any, path: str = "") -> Iterator[tuple[str, str, Any]]:
 
 
 def _leaf_or_recurse(v: Any, p: str, key: str) -> Iterator[tuple[str, str, Any]]:
-    if isinstance(v, (dict, list)):
+    if isinstance(v, dict | list):
         yield from iter_claims(v, p)
     elif v is None or (isinstance(v, str) and not v.strip()):
         return
@@ -305,7 +305,7 @@ def check_claim(key: str, value: Any, idx: SourceIndex) -> tuple[str, bool | Non
         return "normalized", None, None
     if isinstance(value, bool):
         return "bool", None, None
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         v = float(value)
         if any(abs(n - v) <= 0.005 for n in idx.numbers):
             return "number", True, "exact"

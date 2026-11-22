@@ -10,6 +10,7 @@ Traces three RAG pipeline steps:
 
 Each run logs: operation, model, latency_ms, token usage, retrieval scores.
 """
+
 from __future__ import annotations
 
 import logging
@@ -41,9 +42,7 @@ def setup_langsmith() -> None:
         return
 
     if not settings.langsmith_api_key:
-        logger.warning(
-            "LANGSMITH_ENABLED=true but LANGSMITH_API_KEY is not set — tracing skipped"
-        )
+        logger.warning("LANGSMITH_ENABLED=true but LANGSMITH_API_KEY is not set — tracing skipped")
         return
 
     try:

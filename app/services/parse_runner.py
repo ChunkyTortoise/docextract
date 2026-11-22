@@ -3,6 +3,7 @@
 No fitz/cv2 imports at module scope - the heavy parse stack is loaded only
 inside the child process (standalone module, no app.* wiring beyond targets).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -41,9 +42,7 @@ def _parse_child(
     deadline: float | None,
 ) -> None:
     try:
-        result = _resolve_target(target)(
-            file_bytes, mime_type, filename, deadline=deadline
-        )
+        result = _resolve_target(target)(file_bytes, mime_type, filename, deadline=deadline)
         # ingest is async; the child has no running loop, so drive it here.
         if inspect.iscoroutine(result):
             result = asyncio.run(result)

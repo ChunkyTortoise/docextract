@@ -1,4 +1,5 @@
 """Tool definitions for agentic RAG — each tool wraps an existing service."""
+
 from __future__ import annotations
 
 import logging
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 # Data shapes
 # ---------------------------------------------------------------------------
 
+
 class SearchResult(BaseModel):
     doc_id: str
     chunk_id: str | None = None
@@ -28,6 +30,7 @@ class SearchResult(BaseModel):
 # ---------------------------------------------------------------------------
 # RagTools
 # ---------------------------------------------------------------------------
+
 
 class RagTools:
     """Tools the agentic RAG system can call (vector, BM25, hybrid, graph, metadata, rerank).
@@ -79,6 +82,7 @@ class RagTools:
             )
             if doc_ids:
                 import uuid as uuid_mod
+
                 uuid_list = [uuid_mod.UUID(d) for d in doc_ids]
                 stmt = stmt.where(ExtractedRecord.document_id.in_(uuid_list))
 
@@ -124,13 +128,10 @@ class RagTools:
         from app.services.bm25 import build_index, search_bm25
 
         try:
-            stmt = (
-                select(ExtractedRecord)
-                .order_by(desc(ExtractedRecord.created_at))
-                .limit(10_000)
-            )
+            stmt = select(ExtractedRecord).order_by(desc(ExtractedRecord.created_at)).limit(10_000)
             if doc_ids:
                 import uuid as uuid_mod
+
                 uuid_list = [uuid_mod.UUID(d) for d in doc_ids]
                 stmt = stmt.where(ExtractedRecord.document_id.in_(uuid_list))
 
@@ -277,9 +278,7 @@ class RagTools:
         try:
             uid = uuid_mod.UUID(doc_id)
             result = await self._db.execute(
-                select(ExtractedRecord)
-                .where(ExtractedRecord.document_id == uid)
-                .limit(1)
+                select(ExtractedRecord).where(ExtractedRecord.document_id == uid).limit(1)
             )
             record = result.scalar_one_or_none()
             if record is None:
@@ -313,16 +312,16 @@ class RagTools:
             return results
 
         if self._anthropic_client is None:
-            logger.warning("rerank_results called without Anthropic client — returning original order")
+            logger.warning(
+                "rerank_results called without Anthropic client — returning original order"
+            )
             return results
 
         from app.config import settings
 
-        snippets = "\n".join(
-            f"[{i}] {r.content[:300]}" for i, r in enumerate(results)
-        )
+        snippets = "\n".join(f"[{i}] {r.content[:300]}" for i, r in enumerate(results))
         prompt = (
-            f"Given the query: \"{query}\"\n\n"
+            f'Given the query: "{query}"\n\n'
             f"Re-rank the following {len(results)} passages by relevance (most relevant first).\n"
             f"Return ONLY a JSON array of zero-based indices, e.g. [2, 0, 1].\n\n"
             f"Passages:\n{snippets}"
@@ -338,6 +337,7 @@ class RagTools:
 
             import json
             import re
+
             match = re.search(r"\[[\d,\s]+\]", raw)
             if not match:
                 return results

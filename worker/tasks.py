@@ -1,4 +1,5 @@
 """ARQ worker task: orchestrates the full document processing pipeline."""
+
 from __future__ import annotations
 
 import asyncio
@@ -158,9 +159,7 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
         JobStatus.NEEDS_REVIEW.value,
         JobStatus.CANCELLED.value,
     ):
-        existing = await db.execute(
-            select(ExtractedRecord).where(ExtractedRecord.job_id == job.id)
-        )
+        existing = await db.execute(select(ExtractedRecord).where(ExtractedRecord.job_id == job.id))
         record = existing.scalars().first()
         return {
             "status": "duplicate_ignored",
@@ -339,32 +338,38 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     # Store validation errors
     for err in validation_result.errors:
-        db.add(ValidationErrorModel(
-            id=str(uuid.uuid4()),
-            record_id=record.id,
-            field_name=err.field_path,
-            rule_name=err.error_type,
-            message=err.message,
-            severity=err.severity.value.lower(),
-        ))
+        db.add(
+            ValidationErrorModel(
+                id=str(uuid.uuid4()),
+                record_id=record.id,
+                field_name=err.field_path,
+                rule_name=err.error_type,
+                message=err.message,
+                severity=err.severity.value.lower(),
+            )
+        )
 
     for message in extraction_validation_errors:
-        db.add(ValidationErrorModel(
-            id=str(uuid.uuid4()),
-            record_id=record.id,
-            field_name="extraction_output",
-            rule_name="SCHEMA_VALIDATION_FAILED",
-            message=message,
-            severity="error",
-        ))
+        db.add(
+            ValidationErrorModel(
+                id=str(uuid.uuid4()),
+                record_id=record.id,
+                field_name="extraction_output",
+                rule_name="SCHEMA_VALIDATION_FAILED",
+                message=message,
+                severity="error",
+            )
+        )
 
     # Store embedding
-    db.add(DocumentEmbedding(
-        id=str(uuid.uuid4()),
-        record_id=record.id,
-        content_text=embedding_text,
-        embedding=embedding_vector,
-    ))
+    db.add(
+        DocumentEmbedding(
+            id=str(uuid.uuid4()),
+            record_id=record.id,
+            content_text=embedding_text,
+            embedding=embedding_vector,
+        )
+    )
 
     # 10. Complete job
     now = datetime.now(UTC)
@@ -400,18 +405,24 @@ async def _process(db: AsyncSession, redis: aioredis.Redis, job_id: str) -> dict
 
     # Publish completion event
     try:
-        await publish_event(redis, job_id, {
-            "job_id": job_id,
-            "status": job.status,
-            "progress": JOB_STATUS_PROGRESS[
-                JobStatus.NEEDS_REVIEW if validation_result.needs_review else JobStatus.COMPLETED
-            ],
-            "message": (
-                f"Extraction complete and queued for review. Document type: {doc_type}"
-                if validation_result.needs_review
-                else f"Extraction complete. Document type: {doc_type}"
-            ),
-        })
+        await publish_event(
+            redis,
+            job_id,
+            {
+                "job_id": job_id,
+                "status": job.status,
+                "progress": JOB_STATUS_PROGRESS[
+                    JobStatus.NEEDS_REVIEW
+                    if validation_result.needs_review
+                    else JobStatus.COMPLETED
+                ],
+                "message": (
+                    f"Extraction complete and queued for review. Document type: {doc_type}"
+                    if validation_result.needs_review
+                    else f"Extraction complete. Document type: {doc_type}"
+                ),
+            },
+        )
     except Exception as exc:
         logger.warning("Completion event publish failed for job %s: %s", job_id, exc)
 
@@ -449,24 +460,31 @@ async def _emit_page_events(
     import re
 
     from worker.events import publish_event
+
     page_pattern = re.compile(r"---PAGE \d+---")
     parts = page_pattern.split(text)
 
     for page_num, _ in enumerate(parts, start=1):
-        await publish_event(redis, job_id, {
-            "job_id": job_id,
-            "status": JobStatus.EXTRACTING_PAGE.value,
-            "progress": JOB_STATUS_PROGRESS[JobStatus.EXTRACTING_PAGE],
-            "message": f"Extracting page {page_num} of {total_pages}",
-            "details": {
-                "stage": "extracting_page",
-                "page": page_num,
-                "total_pages": total_pages,
+        await publish_event(
+            redis,
+            job_id,
+            {
+                "job_id": job_id,
+                "status": JobStatus.EXTRACTING_PAGE.value,
+                "progress": JOB_STATUS_PROGRESS[JobStatus.EXTRACTING_PAGE],
+                "message": f"Extracting page {page_num} of {total_pages}",
+                "details": {
+                    "stage": "extracting_page",
+                    "page": page_num,
+                    "total_pages": total_pages,
+                },
             },
-        })
+        )
 
 
-async def _update_job_status(db: AsyncSession, redis: aioredis.Redis, job: Any, status: JobStatus) -> None:
+async def _update_job_status(
+    db: AsyncSession, redis: aioredis.Redis, job: Any, status: JobStatus
+) -> None:
     from worker.events import publish_event
 
     job.status = status.value
@@ -477,12 +495,16 @@ async def _update_job_status(db: AsyncSession, redis: aioredis.Redis, job: Any, 
         job.started_at = datetime.now(UTC)
 
     await db.flush()
-    await publish_event(redis, str(job.id), {
-        "job_id": str(job.id),
-        "status": status.value,
-        "progress": JOB_STATUS_PROGRESS.get(status, 0),
-        "message": f"Status: {status.value}",
-    })
+    await publish_event(
+        redis,
+        str(job.id),
+        {
+            "job_id": str(job.id),
+            "status": status.value,
+            "progress": JOB_STATUS_PROGRESS.get(status, 0),
+            "message": f"Status: {status.value}",
+        },
+    )
 
 
 async def _fail_job(db: AsyncSession, redis: aioredis.Redis, job_id: str, error: str) -> None:
@@ -514,9 +536,13 @@ async def _fail_job(db: AsyncSession, redis: aioredis.Redis, job_id: str, error:
         return
 
     # Publish only after the failed status has been committed successfully.
-    await publish_event(redis, job_id, {
-        "job_id": job_id,
-        "status": JobStatus.FAILED.value,
-        "progress": -1,
-        "message": f"Failed: {error[:100]}",
-    })
+    await publish_event(
+        redis,
+        job_id,
+        {
+            "job_id": job_id,
+            "status": JobStatus.FAILED.value,
+            "progress": -1,
+            "message": f"Failed: {error[:100]}",
+        },
+    )

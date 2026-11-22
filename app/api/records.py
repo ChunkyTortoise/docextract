@@ -1,4 +1,5 @@
 """Extracted records endpoints."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -101,12 +102,8 @@ async def search_records(
             if rid not in best_by_record or hit.score > best_by_record[rid]:
                 best_by_record[rid] = hit.score
 
-        sorted_ids = sorted(
-            best_by_record, key=lambda r: best_by_record[r], reverse=True
-        )[:limit]
-        result = await db.execute(
-            select(ExtractedRecord).where(ExtractedRecord.id.in_(sorted_ids))
-        )
+        sorted_ids = sorted(best_by_record, key=lambda r: best_by_record[r], reverse=True)[:limit]
+        result = await db.execute(select(ExtractedRecord).where(ExtractedRecord.id.in_(sorted_ids)))
         id_to_record = {str(r.id): r for r in result.scalars().all()}
         return [
             {
@@ -225,9 +222,7 @@ async def get_record(
     api_key: APIKey = Depends(get_api_key),
 ):
     """Get a single extracted record with full data."""
-    result = await db.execute(
-        select(ExtractedRecord).where(ExtractedRecord.id == record_id)
-    )
+    result = await db.execute(select(ExtractedRecord).where(ExtractedRecord.id == record_id))
     record = result.scalar_one_or_none()
     if not record:
         raise HTTPException(404, "Record not found")
@@ -263,9 +258,7 @@ async def review_record(
     api_key: APIKey = Depends(require_roles("operator")),
 ):
     """Submit human review decision for a record."""
-    result = await db.execute(
-        select(ExtractedRecord).where(ExtractedRecord.id == record_id)
-    )
+    result = await db.execute(select(ExtractedRecord).where(ExtractedRecord.id == record_id))
     record = result.scalar_one_or_none()
     if not record:
         raise HTTPException(404, "Record not found")
@@ -279,9 +272,7 @@ async def review_record(
 
     if review.corrections:
         record.corrected_data = (
-            redact_pii(review.corrections)
-            if settings.pii_redaction_enabled
-            else review.corrections
+            redact_pii(review.corrections) if settings.pii_redaction_enabled else review.corrections
         )
     if review.reviewer_notes:
         record.reviewer_notes = (
@@ -303,9 +294,7 @@ async def run_record_guardrails(
     """Run guardrails (PII detection + hallucination grounding) on a record on demand."""
     from app.services.guardrails import run_guardrails
 
-    result = await db.execute(
-        select(ExtractedRecord).where(ExtractedRecord.id == record_id)
-    )
+    result = await db.execute(select(ExtractedRecord).where(ExtractedRecord.id == record_id))
     record = result.scalar_one_or_none()
     if not record:
         raise HTTPException(404, "Record not found")

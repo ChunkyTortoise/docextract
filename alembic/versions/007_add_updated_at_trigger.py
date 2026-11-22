@@ -4,6 +4,7 @@ Revision ID: 007
 Revises: 006
 Create Date: 2026-03-15
 """
+
 from __future__ import annotations
 
 from typing import Sequence
@@ -32,18 +33,14 @@ def upgrade() -> None:
     # keeps this migration idempotent for both fresh chains and databases
     # that predate the triggers. One statement per op.execute: asyncpg
     # prepares each statement and rejects multi-command strings.
-    op.execute(
-        "DROP TRIGGER IF EXISTS trg_extraction_jobs_updated_at ON extraction_jobs"
-    )
+    op.execute("DROP TRIGGER IF EXISTS trg_extraction_jobs_updated_at ON extraction_jobs")
     op.execute("""
         CREATE TRIGGER trg_extraction_jobs_updated_at
         BEFORE UPDATE ON extraction_jobs
         FOR EACH ROW EXECUTE FUNCTION set_updated_at();
     """)
 
-    op.execute(
-        "DROP TRIGGER IF EXISTS trg_extracted_records_updated_at ON extracted_records"
-    )
+    op.execute("DROP TRIGGER IF EXISTS trg_extracted_records_updated_at ON extracted_records")
     op.execute("""
         CREATE TRIGGER trg_extracted_records_updated_at
         BEFORE UPDATE ON extracted_records

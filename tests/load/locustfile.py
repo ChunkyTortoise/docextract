@@ -3,6 +3,7 @@
 Usage:
     locust -f tests/load/locustfile.py --host=http://localhost:8000 --users=100 --spawn-rate=10
 """
+
 from __future__ import annotations
 
 import io
@@ -28,6 +29,7 @@ API_KEY = os.environ.get("DOCEXTRACT_API_KEY", "test-key")
 
 class DocExtractUser(HttpUser):
     """Standard mixed-workload user."""
+
     wait_time = between(1, 5)
 
     def on_start(self):
@@ -73,6 +75,7 @@ class DocExtractUser(HttpUser):
 
 class ReadHeavyUser(HttpUser):
     """Simulates dashboard users (read-heavy)."""
+
     wait_time = between(2, 8)
 
     def on_start(self):
@@ -97,6 +100,7 @@ class ReadHeavyUser(HttpUser):
 
 class UploadHeavyUser(HttpUser):
     """Simulates batch ingestion workload."""
+
     wait_time = between(0.5, 2)
 
     def on_start(self):

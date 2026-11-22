@@ -1,4 +1,5 @@
 """Build synthetic comparison documents from stored fields, never original sources."""
+
 from __future__ import annotations
 
 import json
@@ -11,10 +12,14 @@ LABEL = "synthetic comparison sample reconstructed from stored fixture data"
 
 def _value_html(value: object) -> str:
     if isinstance(value, dict):
-        return "<dl>" + "".join(
-            f"<dt>{escape(key.replace('_', ' ').title())}</dt><dd>{_value_html(item)}</dd>"
-            for key, item in value.items()
-        ) + "</dl>"
+        return (
+            "<dl>"
+            + "".join(
+                f"<dt>{escape(key.replace('_', ' ').title())}</dt><dd>{_value_html(item)}</dd>"
+                for key, item in value.items()
+            )
+            + "</dl>"
+        )
     if isinstance(value, list):
         return "<ul>" + "".join(f"<li>{_value_html(item)}</li>" for item in value) + "</ul>"
     return escape(str(value))
@@ -30,7 +35,7 @@ def render_comparison(doc_type: str) -> str:
         f'<dd data-field="{escape(key)}">{_value_html(value)}</dd>'
         for key, value in fixture["extracted_data"].items()
     )
-    return f'''<!doctype html>
+    return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Synthetic {doc_type.title()} comparison</title>
@@ -54,4 +59,4 @@ def render_comparison(doc_type: str) -> str:
  no original document layout, signature or extraction correctness is established.
  This comparison does not change the separate 95.5% offline evaluation score.</p>
 </article></body></html>
-'''
+"""

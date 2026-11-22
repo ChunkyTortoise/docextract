@@ -13,6 +13,7 @@ Exit code:
   0 — all checks pass
   1 — one or more checks failed (pre-commit blocks commit)
 """
+
 from __future__ import annotations
 
 import re
@@ -45,9 +46,7 @@ def lint_file(path: Path) -> list[str]:
         return [f"{path}: cannot read file: {e}"]
 
     if len(content) > MAX_CHARS:
-        errors.append(
-            f"{path}: file is {len(content)} chars, exceeds limit of {MAX_CHARS}"
-        )
+        errors.append(f"{path}: file is {len(content)} chars, exceeds limit of {MAX_CHARS}")
 
     if PLACEHOLDER_RE.search(content):
         errors.append(f"{path}: contains unclosed {{{{placeholder}}}} token")

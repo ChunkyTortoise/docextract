@@ -9,6 +9,7 @@ Usage:
     async with cb:
         response = await anthropic_client.messages.create(...)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -19,9 +20,9 @@ from types import TracebackType
 
 
 class CircuitState(Enum):
-    CLOSED = "closed"       # Healthy — calls pass through
-    OPEN = "open"           # Failing — calls rejected immediately
-    HALF_OPEN = "half_open" # Recovering — one probe call allowed
+    CLOSED = "closed"  # Healthy — calls pass through
+    OPEN = "open"  # Failing — calls rejected immediately
+    HALF_OPEN = "half_open"  # Recovering — one probe call allowed
 
 
 class CircuitOpenError(Exception):
@@ -78,7 +79,10 @@ class AsyncCircuitBreaker:
         """True when enough time has passed since opening to try a probe."""
         if self._state != CircuitState.OPEN:
             return False
-        return self._opened_at is not None and (time.monotonic() - self._opened_at) >= self.recovery_timeout
+        return (
+            self._opened_at is not None
+            and (time.monotonic() - self._opened_at) >= self.recovery_timeout
+        )
 
     # ------------------------------------------------------------------
     # Context manager

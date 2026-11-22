@@ -4,6 +4,7 @@ Given a question and a set of document IDs, retrieves relevant excerpts from
 each document (map phase), then synthesizes a combined answer with per-document
 citations (reduce phase). Demonstrates concurrent LLM orchestration patterns.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -35,6 +36,7 @@ _REDUCE_SYSTEM = (
 
 class DocumentEvidence(BaseModel):
     """Per-document evidence extracted during the map phase."""
+
     doc_id: str
     summary: str
     relevance_score: float
@@ -43,6 +45,7 @@ class DocumentEvidence(BaseModel):
 
 class SynthesisResult(BaseModel):
     """Result of multi-document synthesis."""
+
     answer: str
     per_document_evidence: list[DocumentEvidence]
     documents_used: int
@@ -79,24 +82,28 @@ class MultiDocSynthesizer:
         async def _map_one(doc_id: str) -> DocumentEvidence:
             async with self._semaphore:
                 results = await self._tools.search_vectors(
-                    query=question, top_k=3, doc_ids=[doc_id],
+                    query=question,
+                    top_k=3,
+                    doc_ids=[doc_id],
                 )
                 if not results:
                     return DocumentEvidence(
-                        doc_id=doc_id, summary="NONE",
-                        relevance_score=0.0, passages_found=0,
+                        doc_id=doc_id,
+                        summary="NONE",
+                        relevance_score=0.0,
+                        passages_found=0,
                     )
 
-                context = "\n\n".join(
-                    f"[{i + 1}] {r.content[:500]}" for i, r in enumerate(results)
-                )
+                context = "\n\n".join(f"[{i + 1}] {r.content[:500]}" for i, r in enumerate(results))
                 prompt = (
                     f"Question: {question}\n\n"
                     f"Document excerpts:\n{context}\n\n"
                     "Extract the specific information relevant to the question."
                 )
                 summary = await self._call_llm(
-                    system=_MAP_SYSTEM, user=prompt, operation="synthesis_map",
+                    system=_MAP_SYSTEM,
+                    user=prompt,
+                    operation="synthesis_map",
                 )
                 avg_score = sum(r.score for r in results) / len(results) if results else 0.0
 
@@ -107,9 +114,7 @@ class MultiDocSynthesizer:
                     passages_found=len(results),
                 )
 
-        map_results = await asyncio.gather(
-            *[_map_one(doc_id) for doc_id in doc_ids]
-        )
+        map_results = await asyncio.gather(*[_map_one(doc_id) for doc_id in doc_ids])
         llm_calls += len(doc_ids)
 
         # Filter out documents with no relevant info
@@ -130,8 +135,7 @@ class MultiDocSynthesizer:
 
         # ── Reduce phase: synthesize combined answer ─────────────────────
         evidence_block = "\n\n".join(
-            f"[Doc {i + 1} — {e.doc_id}]:\n{e.summary}"
-            for i, e in enumerate(relevant)
+            f"[Doc {i + 1} — {e.doc_id}]:\n{e.summary}" for i, e in enumerate(relevant)
         )
         reduce_prompt = (
             f"Question: {question}\n\n"
@@ -139,7 +143,9 @@ class MultiDocSynthesizer:
             "Synthesize a comprehensive answer citing [Doc N] for each fact."
         )
         answer = await self._call_llm(
-            system=_REDUCE_SYSTEM, user=reduce_prompt, operation="synthesis_reduce",
+            system=_REDUCE_SYSTEM,
+            user=reduce_prompt,
+            operation="synthesis_reduce",
         )
         llm_calls += 1
 

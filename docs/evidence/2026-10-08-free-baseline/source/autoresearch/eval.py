@@ -7,6 +7,7 @@ Exit codes:
     0  — eval completed, score printed to stdout
     1  — eval failed (API error, bad config, etc.)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -27,6 +28,7 @@ RESULTS_PATH = Path(__file__).parent / "results.tsv"
 # ---------------------------------------------------------------------------
 # Scoring helpers
 # ---------------------------------------------------------------------------
+
 
 def _levenshtein(a: str, b: str) -> int:
     """Compute edit distance between two strings."""
@@ -66,7 +68,7 @@ def _score_scalar(extracted: Any, expected: Any) -> float:
         return 0.0  # null when expected
 
     # Numeric comparison
-    if isinstance(expected, (int, float)):
+    if isinstance(expected, int | float):
         try:
             ext_val = float(extracted)
             if expected == 0:
@@ -109,7 +111,9 @@ def _score_list(extracted: Any, expected: list) -> float:
     return total / len(expected)
 
 
-def score_extraction(extracted: dict[str, Any], expected: dict[str, Any], critical_fields: list[str]) -> float:
+def score_extraction(
+    extracted: dict[str, Any], expected: dict[str, Any], critical_fields: list[str]
+) -> float:
     """Compute weighted field-level accuracy.
 
     Critical fields weighted 2x. Returns scalar 0.0–1.0.
@@ -139,6 +143,7 @@ def score_extraction(extracted: dict[str, Any], expected: dict[str, Any], critic
 # Dataset loading
 # ---------------------------------------------------------------------------
 
+
 def load_dataset(path: Path = DATASET_PATH) -> list[dict]:
     with open(path) as f:
         return json.load(f)
@@ -147,6 +152,7 @@ def load_dataset(path: Path = DATASET_PATH) -> list[dict]:
 # ---------------------------------------------------------------------------
 # CaseResult dataclass
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class CaseResult:
@@ -166,6 +172,7 @@ class CaseResult:
 # ---------------------------------------------------------------------------
 # Enhanced scoring functions
 # ---------------------------------------------------------------------------
+
 
 def score_completeness(extracted: dict[str, Any], expected: dict[str, Any]) -> float:
     """Ratio of expected fields that are non-null in extracted output."""
@@ -204,9 +211,7 @@ def detect_hallucinations(
             continue
         # Check if any reasonable substring appears in input
         if len(str_val) > 3 and any(
-            word.lower() in input_text.lower()
-            for word in str_val.split()
-            if len(word) > 3
+            word.lower() in input_text.lower() for word in str_val.split() if len(word) > 3
         ):
             continue
         hallucinations.append(key)
@@ -216,6 +221,7 @@ def detect_hallucinations(
 def validate_response_format(extracted: dict[str, Any], doc_type: str) -> bool:
     """Validate extracted dict against the Pydantic schema for doc_type."""
     from app.schemas.document_types import DOCUMENT_TYPE_MAP
+
     schema_class = DOCUMENT_TYPE_MAP.get(doc_type)
     if schema_class is None:
         return True  # unknown doc type — skip validation
@@ -229,6 +235,7 @@ def validate_response_format(extracted: dict[str, Any], doc_type: str) -> bool:
 # ---------------------------------------------------------------------------
 # Brier score & calibration
 # ---------------------------------------------------------------------------
+
 
 def brier_score(case_results: list[CaseResult]) -> float:
     """Compute Brier score: mean((confidence - actual_accuracy)^2).
@@ -260,15 +267,21 @@ def calibration_curve(
     for i in range(n_bins):
         lower = i * bin_width
         upper = (i + 1) * bin_width
-        in_bin = [r for r in scored if lower <= r.confidence < upper or (i == n_bins - 1 and r.confidence == 1.0)]
+        in_bin = [
+            r
+            for r in scored
+            if lower <= r.confidence < upper or (i == n_bins - 1 and r.confidence == 1.0)
+        ]
         if in_bin:
-            bins.append({
-                "bin_lower": round(lower, 2),
-                "bin_upper": round(upper, 2),
-                "avg_confidence": round(sum(r.confidence for r in in_bin) / len(in_bin), 4),
-                "avg_accuracy": round(sum(r.score for r in in_bin) / len(in_bin), 4),
-                "count": len(in_bin),
-            })
+            bins.append(
+                {
+                    "bin_lower": round(lower, 2),
+                    "bin_upper": round(upper, 2),
+                    "avg_confidence": round(sum(r.confidence for r in in_bin) / len(in_bin), 4),
+                    "avg_accuracy": round(sum(r.score for r in in_bin) / len(in_bin), 4),
+                    "count": len(in_bin),
+                }
+            )
     return bins
 
 
@@ -304,22 +317,25 @@ def model_comparison_table(case_results: list[CaseResult]) -> list[dict[str, Any
         pricing = COST_PER_1K_TOKENS.get(model, {"input": 0.003, "output": 0.015})
         est_cost = (avg_in / 1000 * pricing["input"]) + (avg_out / 1000 * pricing["output"])
 
-        rows.append({
-            "model": model,
-            "doc_type": doc_type,
-            "count": n,
-            "accuracy": round(avg_score, 4),
-            "avg_confidence": round(avg_conf, 4),
-            "avg_input_tokens": round(avg_in),
-            "avg_output_tokens": round(avg_out),
-            "est_cost_usd": round(est_cost, 6),
-        })
+        rows.append(
+            {
+                "model": model,
+                "doc_type": doc_type,
+                "count": n,
+                "accuracy": round(avg_score, 4),
+                "avg_confidence": round(avg_conf, 4),
+                "avg_input_tokens": round(avg_in),
+                "avg_output_tokens": round(avg_out),
+                "est_cost_usd": round(est_cost, 6),
+            }
+        )
     return rows
 
 
 # ---------------------------------------------------------------------------
 # Dry-run mock extraction
 # ---------------------------------------------------------------------------
+
 
 def _mock_extraction(case: dict) -> dict[str, Any]:
     """Return a plausible but imperfect extraction for dry-run mode."""
@@ -333,7 +349,7 @@ def _mock_extraction(case: dict) -> dict[str, Any]:
                 mock_item = {k: v for i, (k, v) in enumerate(item.items()) if i % 2 == 0}
                 mock_items.append(mock_item)
             mock[key] = mock_items
-        elif isinstance(val, (int, float)):
+        elif isinstance(val, int | float):
             mock[key] = val  # perfect numeric match
         elif isinstance(val, str) and len(val) > 4:
             mock[key] = val[:-2] + "XX"  # slight string degradation
@@ -345,6 +361,7 @@ def _mock_extraction(case: dict) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Eval runner
 # ---------------------------------------------------------------------------
+
 
 async def run_eval(
     dataset: list[dict],
@@ -362,9 +379,11 @@ async def run_eval(
         async with sem:
             if golden:
                 from autoresearch.fixtures import load_golden_response
+
                 fixture = load_golden_response(case["id"])
                 if fixture is None:
                     import sys
+
                     print(f"WARNING: no golden fixture for {case['id']}, skipping", file=sys.stderr)
                     cr = CaseResult(
                         case_id=case["id"],
@@ -442,6 +461,7 @@ def _append_result(score: float, prompts_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Docextract prompt eval harness")

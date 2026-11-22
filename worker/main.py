@@ -1,4 +1,5 @@
 """ARQ worker configuration and startup."""
+
 from __future__ import annotations
 
 import asyncio

@@ -1,4 +1,5 @@
 """Store and retrieve HITL corrections for active learning."""
+
 from __future__ import annotations
 
 import logging
@@ -25,8 +26,7 @@ async def store_correction(
     from app.models.correction import Correction
 
     corrected_fields = [
-        field for field in corrected_data
-        if original_data.get(field) != corrected_data[field]
+        field for field in corrected_data if original_data.get(field) != corrected_data[field]
     ]
 
     correction = Correction(

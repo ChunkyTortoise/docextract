@@ -1,4 +1,5 @@
 """BM25 text search index for hybrid search."""
+
 from __future__ import annotations
 
 import re

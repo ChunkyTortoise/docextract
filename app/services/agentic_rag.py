@@ -3,6 +3,7 @@
 Think → Act → Observe, repeated until confident or max_iterations reached.
 Supports both batch (search) and streaming (search_stream) execution.
 """
+
 from __future__ import annotations
 
 import json
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 # Response shapes
 # ---------------------------------------------------------------------------
 
+
 class ReasoningStep(BaseModel):
     step: int
     thought: str
@@ -56,6 +58,7 @@ class AgenticRAGResult(BaseModel):
 
 class StreamEvent(BaseModel):
     """Event emitted during streaming agent search."""
+
     event_type: Literal["step", "done"]
     step: ReasoningStep | None = None
     result: AgenticRAGResult | None = None
@@ -65,9 +68,11 @@ class StreamEvent(BaseModel):
 # Internal iteration state
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class _IterationState:
     """Mutable state carried between ReAct iterations."""
+
     accumulated_results: list[SearchResult] = field(default_factory=list)
     reasoning_trace: list[ReasoningStep] = field(default_factory=list)
     tools_used: list[str] = field(default_factory=list)
@@ -111,6 +116,7 @@ CONFIDENCE_THRESHOLD = 0.8
 # ---------------------------------------------------------------------------
 # Agent
 # ---------------------------------------------------------------------------
+
 
 class AgenticRAG:
     """ReAct agent loop that orchestrates RagTools to answer questions."""
@@ -225,7 +231,9 @@ class AgenticRAG:
             action_input["doc_ids"] = doc_ids
 
         # ---- ACT: execute the tool ----
-        tool_results, observation = await self._execute_tool(action, action_input, accumulated_results=state.accumulated_results)
+        tool_results, observation = await self._execute_tool(
+            action, action_input, accumulated_results=state.accumulated_results
+        )
 
         if tool_results:
             state.accumulated_results = _merge_results(state.accumulated_results, tool_results)
@@ -281,7 +289,11 @@ class AgenticRAG:
                     self._apply_degradation(state, reason)
                 else:
                     state.final_answer = await self._generate_answer(
-                        question, state.accumulated_results, models=settings.extraction_models, state=state, db=db
+                        question,
+                        state.accumulated_results,
+                        models=settings.extraction_models,
+                        state=state,
+                        db=db,
                     )
             state.should_stop = True
 
@@ -399,7 +411,9 @@ class AgenticRAG:
                     messages=[{"role": "user", "content": user}],
                 )
             if state is not None and settings.spend_ceiling_enabled:
-                self._record_cost(state, model, response, operation, (time.monotonic() - start) * 1000)
+                self._record_cost(
+                    state, model, response, operation, (time.monotonic() - start) * 1000
+                )
             return response.content[0].text
 
         try:
@@ -457,7 +471,9 @@ class AgenticRAG:
 
         try:
             if action == "search_vectors":
-                results = await self._tools.search_vectors(query=query, top_k=top_k, doc_ids=doc_ids)
+                results = await self._tools.search_vectors(
+                    query=query, top_k=top_k, doc_ids=doc_ids
+                )
             elif action == "search_bm25":
                 results = await self._tools.search_bm25(query=query, top_k=top_k, doc_ids=doc_ids)
             elif action == "search_hybrid":
@@ -473,15 +489,15 @@ class AgenticRAG:
                 # Rerank accumulated results using TF-IDF cross-score
                 if accumulated_results:
                     from app.services.reranker import TFIDFReranker
+
                     reranker = TFIDFReranker(alpha=float(action_input.get("alpha", 0.4)))
                     results = reranker.rerank(
                         query=query,
                         results=list(accumulated_results),
                         top_k=top_k,
                     )
-                    observation = (
-                        f"Reranked {len(results)} results by TF-IDF cross-score. "
-                        + (f"Top result score: {results[0].score:.3f}" if results else "No results.")
+                    observation = f"Reranked {len(results)} results by TF-IDF cross-score. " + (
+                        f"Top result score: {results[0].score:.3f}" if results else "No results."
                     )
                     return results, observation
                 else:
@@ -490,9 +506,8 @@ class AgenticRAG:
                 logger.warning("Unknown tool action: %s", action)
                 results = []
 
-            observation = (
-                f"Tool '{action}' returned {len(results)} result(s). "
-                + (f"Top result: {results[0].content[:200]}" if results else "No results found.")
+            observation = f"Tool '{action}' returned {len(results)} result(s). " + (
+                f"Top result: {results[0].content[:200]}" if results else "No results found."
             )
             return results, observation
 
@@ -509,9 +524,7 @@ class AgenticRAG:
         db: AsyncSession | None = None,
     ) -> str:
         """Generate a final answer given question + context passages."""
-        context = "\n\n".join(
-            f"[{i + 1}] {r.content[:500]}" for i, r in enumerate(results[:5])
-        )
+        context = "\n\n".join(f"[{i + 1}] {r.content[:500]}" for i, r in enumerate(results[:5]))
         if context:
             context = injection_guard.wrap_untrusted(context)
         user_prompt = (
@@ -556,8 +569,7 @@ class AgenticRAG:
         results: list[SearchResult],
     ) -> str:
         context = "\n\n".join(
-            f"[{i + 1}] (score={r.score:.3f}) {r.content[:400]}"
-            for i, r in enumerate(results[:5])
+            f"[{i + 1}] (score={r.score:.3f}) {r.content[:400]}" for i, r in enumerate(results[:5])
         )
         if context:
             context = injection_guard.wrap_untrusted(context)
@@ -571,6 +583,7 @@ class AgenticRAG:
 # ---------------------------------------------------------------------------
 # Utility functions
 # ---------------------------------------------------------------------------
+
 
 def _parse_json_safe(text: str) -> tuple[dict, bool]:
     """Extract the first JSON object from a string.

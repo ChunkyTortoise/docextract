@@ -4,9 +4,9 @@ import argparse
 import hashlib
 import json
 import math
-from pathlib import Path
 import sys
 import types
+from pathlib import Path
 
 RUN_SHA = "9ba5b31ebb6b744d80e3a95e6e1901b2308f2902e41bf96f32be1897de906e5e"
 TEST_SHA = "944de5eb5bfa55f04662afcf4d7331f8e19e097f4218c49acdf94702012752f8"
@@ -18,9 +18,7 @@ def digest(data):
 
 
 def encoded(value):
-    return json.dumps(
-        value, sort_keys=True, separators=(",", ":"), allow_nan=False
-    ).encode()
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
 def verify_saved_run(package_dir: Path) -> dict:
@@ -42,11 +40,7 @@ def verify_saved_run(package_dir: Path) -> dict:
     for relative, entry in files.items():
         candidate = Path(relative)
         path = (root / candidate).resolve()
-        if (
-            candidate.is_absolute()
-            or ".." in candidate.parts
-            or not path.is_relative_to(root)
-        ):
+        if candidate.is_absolute() or ".." in candidate.parts or not path.is_relative_to(root):
             raise ValueError("Unsafe manifest path")
         data = path.read_bytes()
         if digest(data) != entry["sha256"]:
@@ -78,9 +72,7 @@ def verify_saved_run(package_dir: Path) -> dict:
     integration_hashes = run["frozen"]["integration_source_hashes"]
     for relative, expected in integration_hashes.items():
         exported = "source/" + relative
-        required_export = "/schemas/" in relative or relative.endswith(
-            "injection_guard.py"
-        )
+        required_export = "/schemas/" in relative or relative.endswith("injection_guard.py")
         if (required_export or exported in payloads) and digest(
             payloads.get(exported, b"")
         ) != expected:

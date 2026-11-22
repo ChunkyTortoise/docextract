@@ -4,6 +4,7 @@ Revision ID: 002
 Revises: 001
 Create Date: 2026-03-01
 """
+
 from __future__ import annotations
 
 from typing import Sequence
@@ -25,18 +26,23 @@ def upgrade() -> None:
     op.create_table(
         "content_embeddings",
         sa.Column(
-            "id", UUID(as_uuid=True), primary_key=True,
+            "id",
+            UUID(as_uuid=True),
+            primary_key=True,
             server_default=sa.text("gen_random_uuid()"),
         ),
         sa.Column(
-            "record_id", UUID(as_uuid=True),
+            "record_id",
+            UUID(as_uuid=True),
             sa.ForeignKey("extracted_records.id", ondelete="CASCADE"),
-            nullable=False, unique=True,
+            nullable=False,
+            unique=True,
         ),
         sa.Column("content_text", sa.Text(), nullable=False),
         sa.Column("embedding", Vector(384), nullable=False),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True),
+            "created_at",
+            sa.DateTime(timezone=True),
             server_default=sa.func.now(),
         ),
     )

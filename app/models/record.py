@@ -42,15 +42,11 @@ class ExtractedRecord(Base):
     extracted_data: Mapped[dict] = mapped_column(JSONB, nullable=False)
     raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     confidence_score: Mapped[float] = mapped_column(Float, nullable=False)
-    validation_status: Mapped[str] = mapped_column(
-        String(20), default="pending_review"
-    )
+    validation_status: Mapped[str] = mapped_column(String(20), default="pending_review")
     needs_review: Mapped[bool] = mapped_column(Boolean, default=False)
     review_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    reviewed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     corrected_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     reviewer_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

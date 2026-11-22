@@ -17,6 +17,7 @@ storage/local/
 autoresearch/results.tsv
 storage/reports/
 .coverage
+.coverage.*
 
 # Research and market analysis (not part of the codebase)
 research/

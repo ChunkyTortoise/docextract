@@ -10,6 +10,7 @@ insert relying on the default violated the check. The default becomes
 'pending_review', matching the ORM default and the domain. The domain itself
 is unchanged and no rows can carry 'pending' (005 validates on add).
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa

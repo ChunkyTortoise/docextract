@@ -10,7 +10,7 @@ import logging
 import math
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -42,10 +42,7 @@ def load_partition(manifest_path):
     root = manifest_path.parent
     for name in ("test", "train_dev"):
         p = root / manifest[name + "_path"]
-        if (
-            p.resolve().parent != root.resolve()
-            or digest(p) != manifest[name + "_sha256"]
-        ):
+        if p.resolve().parent != root.resolve() or digest(p) != manifest[name + "_sha256"]:
             raise ValueError("Partition path or hash mismatch: " + name)
     for relative, sha in manifest["source_hashes"].items():
         if digest(REPO / relative) != sha:
@@ -126,7 +123,7 @@ async def run(
         status="FAKE VERIFICATION ONLY, PERFORMANCE UNMEASURED",
         source_git_sha=SOURCE_SHA,
         metadata=metadata,
-        started_at=datetime.now(timezone.utc).isoformat(),
+        started_at=datetime.now(UTC).isoformat(),
         command=list(sys.argv),
         artifact_path=str(out),
         partition_manifest_sha256=digest(manifest_path),
@@ -149,11 +146,7 @@ async def run(
     save(out, artifact)
     for case in cases:
         bound = adapter.bound(case)
-        if (
-            bound is None
-            or not Decimal(str(bound)).is_finite()
-            or Decimal(str(bound)) <= 0
-        ):
+        if bound is None or not Decimal(str(bound)).is_finite() or Decimal(str(bound)) <= 0:
             artifact["stop_reason"] = "No safe bound for all provider calls"
             break
         bound = Decimal(str(bound))
@@ -210,9 +203,7 @@ async def run(
         artifact["per_case"].append(row)
         artifact["priced_subtotal_usd"] = str(spent)
         if not complete:
-            artifact["stop_reason"] = (
-                "Missing, unpriced or incomplete provider-call accounting"
-            )
+            artifact["stop_reason"] = "Missing, unpriced or incomplete provider-call accounting"
         elif cost > bound:
             artifact["stop_reason"] = "Call bound violated; no further cases permitted"
         save(out, artifact)
@@ -221,9 +212,9 @@ async def run(
     rows = artifact["per_case"]
     full = len(rows) == len(cases)
     # Failed and unattempted cases remain in the declared denominator.
-    artifact["declared_denominator_score"] = sum(
-        r["score"] * r["weight"] for r in rows
-    ) / sum(c["weight"] for c in cases)
+    artifact["declared_denominator_score"] = sum(r["score"] * r["weight"] for r in rows) / sum(
+        c["weight"] for c in cases
+    )
     if full:
         artifact["primary_score"] = artifact["declared_denominator_score"]
     if rows and all(r["cost_complete"] for r in rows):
@@ -232,15 +223,11 @@ async def run(
     artifact["latency"] = dict(
         observations_ms=[r["latency_ms"] for r in rows],
         percentile_method="nearest rank",
-        p50_ms=observations[math.ceil(0.5 * len(observations)) - 1]
-        if observations
-        else None,
-        p95_ms=observations[math.ceil(0.95 * len(observations)) - 1]
-        if observations
-        else None,
+        p50_ms=observations[math.ceil(0.5 * len(observations)) - 1] if observations else None,
+        p95_ms=observations[math.ceil(0.95 * len(observations)) - 1] if observations else None,
         coverage="complete" if full else "partial",
     )
-    artifact["ended_at"] = datetime.now(timezone.utc).isoformat()
+    artifact["ended_at"] = datetime.now(UTC).isoformat()
     save(out, artifact)
     if cancelled:
         raise asyncio.CancelledError()

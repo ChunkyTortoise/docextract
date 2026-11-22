@@ -4,6 +4,7 @@ Wraps the OpenAI async client with a minimal interface matching the Anthropic
 response structure used by LLMJudge — enough for the judge to stay
 provider-agnostic. Not wired into hot-path extraction unless explicitly enabled.
 """
+
 from __future__ import annotations
 
 import logging

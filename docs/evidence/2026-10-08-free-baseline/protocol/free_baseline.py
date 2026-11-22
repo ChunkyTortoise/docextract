@@ -13,13 +13,12 @@ import json
 import platform
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-import httpx
-
 import extractor_adapter
+import httpx
 import runner
 
 MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
@@ -53,7 +52,7 @@ def check_catalog(data):
 def check_cost_details(value):
     if isinstance(value, dict):
         for key, item in value.items():
-            if "cost" in key.lower() and not isinstance(item, (dict, list)):
+            if "cost" in key.lower() and not isinstance(item, dict | list):
                 zero(item)
             else:
                 check_cost_details(item)
@@ -77,9 +76,7 @@ def check_response(data):
 
 
 def encoded(data):
-    return json.dumps(
-        data, sort_keys=True, separators=(",", ":"), allow_nan=False
-    ).encode()
+    return json.dumps(data, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
 def sha(data):
@@ -112,15 +109,11 @@ def request_body(module, case):
     schema = module.DOCUMENT_TYPE_MAP[doc_type]
     config, guard = module.prompt_config, module.injection_guard
     system = config.extract_system_prompt + guard.DEFENSE_SYSTEM_CLAUSE
-    system += (
-        "\nReturn only one JSON object matching this source schema. No Markdown.\n"
-    )
+    system += "\nReturn only one JSON object matching this source schema. No Markdown.\n"
     system += json.dumps(schema.model_json_schema(), sort_keys=True)
     user = config.extract_prompt.format(
         doc_type=doc_type,
-        text=guard.wrap_untrusted(
-            case["input_text"][: config.params.extract_text_limit]
-        ),
+        text=guard.wrap_untrusted(case["input_text"][: config.params.extract_text_limit]),
     )
     return dict(
         model=MODEL,
@@ -178,7 +171,7 @@ def run(manifest_path, output_dir, *, transport=None, live=False):
     artifact = dict(
         status="LIVE FREE SINGLE-PASS BASELINE" if live else "MOCK VERIFICATION ONLY",
         limitation="Single-pass baseline, not production-pipeline equivalence; human review pending",
-        started_at=datetime.now(timezone.utc).isoformat(),
+        started_at=datetime.now(UTC).isoformat(),
         endpoint=ENDPOINT,
         model=MODEL,
         case_count=len(cases),
@@ -205,9 +198,7 @@ def run(manifest_path, output_dir, *, transport=None, live=False):
     out = output_dir / "run.json"
     runner.save(out, artifact)
     actual_transport = (
-        transport
-        if transport is not None
-        else httpx.HTTPTransport(retries=0, trust_env=False)
+        transport if transport is not None else httpx.HTTPTransport(retries=0, trust_env=False)
     )
     with httpx.Client(
         transport=actual_transport,
@@ -276,12 +267,10 @@ def run(manifest_path, output_dir, *, transport=None, live=False):
                         if not isinstance(prediction, dict):
                             raise ValueError("Completion content must be a JSON object")
                         row["raw_prediction"] = prediction
-                        prediction, removed = module.injection_guard.sanitize_output(
+                        prediction, removed = module.injection_guard.sanitize_output(prediction)
+                        validated = module.DOCUMENT_TYPE_MAP[case["doc_type"]].model_validate(
                             prediction
                         )
-                        validated = module.DOCUMENT_TYPE_MAP[
-                            case["doc_type"]
-                        ].model_validate(prediction)
                         prediction = validated.model_dump(mode="json")
                         row["prediction"] = prediction
                         row["prediction_sha256"] = sha(encoded(prediction))
@@ -316,10 +305,8 @@ def run(manifest_path, output_dir, *, transport=None, live=False):
         if artifact["attempted_count"] == len(cases) == 12:
             artifact["primary_score"] = artifact["declared_denominator_score"]
     attempted_ids = {row["id"] for row in artifact["per_case"]}
-    artifact["unattempted_ids"] = [
-        case["id"] for case in cases if case["id"] not in attempted_ids
-    ]
-    artifact["ended_at"] = datetime.now(timezone.utc).isoformat()
+    artifact["unattempted_ids"] = [case["id"] for case in cases if case["id"] not in attempted_ids]
+    artifact["ended_at"] = datetime.now(UTC).isoformat()
     runner.save(out, artifact)
     return artifact
 

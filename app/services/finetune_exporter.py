@@ -8,6 +8,7 @@ Supports three formats:
 Each correction naturally provides a DPO pair because original_data is the
 model's output (rejected) and corrected_data is the human correction (chosen).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -34,6 +35,7 @@ _EXTRACTION_SYSTEM_PROMPT = (
 
 class ExportStats(BaseModel):
     """Summary statistics for the fine-tuning dataset."""
+
     total_corrections: int
     by_doc_type: dict[str, int]
     avg_corrected_fields: float
@@ -83,16 +85,13 @@ class FineTuneExporter:
 
         # Total count
         count_result = await self._db.execute(
-            select(func.count()).select_from(
-                base_query.subquery()
-            )
+            select(func.count()).select_from(base_query.subquery())
         )
         total = count_result.scalar() or 0
 
         # By doc_type
         type_result = await self._db.execute(
-            select(Correction.doc_type, func.count())
-            .group_by(Correction.doc_type)
+            select(Correction.doc_type, func.count()).group_by(Correction.doc_type)
         )
         by_doc_type = {row[0]: row[1] for row in type_result.all()}
 
@@ -110,10 +109,7 @@ class FineTuneExporter:
         # Avg corrected fields
         all_corrections = await self._db.execute(base_query)
         rows = all_corrections.scalars().all()
-        field_counts = [
-            len(c.corrected_fields) for c in rows
-            if c.corrected_fields
-        ]
+        field_counts = [len(c.corrected_fields) for c in rows if c.corrected_fields]
         avg_fields = sum(field_counts) / len(field_counts) if field_counts else 0.0
 
         return ExportStats(
@@ -136,10 +132,7 @@ class FineTuneExporter:
         """Load corrections, deduplicate by record_id (keep latest)."""
         from app.models.correction import Correction
 
-        query = (
-            select(Correction)
-            .order_by(desc(Correction.created_at))
-        )
+        query = select(Correction).order_by(desc(Correction.created_at))
         if doc_type:
             query = query.where(Correction.doc_type == doc_type)
 
@@ -159,13 +152,15 @@ class FineTuneExporter:
             if len(corrected_fields) < min_field_count:
                 continue
 
-            corrections.append({
-                "record_id": row.record_id,
-                "doc_type": row.doc_type,
-                "original_data": row.original_data or {},
-                "corrected_data": row.corrected_data or {},
-                "corrected_fields": corrected_fields,
-            })
+            corrections.append(
+                {
+                    "record_id": row.record_id,
+                    "doc_type": row.doc_type,
+                    "original_data": row.original_data or {},
+                    "corrected_data": row.corrected_data or {},
+                    "corrected_fields": corrected_fields,
+                }
+            )
 
         return corrections
 

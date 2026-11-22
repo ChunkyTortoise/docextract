@@ -1,4 +1,5 @@
 """Screen 2: Job progress tracking."""
+
 import time
 
 import streamlit as st

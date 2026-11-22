@@ -36,15 +36,11 @@ class Relationship:
     source_chunks: list[int] = field(default_factory=list)
 
 
-_PERSON_PATTERN = re.compile(
-    r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b"
-)
+_PERSON_PATTERN = re.compile(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b")
 _ORG_PATTERN = re.compile(
     r"\b([A-Z][a-zA-Z]*(?:\s+(?:Inc|Corp|LLC|Ltd|Co|Group|Foundation|Institute|University|Association|Company|Technologies|Systems|Labs|Partners)\.?))\b"
 )
-_LOCATION_PATTERN = re.compile(
-    r"\b(?:in|at|from|near)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b"
-)
+_LOCATION_PATTERN = re.compile(r"\b(?:in|at|from|near)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b")
 _PRODUCT_PATTERN = re.compile(
     r"\b([A-Z][a-zA-Z]*(?:[-][A-Z][a-zA-Z]*)*\s+(?:v\d|API|SDK|Platform|Engine|Framework|Model|System|Tool|Service))\b"
 )

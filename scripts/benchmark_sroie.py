@@ -10,6 +10,7 @@ Usage:
 
 SROIE ground truth fields: company, date, address, total
 """
+
 from __future__ import annotations
 
 import argparse
@@ -75,12 +76,9 @@ class BenchmarkResults:
         if self.total_documents == 0:
             return 0.0
         exact_all = sum(
-            1 for i in range(self.total_documents)
-            if all(
-                s.exact_matches > 0
-                for s in self.field_scores.values()
-                if s.total > 0
-            )
+            1
+            for i in range(self.total_documents)
+            if all(s.exact_matches > 0 for s in self.field_scores.values() if s.total > 0)
         )
         return exact_all / self.total_documents
 

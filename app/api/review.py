@@ -1,4 +1,5 @@
 """Human-in-the-loop review queue endpoints."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -62,9 +63,7 @@ async def list_review_items(
             raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
         filters.append(ExtractedRecord.validation_status == status)
     else:
-        filters.append(
-            ExtractedRecord.validation_status.in_(["pending_review", "claimed"])
-        )
+        filters.append(ExtractedRecord.validation_status.in_(["pending_review", "claimed"]))
 
     if assignee:
         filters.append(ExtractedRecord.reviewed_by == assignee)
@@ -76,13 +75,7 @@ async def list_review_items(
 
     total = (await db.execute(count_query)).scalar_one()
     items = (
-        (
-            await db.execute(
-                query.offset((page - 1) * page_size).limit(page_size)
-            )
-        )
-        .scalars()
-        .all()
+        (await db.execute(query.offset((page - 1) * page_size).limit(page_size))).scalars().all()
     )
 
     return {
@@ -229,6 +222,7 @@ async def correct_review_item(
     original_extracted = dict(item.extracted_data or {})
 
     from app.config import settings as _settings
+
     if _settings.pii_redaction_enabled:
         from app.services.pii_sanitizer import redact_pii
 
@@ -244,8 +238,10 @@ async def correct_review_item(
 
     # Store correction for active learning
     from app.config import settings
+
     if settings.active_learning_enabled:
         from app.services.correction_store import store_correction
+
         await store_correction(
             db=db,
             record_id=str(item.id),

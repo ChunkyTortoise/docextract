@@ -6,6 +6,7 @@ combines with the existing RRF score from hybrid retrieval.
 
 No external API key required — pure scikit-learn.
 """
+
 from __future__ import annotations
 
 import logging

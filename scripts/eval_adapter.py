@@ -46,7 +46,9 @@ DOCUMENT_TYPES = [
 # ---------------------------------------------------------------------------
 
 
-def load_eval_records(source: str, api_key: str = "", doc_type: str | None = None) -> list[dict[str, Any]]:
+def load_eval_records(
+    source: str, api_key: str = "", doc_type: str | None = None
+) -> list[dict[str, Any]]:
     """Load eval JSONL from file or API."""
     if source.startswith("http"):
         params: dict[str, str] = {"format": "eval", "split": "val"}
@@ -213,7 +215,9 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         baseline_preds = list(ground_truth)
     else:
         adapter_preds = _predict_with_adapter(records, args.adapter_path, args.model)
-        baseline_preds = _predict_with_claude(records, args.api_key) if args.api_key else list(ground_truth)
+        baseline_preds = (
+            _predict_with_claude(records, args.api_key) if args.api_key else list(ground_truth)
+        )
 
     adapter_metrics = calculate_metrics(adapter_preds, ground_truth)
     baseline_metrics = calculate_metrics(baseline_preds, ground_truth)
@@ -233,7 +237,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--api-key", default="", help="DocExtract + Anthropic API key")
     parser.add_argument("--adapter-path", required=True, help="Path to trained LoRA adapter")
     parser.add_argument("--doc-type", default=None, help="Filter by document type")
-    parser.add_argument("--model", default="mistralai/Mistral-7B-Instruct-v0.2", help="Base model ID")
+    parser.add_argument(
+        "--model", default="mistralai/Mistral-7B-Instruct-v0.2", help="Base model ID"
+    )
     parser.add_argument("--dry-run", action="store_true", help="Use stub predictions")
     return parser.parse_args(argv)
 

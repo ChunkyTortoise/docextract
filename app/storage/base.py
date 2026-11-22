@@ -1,4 +1,5 @@
 """Abstract storage backend."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -8,7 +9,9 @@ class StorageBackend(ABC):
     """Abstract interface for file storage backends."""
 
     @abstractmethod
-    async def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    async def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> str:
         """Upload file data and return the storage URL/path."""
         ...
 

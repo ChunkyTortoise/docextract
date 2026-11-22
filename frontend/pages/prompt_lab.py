@@ -1,4 +1,5 @@
 """Prompt Lab - version comparison and regression testing UI."""
+
 from __future__ import annotations
 
 import difflib
@@ -72,6 +73,7 @@ def _parse_changelog(raw: str) -> list[dict]:
 def _mock_regression_result(baseline: str, candidate: str) -> dict:
     """Return a mocked comparison result for demo purposes."""
     import random
+
     random.seed(hash(baseline + candidate) % 2**31)
     metrics = {
         "accuracy": round(0.85 + random.uniform(-0.05, 0.05), 4),
@@ -192,14 +194,12 @@ def render() -> None:
                 st.success("No regressions detected.")
             else:
                 st.error(
-                    "Regressions detected:\n\n"
-                    + "\n".join(f"- {r}" for r in result["regressions"])
+                    "Regressions detected:\n\n" + "\n".join(f"- {r}" for r in result["regressions"])
                 )
 
             if result["improvements"]:
                 st.info(
-                    "Improvements noted:\n\n"
-                    + "\n".join(f"- {i}" for i in result["improvements"])
+                    "Improvements noted:\n\n" + "\n".join(f"- {i}" for i in result["improvements"])
                 )
 
             # Metrics table

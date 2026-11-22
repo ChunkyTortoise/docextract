@@ -1,4 +1,5 @@
 """Pytest configuration and shared fixtures."""
+
 from __future__ import annotations
 
 import os
@@ -84,6 +85,7 @@ def _patch_pg_types_for_sqlite():
                 elif "NOW()" in default_text.upper():
                     from sqlalchemy import text as sa_text
                     from sqlalchemy.schema import DefaultClause
+
                     col.server_default = DefaultClause(sa_text("CURRENT_TIMESTAMP"))
 
         # Strip PostgreSQL-specific indexes (using GIN, partial WHERE, etc.)
@@ -104,7 +106,9 @@ class FakeStorageBackend(StorageBackend):
     def __init__(self):
         self._store: dict[str, bytes] = {}
 
-    async def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    async def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> str:
         self._store[key] = data
         return key
 
@@ -179,9 +183,7 @@ def _create_tables(conn):
 
 @pytest_asyncio.fixture
 async def db_session(test_engine):
-    session_factory = async_sessionmaker(
-        test_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    session_factory = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
     async with session_factory() as session:
         yield session
         await session.rollback()
@@ -200,6 +202,7 @@ async def fake_storage():
 @pytest_asyncio.fixture
 async def fake_arq_pool():
     from unittest.mock import AsyncMock
+
     return AsyncMock()
 
 
@@ -230,9 +233,7 @@ async def client(db_session, test_redis, fake_storage, fake_arq_pool):
     from sqlalchemy import select
 
     key_hash = hash_api_key(TEST_API_KEY)
-    existing = await db_session.execute(
-        select(APIKey).where(APIKey.key_hash == key_hash)
-    )
+    existing = await db_session.execute(select(APIKey).where(APIKey.key_hash == key_hash))
     if existing.scalar_one_or_none() is None:
         api_key = APIKey(
             id=str(uuid.uuid4()),
@@ -311,32 +312,38 @@ async def seed_stale_review_items(db_session):
             is_stale = i < n_stale
             created = now - timedelta(hours=25) if is_stale else now
 
-            db_session.add(Document(
-                id=doc_id,
-                original_filename=f"stale_{i}.pdf",
-                stored_path=f"documents/{doc_id}/stale_{i}.pdf",
-                mime_type="application/pdf",
-                file_size_bytes=100,
-                sha256_hash=uuid.uuid4().hex,
-            ))
-            db_session.add(ExtractionJob(
-                id=job_id,
-                document_id=doc_id,
-                status="needs_review",
-                priority="standard",
-            ))
-            db_session.add(ExtractedRecord(
-                id=record_id,
-                job_id=job_id,
-                document_id=doc_id,
-                document_type="invoice",
-                extracted_data={"amount": "100.00"},
-                confidence_score=0.6,
-                needs_review=True,
-                validation_status="pending_review",
-                review_reason="low_confidence",
-                created_at=created,
-            ))
+            db_session.add(
+                Document(
+                    id=doc_id,
+                    original_filename=f"stale_{i}.pdf",
+                    stored_path=f"documents/{doc_id}/stale_{i}.pdf",
+                    mime_type="application/pdf",
+                    file_size_bytes=100,
+                    sha256_hash=uuid.uuid4().hex,
+                )
+            )
+            db_session.add(
+                ExtractionJob(
+                    id=job_id,
+                    document_id=doc_id,
+                    status="needs_review",
+                    priority="standard",
+                )
+            )
+            db_session.add(
+                ExtractedRecord(
+                    id=record_id,
+                    job_id=job_id,
+                    document_id=doc_id,
+                    document_type="invoice",
+                    extracted_data={"amount": "100.00"},
+                    confidence_score=0.6,
+                    needs_review=True,
+                    validation_status="pending_review",
+                    review_reason="low_confidence",
+                    created_at=created,
+                )
+            )
             record_ids.append(record_id)
 
         await db_session.commit()

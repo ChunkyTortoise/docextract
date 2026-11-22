@@ -1,4 +1,5 @@
 """Structured logging configuration using structlog with stdlib bridge."""
+
 from __future__ import annotations
 
 import logging

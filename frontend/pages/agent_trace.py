@@ -1,4 +1,5 @@
 """Agent Trace Viewer - visualize the agentic RAG ReAct reasoning loop."""
+
 from __future__ import annotations
 
 import json
@@ -41,6 +42,7 @@ def _load_trace(question: str | None, max_iter: int) -> dict | None:
     if question:
         try:
             import frontend.api_client as api
+
             return api.agent_search(question, max_iterations=max_iter)
         except Exception:
             pass  # fall through to demo data
@@ -102,7 +104,11 @@ def _render_trace(result: dict) -> None:
                 with a_col:
                     st.markdown("**Act**")
                     if action:
-                        query_str = action_input.get("query", "") if isinstance(action_input, dict) else str(action_input)
+                        query_str = (
+                            action_input.get("query", "")
+                            if isinstance(action_input, dict)
+                            else str(action_input)
+                        )
                         if query_str:
                             st.code(f"{action}(query={query_str!r})")
                         else:
@@ -164,6 +170,5 @@ def _render_trace(result: dict) -> None:
             with st.expander(f"Source {i} \u2014 score {src.get('score', 0):.2f}"):
                 st.write(src.get("content", ""))
                 st.caption(
-                    f"Document: {src.get('doc_id', '')} | "
-                    f"Chunk: {src.get('chunk_id', '')}"
+                    f"Document: {src.get('doc_id', '')} | " f"Chunk: {src.get('chunk_id', '')}"
                 )

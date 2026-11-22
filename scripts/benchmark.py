@@ -99,7 +99,14 @@ async def _run_case(case: dict) -> dict:
         reflection = bool(getattr(result, "reflection_applied", False))
         err = None
     except Exception as e:  # record, never abort the sweep
-        extracted, model, raw, corrections, reflection, err = {}, "", "", False, False, f"{type(e).__name__}: {e}"
+        extracted, model, raw, corrections, reflection, err = (
+            {},
+            "",
+            "",
+            False,
+            False,
+            f"{type(e).__name__}: {e}",
+        )
     wall_ms = (time.perf_counter() - t0) * 1000.0
 
     cost_usd = 0.0
@@ -108,11 +115,15 @@ async def _run_case(case: dict) -> dict:
         it, ot, m = tr.get("input_tokens"), tr.get("output_tokens"), tr.get("model")
         if it is None or ot is None or m not in COST_PER_1K_TOKENS:
             continue
-        rc = tracker.compute_cost(m, it, ot, tr.get("operation", "extract"), float(tr.get("latency_ms") or 0))
+        rc = tracker.compute_cost(
+            m, it, ot, tr.get("operation", "extract"), float(tr.get("latency_ms") or 0)
+        )
         cost_usd += float(rc.total_cost_usd)
         priced_calls += 1
 
-    score = score_extraction(extracted, case["expected"], case["critical_fields"]) if not err else 0.0
+    score = (
+        score_extraction(extracted, case["expected"], case["critical_fields"]) if not err else 0.0
+    )
     straight_through = (not err) and (not corrections) and (not reflection)
 
     if not err:
@@ -187,20 +198,38 @@ async def main(limit: int | None) -> None:
         "latency_ms_p50": _pct(lat, 0.50),
         "latency_ms_p95": _pct(lat, 0.95),
         "latency_s_p95": round(_pct(lat, 0.95) / 1000.0, 2),
-        "avg_cost_per_doc_usd": round(statistics.mean([r["cost_usd"] for r in ok]), 4) if ok else 0.0,
-        "straight_through_rate": round(sum(r["straight_through"] for r in ok) / len(ok), 4) if ok else 0.0,
+        "avg_cost_per_doc_usd": round(statistics.mean([r["cost_usd"] for r in ok]), 4)
+        if ok
+        else 0.0,
+        "straight_through_rate": round(sum(r["straight_through"] for r in ok) / len(ok), 4)
+        if ok
+        else 0.0,
         "per_doc_type": {
             dt: {"f1": round(_weighted_f1(rs), 4), "count": len(rs)}
             for dt, rs in sorted(per_doc.items())
         },
         "per_case": [
-            {k: r[k] for k in ("id", "split", "doc_type", "score", "latency_ms", "cost_usd", "straight_through", "error")}
+            {
+                k: r[k]
+                for k in (
+                    "id",
+                    "split",
+                    "doc_type",
+                    "score",
+                    "latency_ms",
+                    "cost_usd",
+                    "straight_through",
+                    "error",
+                )
+            }
             for r in sorted(rows, key=lambda x: x["id"])
         ],
     }
     RUN_OUT.write_text(json.dumps(summary, indent=2))
     print("\n" + json.dumps({k: v for k, v in summary.items() if k != "per_case"}, indent=2))
-    print(f"\nwrote {RUN_OUT.relative_to(REPO)}  +  {len(ok)} fixtures in autoresearch/golden_responses/")
+    print(
+        f"\nwrote {RUN_OUT.relative_to(REPO)}  +  {len(ok)} fixtures in autoresearch/golden_responses/"
+    )
 
 
 if __name__ == "__main__":

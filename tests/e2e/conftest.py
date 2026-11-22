@@ -1,4 +1,5 @@
 """E2E test fixtures: API key guard and synthetic PDF generators."""
+
 from __future__ import annotations
 
 import os
@@ -73,8 +74,7 @@ def synthetic_invoice_pdf() -> bytes:
         pdf.cell(90, 8, desc, border=1)
         pdf.cell(25, 8, str(qty), border=1, align="C")
         pdf.cell(35, 8, f"${unit:.2f}", border=1, align="R")
-        pdf.cell(40, 8, f"${amount:.2f}", border=1, align="R",
-                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(40, 8, f"${amount:.2f}", border=1, align="R", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     subtotal = sum(q * u for _, q, u in line_items)
     tax = round(subtotal * 0.0875, 2)
@@ -176,8 +176,7 @@ def synthetic_bank_statement_pdf() -> bytes:
         pdf.cell(35, 8, date, border=1)
         pdf.cell(85, 8, desc, border=1)
         pdf.cell(35, 8, debit_str, border=1, align="R")
-        pdf.cell(35, 8, credit_str, border=1, align="R",
-                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(35, 8, credit_str, border=1, align="R", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     total_debits = sum(d for _, _, d, _ in transactions if d)
     total_credits = sum(c for _, _, _, c in transactions if c)

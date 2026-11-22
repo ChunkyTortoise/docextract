@@ -1,4 +1,5 @@
 """Image OCR extraction using pytesseract (default) or PaddleOCR (opt-in)."""
+
 from __future__ import annotations
 
 import logging
@@ -41,9 +42,7 @@ def _get_paddle_ocr() -> PaddleOCR:
     return _paddle_instance
 
 
-def extract_image(
-    image: np.ndarray, engine: str = "tesseract"
-) -> ExtractedContent:
+def extract_image(image: np.ndarray, engine: str = "tesseract") -> ExtractedContent:
     """Extract text from a preprocessed image using OCR.
 
     Args:
@@ -64,9 +63,7 @@ def extract_image(
     elif HAS_TESSERACT:
         text = _extract_with_tesseract(image)
     else:
-        raise RuntimeError(
-            "No OCR engine available. Install pytesseract or paddleocr."
-        )
+        raise RuntimeError("No OCR engine available. Install pytesseract or paddleocr.")
 
     actual_engine = engine if (engine == "paddle" and HAS_PADDLE) else "tesseract"
 

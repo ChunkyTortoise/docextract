@@ -1,4 +1,5 @@
 """HMAC-SHA256 signed webhook sender with deferred retries, DLQ, and AES-GCM encryption."""
+
 from __future__ import annotations
 
 import base64
@@ -22,6 +23,7 @@ DLQ_KEY = "dlq:webhooks"
 def encrypt_secret(secret: str, aes_key_b64: str) -> str:
     """Encrypt webhook secret using AES-GCM."""
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
     key = base64.b64decode(aes_key_b64)
     nonce = os.urandom(12)
     aesgcm = AESGCM(key)
@@ -33,6 +35,7 @@ def encrypt_secret(secret: str, aes_key_b64: str) -> str:
 def decrypt_secret(encrypted: str, aes_key_b64: str) -> str:
     """Decrypt AES-GCM encrypted webhook secret."""
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
     key = base64.b64decode(aes_key_b64)
     raw = base64.b64decode(encrypted)
     nonce, ciphertext = raw[:12], raw[12:]
@@ -73,13 +76,19 @@ async def attempt_webhook(
                 return True, ""
             logger.warning(
                 "Webhook attempt %d/%d failed: %s %s",
-                attempt, MAX_ATTEMPTS, resp.status_code, url,
+                attempt,
+                MAX_ATTEMPTS,
+                resp.status_code,
+                url,
             )
             return False, f"HTTP {resp.status_code}"
     except httpx.HTTPError as e:
         logger.warning(
             "Webhook attempt %d/%d error: %s (%s)",
-            attempt, MAX_ATTEMPTS, e, url,
+            attempt,
+            MAX_ATTEMPTS,
+            e,
+            url,
         )
         return False, str(e)
 
@@ -98,13 +107,15 @@ async def _push_to_dlq(
 ) -> None:
     """Push failed webhook to the Redis dead-letter queue on the caller's client."""
     try:
-        dlq_entry = json.dumps({
-            "endpoint": url,
-            "payload": payload,
-            "error": error,
-            "timestamp": datetime.now(UTC).isoformat(),
-            "webhook_id": webhook_id,
-        })
+        dlq_entry = json.dumps(
+            {
+                "endpoint": url,
+                "payload": payload,
+                "error": error,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "webhook_id": webhook_id,
+            }
+        )
         await redis.rpush(DLQ_KEY, dlq_entry)
         logger.info("Webhook pushed to DLQ (%s): %s", DLQ_KEY, url)
     except Exception as e:

@@ -1,4 +1,5 @@
 """Quality Monitor - LLM-judge quality trend dashboard."""
+
 from __future__ import annotations
 
 import os
@@ -50,7 +51,9 @@ def _demo_trend(days: int = 30) -> dict:
         series = []
         val = base
         for d in dates:
-            val = alpha * max(0.70, min(0.99, val + random.uniform(-0.02, 0.02))) + (1 - alpha) * val
+            val = (
+                alpha * max(0.70, min(0.99, val + random.uniform(-0.02, 0.02))) + (1 - alpha) * val
+            )
             series.append({"date": d, "score": round(val, 4)})
         per_dimension[dim] = series
 
@@ -71,6 +74,7 @@ def _demo_trend(days: int = 30) -> dict:
 def _fetch_trend(days: int) -> dict | None:
     try:
         import httpx
+
         api_url = os.environ.get("API_URL", "http://localhost:8000")
         api_key = os.environ.get("API_KEY", "")
         resp = httpx.get(
@@ -212,4 +216,6 @@ def render() -> None:
         st.plotly_chart(fig_multi, use_container_width=True)
 
     if using_demo:
-        st.caption("Synthetic seed pending live telemetry. Run extraction jobs with LLM_JUDGE_ENABLED=true.")
+        st.caption(
+            "Synthetic seed pending live telemetry. Run extraction jobs with LLM_JUDGE_ENABLED=true."
+        )
