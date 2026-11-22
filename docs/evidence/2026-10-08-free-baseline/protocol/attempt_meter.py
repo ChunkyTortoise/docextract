@@ -17,7 +17,7 @@ import httpx
 LOG = logging.getLogger(__name__)
 
 
-class MeterStop(RuntimeError):  # noqa: N818 (public name used by callers; rename is a logic change)
+class MeterStop(RuntimeError):
     """A request must not be sent after a budget or accounting failure."""
 
 
@@ -126,7 +126,12 @@ class AttemptMeter(httpx.AsyncBaseTransport):
     ) -> None:
         if type(inner) is not httpx.MockTransport:
             raise ValueError("Only a mock HTTP transport is permitted")
-        if not isinstance(budget, Decimal) or not budget.is_finite() or budget <= 0 or not models:
+        if (
+            not isinstance(budget, Decimal)
+            or not budget.is_finite()
+            or budget <= 0
+            or not models
+        ):
             raise ValueError("Explicit positive budget and model policies required")
         self.inner = inner
         self.budget = budget
@@ -193,7 +198,12 @@ class AttemptMeter(httpx.AsyncBaseTransport):
             model = payload.get("model")
             policy = self.models.get(model)
             cap = payload.get("max_tokens")
-            if not policy or type(cap) is not int or cap <= 0 or cap > policy.output_limit:
+            if (
+                not policy
+                or type(cap) is not int
+                or cap <= 0
+                or cap > policy.output_limit
+            ):
                 raise MeterStop("Unapproved model or output bound")
             bound = policy.bound(cap)
             if self.spent + self.reserved + bound > self.budget:
@@ -251,7 +261,9 @@ class AttemptMeter(httpx.AsyncBaseTransport):
         await self.inner.aclose()
 
 
-def price_attempts(rows: list[dict[str, Any]], allowed: list[str]) -> tuple[Decimal, bool]:
+def price_attempts(
+    rows: list[dict[str, Any]], allowed: list[str]
+) -> tuple[Decimal, bool]:
     """Aggregate individually verified mock transport receipts for the runner."""
     total = Decimal("0")
     complete = bool(rows)

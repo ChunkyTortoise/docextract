@@ -1,7 +1,6 @@
 """Document type schemas for Claude extraction output validation.
 No app.* imports — pure Pydantic.
 """
-
 from __future__ import annotations
 
 from datetime import date, datetime

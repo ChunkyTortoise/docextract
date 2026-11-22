@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 import httpx
 from anthropic import AsyncAnthropic
+
 from attempt_meter import AttemptMeter, MeterStop
 from runner import REPO, digest
 
@@ -135,7 +136,9 @@ class ExtractorAdapter:
 
             def factory(*args, **kwargs):
                 if args or set(kwargs) != {"api_key"}:
-                    raise ValueError("Unexpected unguarded provider constructor configuration")
+                    raise ValueError(
+                        "Unexpected unguarded provider constructor configuration"
+                    )
                 self.client_count += 1
                 return guarded
 

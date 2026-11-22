@@ -42,5 +42,7 @@ class JobEvent:
     status: JobStatus
     progress: int
     message: str = ""
-    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(UTC).isoformat()
+    )
     details: dict = field(default_factory=dict)

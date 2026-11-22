@@ -87,6 +87,8 @@ demo = [
 line-length = 100
 target-version = "py312"
 force-exclude = true
+# Frozen, hash-bound evidence package: bytes must stay identical to base.
+extend-exclude = ["docs/evidence"]
 
 [tool.ruff.format]
 # Commit gate blocks reformatted assertion lines; test files stay unformatted.

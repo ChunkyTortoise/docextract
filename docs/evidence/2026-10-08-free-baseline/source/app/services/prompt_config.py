@@ -3,7 +3,6 @@
 Loads prompts and tunable params from autoresearch/prompts.yaml.
 Falls back to hardcoded defaults if the file is missing or unreadable.
 """
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -90,15 +89,21 @@ def load_prompt_config(path: Path | None = None) -> PromptConfig:
             extract_text_limit=raw_params.get("extract_text_limit", 8000),
             correction_text_limit=raw_params.get("correction_text_limit", 3000),
             classify_text_limit=raw_params.get("classify_text_limit", 2000),
-            extraction_confidence_threshold=raw_params.get("extraction_confidence_threshold", 0.8),
+            extraction_confidence_threshold=raw_params.get(
+                "extraction_confidence_threshold", 0.8
+            ),
             classification_confidence_threshold=raw_params.get(
                 "classification_confidence_threshold", 0.6
             ),
         )
         return PromptConfig(
-            extract_system_prompt=data.get("extract_system_prompt", _DEFAULT_EXTRACT_SYSTEM),
+            extract_system_prompt=data.get(
+                "extract_system_prompt", _DEFAULT_EXTRACT_SYSTEM
+            ),
             extract_prompt=data.get("extract_prompt", _DEFAULT_EXTRACT_PROMPT),
-            correction_prompt=data.get("correction_prompt", _DEFAULT_CORRECTION_PROMPT),
+            correction_prompt=data.get(
+                "correction_prompt", _DEFAULT_CORRECTION_PROMPT
+            ),
             classify_prompt=data.get("classify_prompt", _DEFAULT_CLASSIFY_PROMPT),
             params=params,
         )

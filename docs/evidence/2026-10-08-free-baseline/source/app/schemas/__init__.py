@@ -1,5 +1,4 @@
 """Document schemas package."""
-
 from app.schemas.document_types import (
     DOCUMENT_TYPE_MAP,
     BankStatementSchema,

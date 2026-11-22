@@ -1,5 +1,4 @@
 """LLM call tracer for observability. Dual-mode: DB or in-memory."""
-
 from __future__ import annotations
 
 import hashlib
@@ -20,7 +19,6 @@ _in_memory_traces: list[dict] = []
 @dataclass
 class TraceContext:
     """Holds mutable state during a traced LLM call."""
-
     model: str
     operation: str
     request_id: str | None

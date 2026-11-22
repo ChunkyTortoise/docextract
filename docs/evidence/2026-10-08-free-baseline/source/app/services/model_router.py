@@ -14,7 +14,6 @@ Usage:
         call_fn=lambda model: client.messages.create(model=model, ...),
     )
 """
-
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
@@ -28,7 +27,6 @@ from app.services.circuit_breaker import AsyncCircuitBreaker, CircuitOpenError
 logger = structlog.get_logger(__name__)
 
 T = TypeVar("T")
-
 
 # Exceptions that indicate a model provider is temporarily unavailable.
 # 4xx client errors (BadRequestError, AuthenticationError, etc.) are NOT
@@ -51,7 +49,6 @@ def _is_transient(e: Exception) -> bool:
             ResourceExhausted,
             ServiceUnavailable,
         )
-
         if isinstance(e, ResourceExhausted | ServiceUnavailable | DeadlineExceeded):
             return True
     except ImportError:

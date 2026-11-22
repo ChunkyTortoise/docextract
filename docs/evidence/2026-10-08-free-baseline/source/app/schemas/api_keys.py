@@ -1,5 +1,4 @@
 """Schemas for API key management endpoints."""
-
 from __future__ import annotations
 
 from datetime import datetime
