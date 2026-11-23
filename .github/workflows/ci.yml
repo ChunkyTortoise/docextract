@@ -32,7 +32,10 @@ jobs:
           python-version: "3.12"
           cache: "pip"
       - name: Install linting deps
-        run: pip install ruff==0.6.9 mypy==1.11.2
+        # mypy needs the project's dependencies importable: without them it reports
+        # missing redis stubs and loses types it resolves from installed packages.
+        # requirements_ci.txt pins ruff and mypy.
+        run: pip install -r requirements_ci.txt
       - name: Dependency check
         run: python -m pip check
       - name: Ruff check
