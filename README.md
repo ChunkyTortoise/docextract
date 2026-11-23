@@ -30,7 +30,7 @@ Every number below comes from a committed artifact and a command that needs no A
 | Extracted values found in the source text (faithfulness) | **0.9834** (8 unsupported) | 482 values, 28 cases | same 28 fixtures | rerun 2026-11-17 | claude-sonnet-4-6 (frozen) | gate: hallucination rate at most 0.05 | `python3 scripts/eval_hallucination.py` |
 | Planted hallucinations caught by the grounding scorer | **46/46** | 46 planted values | self-test inside the same script | rerun 2026-11-17 | none (synthetic) | none | `python3 scripts/eval_hallucination.py` |
 | Prompt-injection cases flagged by the regex scan (detection only, no model call) | **6/11** (0 of 189 other cases flagged) | 200 corpus cases | [`evals/adversarial_set.jsonl`](evals/adversarial_set.jsonl), [`evals/golden_set.jsonl`](evals/golden_set.jsonl); per case in [injection-scan-results.md](docs/injection-scan-results.md) | 2026-11-17 | none | none | `python3 scripts/eval_injection_scan.py` |
-| Tests on a fresh clone, no API key | **1654 passed, 27 skipped** | full `tests/` tree, 2 e2e deselected | repository tests | 2026-11-17 | none | CI coverage floor 80% ([`ci.yml`](.github/workflows/ci.yml)) | see [Run the tests](#run-the-tests) |
+| Test suite, no API key | **must exit 0 in CI** | `tests/` tree, `e2e` and `pg` markers deselected | repository tests | every push and pull request | none | CI coverage floor 80% ([`ci.yml`](.github/workflows/ci.yml)) | `make test`, see [Run the tests](#run-the-tests) |
 
 Per-document-type replay scores, the eval corpus inventory (200 authoring cases, 20 ADRs) and what each number does not cover are in [How it's evaluated](#how-its-evaluated) and [Methodology & limits](#methodology--limits).
 
@@ -141,17 +141,18 @@ The chart is generated from the replay output by `python scripts/render_eval_cha
 | medical_record | 0.9923 | 3 |
 | identity_document | 0.8139 | 1 |
 
-The overall score across all 28 fixtures is the Results figure. Recorded 2026-09-19 (RA11).
+The overall score across all 28 fixtures is the Results figure. The replay command prints these per-type values under `per_doc_type`.
 
 </details>
 
 ### Run the tests
 
-Zero API cost; PostgreSQL and Redis integration tests skip when those services are absent:
+Zero API cost. A pass is exit status 0 with the coverage floor met. Tests marked `pg` and `e2e` are deselected; CI runs the `pg` set separately against a pgvector service:
 
 ```bash
-uv venv && uv pip install -e .
-.venv/bin/python -m pytest tests/ -m "not e2e" --no-cov -q
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements_ci.txt aiosqlite pytest-cov
+make test                                # same pytest command as the CI test job
 make eval                                # optional paid live eval; needs credentials
 ```
 
