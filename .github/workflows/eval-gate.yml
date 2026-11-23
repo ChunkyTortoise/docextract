@@ -17,6 +17,8 @@ on:
     branches: [main]
   schedule:
     - cron: "23 13 * * *" # 13:23 UTC daily drift check
+permissions:
+  contents: read
 concurrency:
   group: eval-gate-${{ github.ref }}
   cancel-in-progress: true
@@ -106,10 +108,13 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
+          # Promptfoo exits non-zero on any failed assertion; eval_gate.py enforces the
+          # thresholds, so record the exit code as a warning instead of stopping here.
+          status=0
           promptfoo eval -c promptfooconfig.yaml \
             --output eval_artifacts/promptfoo.json \
-            --output-format json || true
-          # 'true' prevents hard fail here — eval_gate.py enforces thresholds
+            --output-format json || status=$?
+          if [ "$status" -ne 0 ]; then echo "::warning::promptfoo exited $status; eval_gate.py decides pass or fail"; fi
       # ── Ragas: RAG-specific metrics (faithfulness, relevancy, precision) ──
       - name: Run Ragas eval
         env:
@@ -172,8 +177,7 @@ jobs:
         if: github.event_name == 'schedule'
         run: |
           python scripts/eval_drift_record.py \
-            --scores eval_artifacts/scores.json \
-            || true  # don't fail CI if drift recorder is missing
+            --scores eval_artifacts/scores.json
       - name: Open drift issue on anomaly
         if: >
           github.event_name == 'schedule' && steps.gate.outputs.drift_detected == 'true'
@@ -202,8 +206,7 @@ jobs:
             --webhook  "$SLACK_WEBHOOK_URL" \
             --author   "${{ github.event.pull_request.user.login }}" \
             --pr       "${{ github.event.pull_request.html_url }}" \
-            --scores   eval_artifacts/scores.json \
-            || true  # don't fail CI if Slack webhook is not configured
+            --scores   eval_artifacts/scores.json
   # ── Multi-provider judge panels (eval-time only). Needs Anthropic + OpenAI keys.
   #    Informational — does not gate merge or affect offline badge. ──
   multiprovider:

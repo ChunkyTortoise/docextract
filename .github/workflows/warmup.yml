@@ -3,6 +3,8 @@ on:
   schedule:
     - cron: '47 5,17 * * *' # Every 12h at :47 (off-minute to avoid fleet congestion)
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   ping:
     runs-on: ubuntu-latest
