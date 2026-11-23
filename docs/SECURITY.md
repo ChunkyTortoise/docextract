@@ -75,6 +75,6 @@ Set these through the deployment secret manager, not committed files:
 ## CI Security
 
 - `bandit` static analysis runs in CI.
-- `ruff` and `mypy` gates catch common unsafe code paths and contract drift.
+- `ruff` gates lint. `mypy` gates two ratchet modules (`app/services/reranker.py`, `app/schemas/citations.py`) and is advisory for the rest of `app/` and `worker/`.
 - Docker images are built in CI and published to GHCR on main.
-- `python scripts/audit_portfolio_claims.py` keeps public security and portfolio claims aligned with committed evidence.
+- `python scripts/audit_portfolio_claims.py` checks public security and portfolio claims against committed evidence. It is run manually before a release. `tests/unit/test_audit_portfolio_claims.py` covers its helper functions on synthetic input, and no workflow runs the script against the repository.

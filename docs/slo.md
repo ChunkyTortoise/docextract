@@ -53,7 +53,7 @@ These SLOs define the reliability targets for DocExtract AI in a production envi
 These SLOs are tracked via:
 - **Prometheus metrics**: `llm_call_duration_ms`, `llm_calls_total`, `circuit_breaker_state`
 - **Golden eval CI gate**: Runs on eval-gated PRs, fails the check on regression (merge enforcement depends on branch settings)
-- **RAGAS evaluation**: Context recall, faithfulness, answer relevancy (main branch)
+- **RAGAS evaluation**: Context recall, faithfulness, answer relevancy (paid live job only; skipped when no API key is configured)
 - **Cost tracker**: Per-request USD computation via `llm_traces`
 
 See [Prometheus alert rules](../deploy/prometheus/alerts.yml) for automated alerting on SLO breaches.

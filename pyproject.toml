@@ -8,7 +8,7 @@ requires-python = ">=3.12"
 dependencies = [
     # Runtime stack (mirrors requirements_ci.txt; pyproject.toml is the single source of truth).
     "fastapi>=0.115.8,<0.140",
-    "starlette>=0.40.0,<0.42",
+    "starlette>=0.47.0,<0.48",
     "uvicorn[standard]==0.30.6",
     "sqlalchemy[asyncio]==2.0.35",
     "asyncpg==0.29.0",

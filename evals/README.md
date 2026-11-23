@@ -52,7 +52,7 @@ Single annotator (Cayman Roden). Steps per new case:
 5. If model is right and label is wrong, fix the label
 6. Add `ground_truth_contexts` by selecting 1-5 quoted spans that ground each key field
 
-IAA: N/A (single annotator). Documented limitation. Spot-checks on 10% of cases per quarter.
+IAA: N/A (single annotator). Documented limitation. Spot-checks on 10% of cases per quarter are planned; none is recorded in this repository yet.
 
 ## Adding New Cases
 

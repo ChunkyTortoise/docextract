@@ -26,7 +26,7 @@ The 28-fixture score lives in `autoresearch/baseline.json`:
 "case_count": 28
 ```
 
-Public docs round that to **95.5%**. Call it **weighted field-level accuracy**. Do not call it F1. Script variable names still say `extraction_f1_*` for legacy reasons.
+Public docs round that to **95.5%**. Call it **weighted field-level accuracy**. Do not call it F1. Script output keys were renamed from `extraction_f1_*` to `field_acc_*` in 2026-09; artifacts recorded before that keep the old names.
 
 Reproduce:
 
@@ -213,7 +213,7 @@ Do not describe CI replay as a live two-pass Claude grade.
 - **The 44 pending cases in `eval_dataset_72.json`.** No fixture means not scored, not failed.
 - **Generalization** to new vendors, layouts, languages, or document types outside these 28.
 - **Cost or latency.** Those remain modeled until a metered `scripts/benchmark.py` artifact is committed (`docs/cost-model.md`).
-- **F1 / precision / recall.** The scorer is weighted field-level accuracy, even when code says `extraction_f1_*`.
+- **F1 / precision / recall.** The scorer is weighted field-level accuracy, even where an older recorded artifact says `extraction_f1_*`.
 
 ## Claim checklist
 
