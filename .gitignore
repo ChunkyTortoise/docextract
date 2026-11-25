@@ -53,3 +53,6 @@ results/
 
 # GraphRAG corpus (runtime)
 data/knowledge_graph.json
+
+# Coverage report written by make test
+coverage.xml
