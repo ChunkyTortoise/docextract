@@ -12,8 +12,11 @@ Config via env:
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import os
+import socket
+import urllib.parse
 from typing import Any
 
 import httpx
@@ -101,23 +104,84 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     raise ValueError(f"Unknown tool: {name}")
 
 
-def _validate_fetch_url(url: str) -> None:
-    """Reject non-https schemes and RFC-1918 / loopback hosts."""
-    import ipaddress
-    import urllib.parse
+_BLOCKED_HOSTS = {"localhost", "metadata", "metadata.google.internal", "instance-data"}
+_BLOCKED_SUFFIXES = (".localhost", ".internal", ".local")
 
+
+# IPv6 prefixes whose low 32 bits carry an IPv4 address a gateway or stack may route to.
+_IPV4_EMBEDDING_V6_NETS = (
+    ipaddress.IPv6Network("::/96"),  # IPv4-compatible (deprecated, RFC 4291)
+    ipaddress.IPv6Network("::ffff:0:0:0/96"),  # IPv4-translated (RFC 2765)
+    ipaddress.IPv6Network("64:ff9b::/96"),  # NAT64 well-known prefix (RFC 6052)
+    ipaddress.IPv6Network("64:ff9b:1::/48"),  # NAT64 local-use prefix (RFC 8215)
+)
+
+
+def _embedded_ipv4(addr: ipaddress.IPv6Address) -> list[ipaddress.IPv4Address]:
+    """Return IPv4 addresses embedded in an IPv6 address (mapped, 6to4, Teredo, NAT64, compat)."""
+    found: list[ipaddress.IPv4Address] = []
+    if addr.ipv4_mapped:
+        found.append(addr.ipv4_mapped)
+    if addr.sixtofour:
+        found.append(addr.sixtofour)
+    if addr.teredo:
+        found.extend(addr.teredo)
+    if any(addr in net for net in _IPV4_EMBEDDING_V6_NETS):
+        found.append(ipaddress.IPv4Address(int(addr) & 0xFFFFFFFF))
+    return found
+
+
+def _is_public_ip(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    if isinstance(addr, ipaddress.IPv6Address):
+        if addr.ipv4_mapped:
+            addr = addr.ipv4_mapped
+        else:
+            # is_global alone misses NAT64 / IPv4-compatible forms (and 6to4 on older
+            # Pythons), so every embedded IPv4 must be public as well.
+            embedded = _embedded_ipv4(addr)
+            if embedded and not all(_is_public_ip(v4) for v4 in embedded):
+                return False
+            # Deprecated site-local space (fec0::/10, RFC 3879) still counts as global
+            # in CPython's ipaddress, but it is internal wherever a network keeps it.
+            if addr.is_site_local:
+                return False
+    # is_global also rejects shared address space (100.64/10), which is_private misses.
+    return addr.is_global and not addr.is_multicast
+
+
+def _validate_fetch_url(url: str) -> None:
+    """Reject non-https URLs and hosts that are, or resolve to, non-public addresses.
+
+    Known limitation: this checks DNS at validation time only. httpx resolves the
+    name again when it connects, so a DNS-rebinding host can still pass. Closing that
+    needs connection-time IP pinning (custom transport) or an egress firewall.
+    """
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme != "https":
         raise ValueError(f"Only https URLs are allowed; got scheme '{parsed.scheme}'")
-    hostname = parsed.hostname or ""
+    hostname = (parsed.hostname or "").rstrip(".").lower()
+    if not hostname:
+        raise ValueError("URL has no host")
+    if hostname in _BLOCKED_HOSTS or hostname.endswith(_BLOCKED_SUFFIXES):
+        raise ValueError(f"Requests to internal hostnames are not allowed: {hostname}")
+
+    # Legacy IPv4 forms (127.1, 0x7f.1, 2130706433, 0177.0.0.1) via inet_aton.
+    candidates: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
     try:
-        addr = ipaddress.ip_address(hostname)
-        if addr.is_private or addr.is_loopback or addr.is_link_local:
-            raise ValueError(f"Requests to private/loopback addresses are not allowed: {hostname}")
-    except ValueError as exc:
-        if "not allowed" in str(exc):
-            raise
-        # hostname is a domain name, not an IP -- allow it
+        candidates.append(ipaddress.ip_address(hostname))
+    except ValueError:
+        try:
+            candidates.append(ipaddress.IPv4Address(socket.inet_aton(hostname)))
+        except OSError:
+            # Not an IP literal: resolve and check every returned address.
+            try:
+                infos = socket.getaddrinfo(hostname, parsed.port or 443, proto=socket.IPPROTO_TCP)
+            except socket.gaierror as exc:
+                raise ValueError(f"Cannot resolve host: {hostname}") from exc
+            candidates.extend(ipaddress.ip_address(i[4][0].split("%")[0]) for i in infos)
+
+    if not candidates or not all(_is_public_ip(a) for a in candidates):
+        raise ValueError(f"Requests to private/loopback addresses are not allowed: {hostname}")
 
 
 async def _extract_document(

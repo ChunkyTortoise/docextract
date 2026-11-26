@@ -41,7 +41,7 @@ deploy/
 
 ### Services
 
-Three Kubernetes deployments, each with its own HPA:
+Three Kubernetes deployments; the API and worker each have an HPA:
 
 **API** (`api-deployment.yaml`)
 - Image: `docextract-api:latest`

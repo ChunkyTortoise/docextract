@@ -38,8 +38,9 @@ zero-added-LLM-cost philosophy as ADR-0010 (regex guardrails):
    document cannot "break out" of its own fence.
 3. **Detection.** `scan()` flags high-precision injection markers for
    observability / review routing (non-blocking - it must not false-positive on
-   real invoices/receipts/medical records). It is a library-level hook: the
-   current pipeline does not call it, so detection is not an active control.
+   real invoices/receipts/medical records). The text path (`claude_extractor.extract`)
+   and the vision path call it and log the matched patterns. A hit does not
+   block the job or route it to review, so detection is a signal, not a control.
 4. **Output sanitization (defense-in-depth).** `sanitize_output()` recursively
    strips exfiltration keys (`_debug`, `system_prompt`, `api_key`,
    `all_records`, …) from the extracted object *regardless of whether the input
@@ -79,5 +80,8 @@ path as ADR-0010.
 
 `tests/unit/test_injection_guard.py` locks the contract (scan precision,
 fence break-out, recursive exfil-key stripping, no-op on clean extractions).
-The adversarial corpus cases assert correct extraction is preserved under
-attack and are replayed by the offline eval gate.
+`tests/unit/test_claude_extractor.py::TestExtractInjectionScan` checks that the
+text path scans the text sent to the model and logs hits without changing the
+result. The adversarial corpus cases are replayed by the offline eval gate from
+frozen predictions: they check that the recorded outputs stay correct, and no
+attack is sent to a live model in CI.
