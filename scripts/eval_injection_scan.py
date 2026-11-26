@@ -113,7 +113,9 @@ def render_doc(result: dict) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--out", type=Path, default=REPO / "eval_artifacts" / "injection_scan.json")
-    parser.add_argument("--write-doc", action="store_true", help="rewrite docs/injection-scan-results.md")
+    parser.add_argument(
+        "--write-doc", action="store_true", help="rewrite docs/injection-scan-results.md"
+    )
     parser.add_argument("--check", action="store_true", help="exit 1 if the committed doc is stale")
     args = parser.parse_args(argv)
 

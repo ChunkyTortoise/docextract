@@ -18,3 +18,13 @@ docs/evidence/2026-10-08-free-baseline/baseline/run.json:generic-api-key:1228
 docs/evidence/2026-10-08-free-baseline/baseline/run.json:generic-api-key:1238
 docs/evidence/2026-10-08-free-baseline/baseline/run.json:generic-api-key:1248
 docs/evidence/2026-10-08-free-baseline/baseline/run.json:generic-api-key:1270
+
+# AGENTS.md prose line about not inventing secrets; no credential value present
+192b65f0a9b63fbe463eb2d5f264a9795b6359af:AGENTS.md:generic-api-key:29
+# Unit test fixture dict for Settings repr masking; aes_key value is base64 of readable text, siblings are dummy values
+71a0868eea61ddba6e4499c3819876e22c36329e:tests/unit/test_settings_secrets.py:generic-api-key:16
+# Spec docs curl examples using the public demo API key, which is the committed default in app/config.py and .env.example
+a3b5f50cb15e8276075c595a9971f44e3add013a:docs/specs/2026-03-19-research-docextract-portfolio-polish.md:curl-auth-header:165
+a3b5f50cb15e8276075c595a9971f44e3add013a:docs/specs/2026-03-19-feature-docextract-portfolio-polish-spec.md:curl-auth-header:242
+a3b5f50cb15e8276075c595a9971f44e3add013a:docs/specs/2026-03-19-feature-docextract-portfolio-polish-spec.md:curl-auth-header:425
+a3b5f50cb15e8276075c595a9971f44e3add013a:docs/specs/2026-03-19-feature-docextract-portfolio-polish-spec.md:curl-auth-header:472
