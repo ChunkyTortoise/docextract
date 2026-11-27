@@ -25,21 +25,44 @@ variable "fargate_cpu" {
 }
 
 variable "fargate_memory" {
-  description = "Memory (MiB) for the API task."
+  description = "Memory (MiB) for the app task, shared by redis + api + worker (512 CPU allows 1024-4096)."
   type        = number
-  default     = 1024
+  default     = 2048
+}
+
+variable "cpu_architecture" {
+  description = "Fargate CPU architecture. ARM64 matches images built on Apple Silicon and is cheaper; use X86_64 only with --platform linux/amd64 images."
+  type        = string
+  default     = "ARM64"
+
+  validation {
+    condition     = contains(["ARM64", "X86_64"], var.cpu_architecture)
+    error_message = "cpu_architecture must be ARM64 or X86_64."
+  }
+}
+
+variable "image_tag" {
+  description = "Image tag to run for the api and worker images (scripts/aws/deploy.sh pushes the git SHA and latest)."
+  type        = string
+  default     = "latest"
 }
 
 variable "desired_count_api" {
-  description = "Desired running task count for the API service."
+  description = "Running app tasks. Each task carries its own redis + api + worker, so 1 is enough for a demo and for the latency run."
   type        = number
-  default     = 2
+  default     = 1
 }
 
-variable "desired_count_worker" {
-  description = "Desired running task count for the ARQ worker service. Keep 0 during stubbed load runs."
+variable "run_worker" {
+  description = "Run the ARQ worker container in the app task. false = API only (uploads queue but are never processed)."
+  type        = bool
+  default     = true
+}
+
+variable "worker_max_jobs" {
+  description = "ARQ concurrency inside the task. Kept low so the measured latency is per document, not contended."
   type        = number
-  default     = 0
+  default     = 2
 }
 
 # ── RDS ───────────────────────────────────────────────────────────────────────
@@ -63,9 +86,9 @@ variable "rds_storage_type" {
 }
 
 variable "rds_engine_version" {
-  description = "PostgreSQL engine version. Must support pgvector (15+)."
+  description = "PostgreSQL engine version. A major version alone lets RDS pick its current default minor (15.8 is no longer offered). Must support pgvector (15+)."
   type        = string
-  default     = "15.8"
+  default     = "15"
 }
 
 variable "rds_skip_final_snapshot" {
@@ -130,27 +153,27 @@ variable "subnet_cidrs" {
 # ── App secrets (passed via environment variables to the ECS task) ────────────
 
 variable "anthropic_api_key" {
-  description = "Anthropic API key injected into the container env."
+  description = "Anthropic API key, stored in SSM and injected as a secret. Set via TF_VAR_anthropic_api_key."
   type        = string
   sensitive   = true
   default     = ""
 }
 
 variable "gemini_api_key" {
-  description = "Google Gemini API key injected into the container env."
+  description = "Google Gemini API key (embeddings), stored in SSM. Optional. Set via TF_VAR_gemini_api_key."
   type        = string
   sensitive   = true
   default     = ""
 }
 
 variable "api_key_secret" {
-  description = "32-char minimum secret for signing API keys."
+  description = "32-char minimum secret for hashing API keys, stored in SSM. Set via TF_VAR_api_key_secret."
   type        = string
   sensitive   = true
 }
 
 variable "demo_mode" {
-  description = "Enable DEMO_MODE on the container (keyless demo auth)."
+  description = "Enable DEMO_MODE on the container (the demo key is read-only; uploads need a seeded key)."
   type        = bool
   default     = true
 }
@@ -159,10 +182,4 @@ variable "demo_api_key" {
   description = "API key used when DEMO_MODE=true."
   type        = string
   default     = "demo-key-docextract-2026"
-}
-
-variable "stub_extraction" {
-  description = "Enable STUB_EXTRACTION on the worker (required for load tests)."
-  type        = bool
-  default     = true
 }
