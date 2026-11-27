@@ -1,4 +1,5 @@
 """MIME-type-based routing to appropriate extractor."""
+
 from __future__ import annotations
 
 import asyncio
@@ -56,13 +57,14 @@ async def ingest(
     if mime_type == "application/pdf":
         result = await asyncio.to_thread(extract_pdf, file_bytes, deadline=deadline)
     elif mime_type in IMAGE_MIME_TYPES:
-        if (settings.ocr_engine == "vision" or settings.vision_extraction_enabled):
+        if settings.ocr_engine == "vision" or settings.vision_extraction_enabled:
             from app.services.vision_extractor import (
                 IMAGE_MIME_TYPES as VISION_MIME_TYPES,
             )
             from app.services.vision_extractor import (
                 extract_vision,
             )
+
             if mime_type in VISION_MIME_TYPES:
                 vision_result = await extract_vision(file_bytes, mime_type)
                 result = ExtractedContent(
@@ -75,16 +77,12 @@ async def ingest(
                 image = await asyncio.to_thread(
                     preprocess_bytes, file_bytes, max_pixels=settings.parser_max_image_pixels
                 )
-                result = await asyncio.to_thread(
-                    extract_image, image, engine=settings.ocr_engine
-                )
+                result = await asyncio.to_thread(extract_image, image, engine=settings.ocr_engine)
         else:
             image = await asyncio.to_thread(
                 preprocess_bytes, file_bytes, max_pixels=settings.parser_max_image_pixels
             )
-            result = await asyncio.to_thread(
-                extract_image, image, engine=settings.ocr_engine
-            )
+            result = await asyncio.to_thread(extract_image, image, engine=settings.ocr_engine)
     elif mime_type == "message/rfc822":
         result = await asyncio.to_thread(extract_eml, file_bytes, deadline=deadline)
     elif mime_type == "application/vnd.ms-outlook":

@@ -1,4 +1,5 @@
 """EvalLog model for storing LLM judge scores per extraction job."""
+
 from __future__ import annotations
 
 import uuid

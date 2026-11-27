@@ -109,7 +109,9 @@ def reprice(by_model: dict[str, dict]) -> tuple[float, list[str]]:
         if price is None:
             unpriced.append(model)
             continue
-        usd += ((d.get("input_tokens") or 0) * price[0] + (d.get("output_tokens") or 0) * price[1]) / 1_000_000
+        usd += (
+            (d.get("input_tokens") or 0) * price[0] + (d.get("output_tokens") or 0) * price[1]
+        ) / 1_000_000
     return round(usd, 6), unpriced
 
 
@@ -129,8 +131,10 @@ class SpendGuard:
         if self.spent >= self.max_usd:
             return f"spent ${self.spent:.4f}, at or over the ${self.max_usd:.2f} cap"
         if self.spent + self.dearest_doc > self.max_usd:
-            return (f"spent ${self.spent:.4f}; one more document (up to ${self.dearest_doc:.4f}) "
-                    f"could pass the ${self.max_usd:.2f} cap")
+            return (
+                f"spent ${self.spent:.4f}; one more document (up to ${self.dearest_doc:.4f}) "
+                f"could pass the ${self.max_usd:.2f} cap"
+            )
         return None
 
 
@@ -176,15 +180,27 @@ def main() -> int:
     ap.add_argument("--base-url", required=True, help="e.g. http://<alb-dns-name>")
     ap.add_argument("--files", nargs="*", type=Path, default=DEFAULT_FILES)
     ap.add_argument("--runs", type=int, default=10, help="passes over --files (default 10)")
-    ap.add_argument("--infra-hourly-usd", type=float, default=None,
-                    help="stack cost per hour from docs/aws-deploy.md, for infra cost per doc")
+    ap.add_argument(
+        "--infra-hourly-usd",
+        type=float,
+        default=None,
+        help="stack cost per hour from docs/aws-deploy.md, for infra cost per doc",
+    )
     ap.add_argument("--timeout", type=float, default=300.0, help="per-document timeout, seconds")
     ap.add_argument("--poll", type=float, default=0.5, help="job poll interval, seconds")
     ap.add_argument("--out", type=Path, default=None)
-    ap.add_argument("--max-llm-usd", type=float, default=2.0,
-                    help="stop before Claude spend (list price) could pass this, USD (default 2)")
-    ap.add_argument("--max-docs", type=int, default=40,
-                    help="refuse to start a run of more documents than this (default 40)")
+    ap.add_argument(
+        "--max-llm-usd",
+        type=float,
+        default=2.0,
+        help="stop before Claude spend (list price) could pass this, USD (default 2)",
+    )
+    ap.add_argument(
+        "--max-docs",
+        type=int,
+        default=40,
+        help="refuse to start a run of more documents than this (default 40)",
+    )
     args = ap.parse_args()
 
     total = args.runs * len(args.files)
@@ -192,8 +208,10 @@ def main() -> int:
         print("--max-llm-usd and --max-docs must be positive.", file=sys.stderr)
         return 2
     if total > args.max_docs:
-        print(f"{total} documents is over --max-docs {args.max_docs}; lower --runs or raise --max-docs.",
-              file=sys.stderr)
+        print(
+            f"{total} documents is over --max-docs {args.max_docs}; lower --runs or raise --max-docs.",
+            file=sys.stderr,
+        )
         return 2
 
     api_key = os.environ.get("DOCEXTRACT_API_KEY")
@@ -205,13 +223,17 @@ def main() -> int:
             print(f"missing file: {f}", file=sys.stderr)
             return 2
 
-    client = httpx.Client(base_url=args.base_url.rstrip("/"), headers={"X-API-Key": api_key}, timeout=30)
+    client = httpx.Client(
+        base_url=args.base_url.rstrip("/"), headers={"X-API-Key": api_key}, timeout=30
+    )
     health = client.get("/api/v1/health").json()
     print(f"health: {health}")
     before = llm_snapshot(client)
 
-    print(f"spend cap: ${args.max_llm_usd:.2f} of Claude tokens at list price ({PRICES_READ_ON}), "
-          f"{total} documents")
+    print(
+        f"spend cap: ${args.max_llm_usd:.2f} of Claude tokens at list price ({PRICES_READ_ON}), "
+        f"{total} documents"
+    )
     guard = SpendGuard(args.max_llm_usd)
     stopped = None
     prev_calls = 0
@@ -226,8 +248,10 @@ def main() -> int:
             delta = llm_delta(before, llm_snapshot(client))
         spent, unpriced = reprice(delta["by_model"])
         guard.record(spent)
-        print(f"[{len(rows):>3}/{total}] {row['file']:<22} {row['status']:<14} "
-              f"{row.get('end_to_end_ms', '-')} ms  spent ${spent:.4f}")
+        print(
+            f"[{len(rows):>3}/{total}] {row['file']:<22} {row['status']:<14} "
+            f"{row.get('end_to_end_ms', '-')} ms  spent ${spent:.4f}"
+        )
         if unpriced:
             stopped = f"no list price for {', '.join(unpriced)}; add it to LIST_PRICE_PER_1M"
         elif row["status"] in SUCCESS and delta["calls"] == prev_calls:
@@ -252,7 +276,11 @@ def main() -> int:
         "deployment_health": health,
         "documents": len(rows),
         "succeeded": len(ok),
-        "failed": [{"file": r["file"], "status": r["status"], "error": r.get("error")} for r in rows if r not in ok],
+        "failed": [
+            {"file": r["file"], "status": r["status"], "error": r.get("error")}
+            for r in rows
+            if r not in ok
+        ],
         "end_to_end_ms_p50": pct(e2e, 0.50),
         "end_to_end_ms_p95": pct(e2e, 0.95),
         "end_to_end_ms_mean": round(statistics.mean(e2e), 1) if e2e else None,
@@ -264,24 +292,49 @@ def main() -> int:
         "list_prices_read_on": PRICES_READ_ON,
         "spend_cap_usd": args.max_llm_usd,
         "stopped_early": stopped,
-        "llm_cost_per_doc_usd_app_price_table": round(llm["cost_usd_app_price_table"] / len(ok), 6) if ok else None,
-        "llm_cost_per_doc_usd_list_price": round(reprice(llm["by_model"])[0] / len(ok), 6) if ok else None,
+        "llm_cost_per_doc_usd_app_price_table": round(llm["cost_usd_app_price_table"] / len(ok), 6)
+        if ok
+        else None,
+        "llm_cost_per_doc_usd_list_price": round(reprice(llm["by_model"])[0] / len(ok), 6)
+        if ok
+        else None,
         "infra_hourly_usd": args.infra_hourly_usd,
         "infra_cost_per_doc_usd_run_marginal": (
-            round(args.infra_hourly_usd * wall_h / len(ok), 6) if ok and args.infra_hourly_usd else None
+            round(args.infra_hourly_usd * wall_h / len(ok), 6)
+            if ok and args.infra_hourly_usd
+            else None
         ),
-        "note": ("llm_cost_*_list_price uses LIST_PRICE_PER_1M (base input and output only; prompt-cache "
-                 "reads and writes are not in the traces). Check prices are current before publishing."),
+        "note": (
+            "llm_cost_*_list_price uses LIST_PRICE_PER_1M (base input and output only; prompt-cache "
+            "reads and writes are not in the traces). Check prices are current before publishing."
+        ),
         "per_document": rows,
     }
 
-    out = args.out or REPO / "eval_artifacts" / f"bench_live_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
+    out = (
+        args.out
+        or REPO / "eval_artifacts" / f"bench_live_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
+    )
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(summary, indent=2))
-    print(json.dumps({k: summary[k] for k in (
-        "documents", "succeeded", "end_to_end_ms_p50", "end_to_end_ms_p95",
-        "llm_cost_usd_list_price", "llm_cost_per_doc_usd_list_price",
-        "infra_cost_per_doc_usd_run_marginal", "stopped_early")}, indent=2))
+    print(
+        json.dumps(
+            {
+                k: summary[k]
+                for k in (
+                    "documents",
+                    "succeeded",
+                    "end_to_end_ms_p50",
+                    "end_to_end_ms_p95",
+                    "llm_cost_usd_list_price",
+                    "llm_cost_per_doc_usd_list_price",
+                    "infra_cost_per_doc_usd_run_marginal",
+                    "stopped_early",
+                )
+            },
+            indent=2,
+        )
+    )
     print(f"wrote {out.relative_to(REPO) if out.is_relative_to(REPO) else out}")
     if stopped:
         return 3

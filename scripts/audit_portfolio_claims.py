@@ -56,9 +56,7 @@ def _extract_number(text: str, key: str, cast=int, default=None):
 
 
 def _extract_latest_result(text: str) -> tuple[int, int, int]:
-    match = re.search(
-        r'latest_result:\s*"(\d+) passed, (\d+) skipped, (\d+) deselected"', text
-    )
+    match = re.search(r'latest_result:\s*"(\d+) passed, (\d+) skipped, (\d+) deselected"', text)
     if not match:
         return (0, 0, 0)
     return tuple(int(part) for part in match.groups())
@@ -137,7 +135,11 @@ def validate_metrics(metrics: PortfolioMetrics, root: Path = ROOT) -> list[str]:
         expected = getattr(metrics, key)
         if actual != expected:
             findings.append(f"{key}: expected {expected}, found {actual}")
-    if metrics.collected_tests and metrics.latest_passed + metrics.latest_skipped + metrics.latest_deselected != metrics.collected_tests:
+    if (
+        metrics.collected_tests
+        and metrics.latest_passed + metrics.latest_skipped + metrics.latest_deselected
+        != metrics.collected_tests
+    ):
         findings.append(
             "testing.latest_result does not add up to testing.collected_tests: "
             f"{metrics.latest_passed} + {metrics.latest_skipped} + "

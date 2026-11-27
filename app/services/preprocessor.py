@@ -1,6 +1,7 @@
 """Image preprocessing pipeline using OpenCV.
 No app.* imports - standalone module.
 """
+
 import struct
 import time
 
@@ -32,8 +33,19 @@ def image_size_from_header(data: bytes) -> tuple[int, int] | None:
                     continue
                 marker = data[offset + 1]
                 if marker in (
-                    0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7,
-                    0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF,
+                    0xC0,
+                    0xC1,
+                    0xC2,
+                    0xC3,
+                    0xC5,
+                    0xC6,
+                    0xC7,
+                    0xC9,
+                    0xCA,
+                    0xCB,
+                    0xCD,
+                    0xCE,
+                    0xCF,
                 ):
                     height, width = struct.unpack(">HH", data[offset + 5 : offset + 9])
                     return width, height

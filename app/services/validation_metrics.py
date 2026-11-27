@@ -1,4 +1,5 @@
 """Thread-safe validation statistics tracker."""
+
 from __future__ import annotations
 
 import threading

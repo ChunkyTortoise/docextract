@@ -1,4 +1,5 @@
 """Semantic cache statistics endpoint."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
@@ -29,7 +30,10 @@ async def cache_stats(
 
     if _cache_instance is None:
         return CacheStats(
-            total_entries=0, hits=0, misses=0,
-            hit_rate=0.0, total_cost_saved_usd=0.0,
+            total_entries=0,
+            hits=0,
+            misses=0,
+            hit_rate=0.0,
+            total_cost_saved_usd=0.0,
         )
     return _cache_instance.get_stats()

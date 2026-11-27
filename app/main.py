@@ -1,4 +1,5 @@
 """FastAPI application factory."""
+
 from __future__ import annotations
 
 import uuid
@@ -27,6 +28,7 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown."""
     import arq
+
     logger.info("DocExtract AI starting up...")
     app.state.arq_pool = await arq.create_pool(
         arq.connections.RedisSettings.from_dsn(settings.redis_url)
@@ -35,6 +37,7 @@ async def lifespan(app: FastAPI):
     logger.info("DocExtract AI shutting down...")
     await app.state.arq_pool.aclose()
     from app.models.database import engine
+
     await engine.dispose()
     logger.info("Database connections closed")
 
@@ -54,14 +57,32 @@ def create_app() -> FastAPI:
             {"name": "health", "description": "Health check and dependency status endpoints"},
             {"name": "documents", "description": "Document upload, batch upload, and deletion"},
             {"name": "jobs", "description": "Job status, cancellation, and SSE progress streaming"},
-            {"name": "records", "description": "Extracted record listing, search, and review submission"},
+            {
+                "name": "records",
+                "description": "Extracted record listing, search, and review submission",
+            },
             {"name": "export", "description": "Streaming CSV/JSON export of extracted records"},
-            {"name": "webhooks", "description": "Webhook test endpoint for verifying receiver configuration"},
+            {
+                "name": "webhooks",
+                "description": "Webhook test endpoint for verifying receiver configuration",
+            },
             {"name": "stats", "description": "Aggregate dashboard statistics"},
-            {"name": "api-keys", "description": "Self-service API key creation, listing, and revocation"},
-            {"name": "review", "description": "Human-in-the-loop review queue: claim, approve, correct"},
-            {"name": "roi", "description": "ROI attribution, trends, and executive report generation"},
-            {"name": "agent-search", "description": "Agentic RAG with ReAct reasoning loop over document corpus"},
+            {
+                "name": "api-keys",
+                "description": "Self-service API key creation, listing, and revocation",
+            },
+            {
+                "name": "review",
+                "description": "Human-in-the-loop review queue: claim, approve, correct",
+            },
+            {
+                "name": "roi",
+                "description": "ROI attribution, trends, and executive report generation",
+            },
+            {
+                "name": "agent-search",
+                "description": "Agentic RAG with ReAct reasoning loop over document corpus",
+            },
         ],
     )
 
@@ -85,9 +106,7 @@ def create_app() -> FastAPI:
 
     # Exception handlers
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(
-        request: Request, exc: RequestValidationError
-    ):
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
@@ -119,10 +138,12 @@ def create_app() -> FastAPI:
         app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
     from app.observability import setup_langfuse, setup_telemetry
+
     setup_telemetry(app)
     setup_langfuse()
 
     from app.langsmith_tracing import setup_langsmith
+
     setup_langsmith()
 
     return app

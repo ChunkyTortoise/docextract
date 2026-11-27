@@ -46,9 +46,15 @@ def _weighted(rows: list[dict]) -> float:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--floor", type=float, default=0.85, help="hard minimum combined weighted field accuracy")
-    ap.add_argument("--tolerance", type=float, default=0.03, help="max field-accuracy drop vs baseline.json")
-    ap.add_argument("--min-cases", type=int, default=28, help="min fixtures required (corpus must not shrink)")
+    ap.add_argument(
+        "--floor", type=float, default=0.85, help="hard minimum combined weighted field accuracy"
+    )
+    ap.add_argument(
+        "--tolerance", type=float, default=0.03, help="max field-accuracy drop vs baseline.json"
+    )
+    ap.add_argument(
+        "--min-cases", type=int, default=28, help="min fixtures required (corpus must not shrink)"
+    )
     ap.add_argument("--out", default="eval_artifacts/offline_replay.json")
     args = ap.parse_args()
 
@@ -78,7 +84,9 @@ def main() -> int:
         per_doc[r["doc_type"]].append(r)
 
     combined = round(_weighted(rows), 4)
-    baseline_score = json.loads(BASELINE.read_text()).get("overall_score") if BASELINE.exists() else None
+    baseline_score = (
+        json.loads(BASELINE.read_text()).get("overall_score") if BASELINE.exists() else None
+    )
 
     summary = {
         "corpus_cases": len(dataset),
@@ -91,7 +99,8 @@ def main() -> int:
         "baseline_score": baseline_score,
         "floor": args.floor,
         "per_doc_type": {
-            dt: {"field_acc": round(_weighted(rs), 4), "count": len(rs)} for dt, rs in sorted(per_doc.items())
+            dt: {"field_acc": round(_weighted(rs), 4), "count": len(rs)}
+            for dt, rs in sorted(per_doc.items())
         },
     }
     out = REPO / args.out
@@ -106,7 +115,9 @@ def main() -> int:
         print(f"\nFAIL: combined field accuracy {combined} < floor {args.floor}")
         return 1
     if baseline_score is not None and combined < baseline_score - args.tolerance:
-        print(f"\nFAIL: combined field accuracy {combined} regressed > {args.tolerance} below baseline {baseline_score}")
+        print(
+            f"\nFAIL: combined field accuracy {combined} regressed > {args.tolerance} below baseline {baseline_score}"
+        )
         return 1
 
     print(

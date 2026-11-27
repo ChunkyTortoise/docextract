@@ -4,6 +4,7 @@ Wraps google.genai with a minimal interface that matches the Anthropic
 response structure used by LLMJudge — enough for the judge to stay
 provider-agnostic.
 """
+
 from __future__ import annotations
 
 import logging

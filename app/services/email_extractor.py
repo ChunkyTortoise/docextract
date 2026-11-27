@@ -1,4 +1,5 @@
 """Email extraction for .eml and .msg files."""
+
 from __future__ import annotations
 
 import email
@@ -86,7 +87,9 @@ def extract_eml(data: bytes, deadline: float | None = None) -> ExtractedContent:
         if content_type == "text/html":
             body = strip_html(content)
         else:
-            body = content if isinstance(content, str) else content.decode("utf-8", errors="replace")
+            body = (
+                content if isinstance(content, str) else content.decode("utf-8", errors="replace")
+            )
 
     # Process attachments under a shared decoded-resource budget (lane B B8):
     # attachment-heavy inputs must fail within explicit budgets.
@@ -119,13 +122,9 @@ def extract_eml(data: bytes, deadline: float | None = None) -> ExtractedContent:
                 f"({budget_used} > {settings.parser_attachment_budget_bytes} bytes)"
             )
 
-        extracted = _process_attachment(
-            payload, mime, filename, _depth=0, deadline=deadline
-        )
+        extracted = _process_attachment(payload, mime, filename, _depth=0, deadline=deadline)
         if extracted:
-            attachment_texts.append(
-                f"\n--- ATTACHMENT: {filename} ---\n{extracted}"
-            )
+            attachment_texts.append(f"\n--- ATTACHMENT: {filename} ---\n{extracted}")
 
     # Combine
     parts = [body]
@@ -203,9 +202,7 @@ def extract_msg_file(data: bytes, deadline: float | None = None) -> ExtractedCon
                         att_data, mime, att_name, _depth=0, deadline=deadline
                     )
                     if extracted:
-                        attachment_texts.append(
-                            f"\n--- ATTACHMENT: {att_name} ---\n{extracted}"
-                        )
+                        attachment_texts.append(f"\n--- ATTACHMENT: {att_name} ---\n{extracted}")
 
         msg.close()
     finally:

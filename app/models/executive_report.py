@@ -29,6 +29,4 @@ class ExecutiveReport(Base):
     summary_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    __table_args__ = (
-        Index("idx_executive_reports_generated_at", "generated_at"),
-    )
+    __table_args__ = (Index("idx_executive_reports_generated_at", "generated_at"),)

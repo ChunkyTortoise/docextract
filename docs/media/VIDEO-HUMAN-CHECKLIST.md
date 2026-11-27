@@ -9,7 +9,7 @@ Referenced from [DEMO.md](../../DEMO.md) and the README reviewer path.
 - [ ] Confirm `DEMO_MODE=true streamlit run frontend/app.py` works locally with no API keys.
 - [ ] Confirm the [live Streamlit demo](https://docextract-demo.streamlit.app) loads (allow ~30-60s cold start).
 - [ ] Skim [DEMO.md](../../DEMO.md) and follow the 90-120s path: Extract → SSE progress → Retrieval / agent trace → Human review → Eval proof.
-- [ ] Verify README metrics table still matches `docs/portfolio-metrics.yaml` (especially 95.5% = 28 CI fixtures, corpus 120).
+- [ ] Verify README metrics table still matches `docs/portfolio-metrics.yaml` (especially 95.5% = 28 CI fixtures, corpus 200).
 - [ ] If Langfuse traces are part of the narrative, confirm demo deployment has owner-supplied keys - do not show secrets on screen.
 
 ## Recording setup

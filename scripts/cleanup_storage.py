@@ -4,6 +4,7 @@ Called by ARQ cron at 02:00 UTC, or manually via:
     python -m scripts.cleanup_storage
     python -m scripts.cleanup_storage --dry-run
 """
+
 from __future__ import annotations
 
 import argparse
@@ -62,7 +63,8 @@ async def run_cleanup(dry_run: bool = False) -> dict[str, int]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Clean up orphaned storage files")
     parser.add_argument(
-        "--dry-run", action="store_true",
+        "--dry-run",
+        action="store_true",
         help="List orphaned files without deleting",
     )
     args = parser.parse_args()

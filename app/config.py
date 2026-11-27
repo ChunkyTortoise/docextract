@@ -167,7 +167,7 @@ class Settings(BaseSettings):
             return json.loads(v)
         return v
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_production_secrets(self) -> Settings:
         if self.environment != "development":
             if self.api_key_secret.get_secret_value() == "change-me-32-chars-minimum-secret":

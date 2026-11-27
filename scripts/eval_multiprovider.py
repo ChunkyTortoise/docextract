@@ -180,7 +180,9 @@ def main() -> None:
         default=list(PROVIDER_CHOICES),
         help="Providers to run (skips those without API keys)",
     )
-    parser.add_argument("--out", type=Path, default=REPO_ROOT / "eval_artifacts" / "multiprovider_panel.json")
+    parser.add_argument(
+        "--out", type=Path, default=REPO_ROOT / "eval_artifacts" / "multiprovider_panel.json"
+    )
     parser.add_argument("--n-samples", type=int, default=3)
     parser.add_argument("--concurrency", type=int, default=3)
     parser.add_argument(
@@ -201,7 +203,10 @@ def main() -> None:
     models: dict[str, str | None] = {p: None for p in args.providers}
     for item in args.model:
         if "=" not in item:
-            print(f"WARNING: ignoring malformed --model {item!r} (expected PROVIDER=MODEL)", file=sys.stderr)
+            print(
+                f"WARNING: ignoring malformed --model {item!r} (expected PROVIDER=MODEL)",
+                file=sys.stderr,
+            )
             continue
         prov, model_name = item.split("=", 1)
         if prov in models:

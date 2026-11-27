@@ -4,6 +4,7 @@ Export HITL corrections as training datasets in supervised JSONL, DPO pair,
 or evaluation formats. Supports doc_type filtering and deterministic
 train/val splitting.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
@@ -20,7 +21,9 @@ router = APIRouter(tags=["finetune"])
 
 @router.get("/finetune/export")
 async def export_finetune_data(
-    format: ExportFormat = Query("supervised", description="Export format: supervised, dpo, or eval"),
+    format: ExportFormat = Query(
+        "supervised", description="Export format: supervised, dpo, or eval"
+    ),
     doc_type: str | None = Query(None, description="Filter by document type"),
     split: SplitType = Query("all", description="Dataset split: train, val, or all"),
     min_field_count: int = Query(1, ge=1, description="Min corrected fields to include"),

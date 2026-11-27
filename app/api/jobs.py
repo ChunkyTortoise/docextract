@@ -1,4 +1,5 @@
 """Job status and SSE streaming endpoints."""
+
 from __future__ import annotations
 
 import json
@@ -37,9 +38,7 @@ async def get_job(
 
     processing_time_ms = None
     if job.started_at and job.completed_at:
-        processing_time_ms = int(
-            (job.completed_at - job.started_at).total_seconds() * 1000
-        )
+        processing_time_ms = int((job.completed_at - job.started_at).total_seconds() * 1000)
 
     return JobResponse(
         id=str(job.id),
@@ -103,9 +102,7 @@ async def get_job_record(
 ) -> RecordItem:
     """Get the extracted record for a specific job."""
     # Verify job exists
-    job_result = await db.execute(
-        select(ExtractionJob).where(ExtractionJob.id == job_id)
-    )
+    job_result = await db.execute(select(ExtractionJob).where(ExtractionJob.id == job_id))
     job = job_result.scalar_one_or_none()
     if not job:
         raise HTTPException(404, "Job not found")
@@ -133,9 +130,7 @@ async def cancel_job(
     if body.get("action") != "cancel":
         raise HTTPException(400, "Only 'cancel' action is supported")
 
-    result = await db.execute(
-        select(ExtractionJob).where(ExtractionJob.id == job_id)
-    )
+    result = await db.execute(select(ExtractionJob).where(ExtractionJob.id == job_id))
     job = result.scalar_one_or_none()
     if not job:
         raise HTTPException(404, "Job not found")
@@ -150,12 +145,16 @@ async def cancel_job(
     # Publish cancellation SSE event
     from worker.events import publish_event
 
-    await publish_event(redis, job_id, {
-        "job_id": job_id,
-        "status": "cancelled",
-        "progress": -1,
-        "message": "Job cancelled by user",
-    })
+    await publish_event(
+        redis,
+        job_id,
+        {
+            "job_id": job_id,
+            "status": "cancelled",
+            "progress": -1,
+            "message": "Job cancelled by user",
+        },
+    )
 
     return {"status": "cancelled", "job_id": job_id}
 

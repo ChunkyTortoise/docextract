@@ -12,6 +12,7 @@ Usage:
 Outputs a markdown table to stdout and writes
 docs/benchmarks/caching-YYYY-MM-DD.md.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -49,13 +50,26 @@ Bank: Silicon Valley Bank — Account: 987654321 — Routing: 121140399
 
 # Per 1K tokens, from platform.claude.com/docs/en/about-claude/pricing (read 2026-11-13); cache_write is the 5-minute rate.
 ANTHROPIC_COST_PER_1K = {
-    "claude-sonnet-4-6": {"input": 0.003, "output": 0.015, "cache_read": 0.0003, "cache_write": 0.00375},
-    "claude-haiku-4-5-20251001": {"input": 0.001, "output": 0.005, "cache_read": 0.0001, "cache_write": 0.00125},
+    "claude-sonnet-4-6": {
+        "input": 0.003,
+        "output": 0.015,
+        "cache_read": 0.0003,
+        "cache_write": 0.00375,
+    },
+    "claude-haiku-4-5-20251001": {
+        "input": 0.001,
+        "output": 0.005,
+        "cache_read": 0.0001,
+        "cache_write": 0.00125,
+    },
 }
 
 
-async def _run_single(client, model: str, system_blocks: list, user_content: list, with_schema: bool) -> dict:
+async def _run_single(
+    client, model: str, system_blocks: list, user_content: list, with_schema: bool
+) -> dict:
     from anthropic import AsyncAnthropic  # noqa
+
     t0 = time.monotonic()
     response = await client.messages.create(
         model=model,
@@ -103,7 +117,12 @@ async def run_bench(model: str, iterations: int, doc_type: str) -> list[dict]:
             "cache_control": {"type": "ephemeral"},
         }
     ]
-    user_content = [{"type": "text", "text": prompt_config.extract_prompt.format(doc_type=doc_type, text=SAMPLE_DOC)}]
+    user_content = [
+        {
+            "type": "text",
+            "text": prompt_config.extract_prompt.format(doc_type=doc_type, text=SAMPLE_DOC),
+        }
+    ]
 
     results = []
     for i in range(iterations):
@@ -111,7 +130,10 @@ async def run_bench(model: str, iterations: int, doc_type: str) -> list[dict]:
         row["iteration"] = i + 1
         row["cost_usd"] = _compute_cost(row, model)
         results.append(row)
-        print(f"  [{i+1:02d}/{iterations}] input={row['input_tokens']} cache_create={row['cache_creation_tokens']} cache_read={row['cache_read_tokens']} latency={row['latency_ms']}ms cost=${row['cost_usd']:.5f}", flush=True)
+        print(
+            f"  [{i+1:02d}/{iterations}] input={row['input_tokens']} cache_create={row['cache_creation_tokens']} cache_read={row['cache_read_tokens']} latency={row['latency_ms']}ms cost=${row['cost_usd']:.5f}",
+            flush=True,
+        )
         await asyncio.sleep(0.3)  # stay under rate limit
 
     return results
@@ -132,7 +154,9 @@ def _format_report(results: list[dict], model: str, doc_type: str) -> str:
         / 1000
         for r in results
     )
-    savings_pct = (1 - total_cost_with_cache / total_cost_no_cache) * 100 if total_cost_no_cache else 0
+    savings_pct = (
+        (1 - total_cost_with_cache / total_cost_no_cache) * 100 if total_cost_no_cache else 0
+    )
 
     lines = [
         f"# Prompt Caching Benchmark — {doc_type}",
@@ -170,7 +194,9 @@ async def main() -> None:
     parser.add_argument("--model", default="claude-sonnet-4-6")
     args = parser.parse_args()
 
-    print(f"Benchmarking prompt caching: model={args.model}, iterations={args.iterations}, doc_type={args.doc_type}")
+    print(
+        f"Benchmarking prompt caching: model={args.model}, iterations={args.iterations}, doc_type={args.doc_type}"
+    )
     results = await run_bench(args.model, args.iterations, args.doc_type)
 
     report = _format_report(results, args.model, args.doc_type)

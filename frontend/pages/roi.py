@@ -1,4 +1,5 @@
 """ROI dashboard page."""
+
 from __future__ import annotations
 
 import os
@@ -64,13 +65,17 @@ def render() -> None:
             with col_left:
                 st.subheader("Dollars Saved Over Time")
                 if trend_items:
-                    fig = go.Figure(go.Scatter(
-                        x=[t.get("period") for t in trend_items],
-                        y=[t.get("dollars_saved", 0) for t in trend_items],
-                        mode="lines+markers",
-                        line=dict(color="#2ecc71"),
-                    ))
-                    fig.update_layout(xaxis_title="Period", yaxis_title="Dollars Saved ($)", **PLOTLY_DARK)
+                    fig = go.Figure(
+                        go.Scatter(
+                            x=[t.get("period") for t in trend_items],
+                            y=[t.get("dollars_saved", 0) for t in trend_items],
+                            mode="lines+markers",
+                            line=dict(color="#2ecc71"),
+                        )
+                    )
+                    fig.update_layout(
+                        xaxis_title="Period", yaxis_title="Dollars Saved ($)", **PLOTLY_DARK
+                    )
                     st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.info("No trend data available for this period.")
@@ -78,13 +83,17 @@ def render() -> None:
             with col_right:
                 st.subheader("Net Value Over Time")
                 if trend_items:
-                    fig = go.Figure(go.Scatter(
-                        x=[t.get("period") for t in trend_items],
-                        y=[t.get("net_value", 0) for t in trend_items],
-                        mode="lines+markers",
-                        line=dict(color="#3498db"),
-                    ))
-                    fig.update_layout(xaxis_title="Period", yaxis_title="Net Value ($)", **PLOTLY_DARK)
+                    fig = go.Figure(
+                        go.Scatter(
+                            x=[t.get("period") for t in trend_items],
+                            y=[t.get("net_value", 0) for t in trend_items],
+                            mode="lines+markers",
+                            line=dict(color="#3498db"),
+                        )
+                    )
+                    fig.update_layout(
+                        xaxis_title="Period", yaxis_title="Net Value ($)", **PLOTLY_DARK
+                    )
                     st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.info("No trend data available for this period.")
@@ -121,7 +130,11 @@ def render() -> None:
     # Past reports table
     try:
         reports_data = api.list_reports(limit=20)
-        report_items = reports_data.get("items", reports_data) if isinstance(reports_data, dict) else reports_data
+        report_items = (
+            reports_data.get("items", reports_data)
+            if isinstance(reports_data, dict)
+            else reports_data
+        )
         if report_items:
             st.caption(f"{len(report_items)} report(s) available")
             for r in report_items:

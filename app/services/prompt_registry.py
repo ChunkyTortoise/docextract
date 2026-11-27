@@ -4,6 +4,7 @@ Prompts are stored as plain-text files under ``prompts/<category>/vX.Y.Z.txt``.
 Active versions are configurable via environment variables:
   PROMPT_EXTRACTION_VERSION, PROMPT_CLASSIFICATION_VERSION, PROMPT_SEARCH_VERSION
 """
+
 from __future__ import annotations
 
 import difflib
@@ -58,8 +59,7 @@ class PromptRegistry:
         path = self._dir / category / f"{resolved}.txt"
         if not path.exists():
             raise FileNotFoundError(
-                f"Prompt file not found: {path} "
-                f"(category={category!r}, version={version!r})"
+                f"Prompt file not found: {path} " f"(category={category!r}, version={version!r})"
             )
         return path.read_text(encoding="utf-8")
 
@@ -91,9 +91,7 @@ class PromptRegistry:
             return ""
         return changelog.read_text(encoding="utf-8")
 
-    def compare_versions(
-        self, category: PromptCategory, v1: str, v2: str
-    ) -> dict:
+    def compare_versions(self, category: PromptCategory, v1: str, v2: str) -> dict:
         """Return diff metadata between two prompt versions.
 
         Returns:
@@ -145,7 +143,6 @@ class PromptRegistry:
         available = self.list_versions(category)
         if not available:
             raise FileNotFoundError(
-                f"No prompt versions found for category {category!r} "
-                f"in {self._dir / category}"
+                f"No prompt versions found for category {category!r} " f"in {self._dir / category}"
             )
         return available[0]  # already sorted descending

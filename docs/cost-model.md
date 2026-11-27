@@ -21,7 +21,7 @@ Illustrative cost and latency assumptions. Cost figures depend on unverified mod
 | claude-sonnet-4-6 | Extraction (2-pass) | $0.004-$0.012 | 1.8s |
 | claude-haiku-4-5 | Classification | $0.0003-$0.001 | 0.4s |
 
-**Model routing strategy:** Classification defaults to Haiku-first and extraction to Sonnet-first. Reranking uses local TF-IDF, not an LLM. The feature-flagged runtime judge tries Gemini 2.5 Flash first and falls back to the configured classification model (Haiku by default); it is disabled by default. Judge cost and latency are unmeasured. See [ADR-0018](adr/0018-independent-judge-and-multi-provider-router.md) and [ADR-0019](adr/0019-reranker-and-agentic-reflection.md). Use `model_ab_test.py` to compare models offline; do not treat allocation as a measured live split until an experiment is recorded.
+**Model routing strategy:** Classification defaults to Haiku-first and extraction to Sonnet-first. Reranking uses local TF-IDF, not an LLM. The feature-flagged runtime judge tries Gemini 2.5 Flash first and falls back to the configured classification model (Haiku by default); it is disabled by default. Judge cost and latency are unmeasured. See [ADR-0018](adr/0018-independent-judge-and-multi-provider-router.md) and [ADR-0019](adr/0019-reranker-and-agentic-reflection.md). Do not treat allocation as a measured live split until an experiment is recorded.
 
 ## Cost Calculator
 
@@ -38,6 +38,6 @@ Illustrative planning estimates, not measured workload averages. Prices, model-p
 
 ## Monitoring
 
-Cost monitoring: `/api/v1/metrics` (Prometheus) + Cost Dashboard in Streamlit frontend.
+Cost monitoring: `/metrics` (Prometheus), `/api/v1/metrics/llm` (JSON) and the Cost Dashboard in the Streamlit frontend.
 
 Track live cost-per-query in the [Cost Dashboard](../frontend/pages/cost_dashboard.py).

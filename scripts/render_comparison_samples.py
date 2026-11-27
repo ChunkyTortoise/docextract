@@ -1,4 +1,5 @@
 """Regenerate the three explicitly synthetic comparison HTML documents."""
+
 import sys
 from pathlib import Path
 

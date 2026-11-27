@@ -1,4 +1,5 @@
 """Report generation for eval results."""
+
 from __future__ import annotations
 
 import json
@@ -47,7 +48,9 @@ def compare_runs(
     if not current_results:
         return "No results to compare."
 
-    current_score = sum(r.score * r.weight for r in current_results) / sum(r.weight for r in current_results)
+    current_score = sum(r.score * r.weight for r in current_results) / sum(
+        r.weight for r in current_results
+    )
     delta = current_score - previous_score
     sign = "+" if delta >= 0 else ""
 

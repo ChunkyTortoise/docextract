@@ -1,4 +1,5 @@
 """Document upload and management endpoints."""
+
 from __future__ import annotations
 
 import logging
@@ -62,7 +63,6 @@ async def _read_upload_bounded(file: UploadFile) -> bytes:
     return b"".join(chunks)
 
 
-
 @router.post("/upload", response_model=UploadResponse, status_code=202)
 async def upload_document(
     file: UploadFile = File(...),
@@ -95,9 +95,7 @@ async def upload_document(
     sha256 = hash_file(file_bytes)
 
     if not force:
-        existing = await db.execute(
-            select(Document).where(Document.sha256_hash == sha256)
-        )
+        existing = await db.execute(select(Document).where(Document.sha256_hash == sha256))
         doc = existing.scalars().first()
         if doc:
             job_result = await db.execute(
@@ -199,7 +197,9 @@ async def batch_upload(
         try:
             filename = _safe_filename(uploaded_file.filename)
         except HTTPException:
-            errors.append({"filename": uploaded_file.filename or "unknown", "reason": "invalid_filename"})
+            errors.append(
+                {"filename": uploaded_file.filename or "unknown", "reason": "invalid_filename"}
+            )
             continue
         try:
             file_bytes = await _read_upload_bounded(uploaded_file)
@@ -209,16 +209,16 @@ async def batch_upload(
 
         mime_type = detect_mime_type(file_bytes)
         if not is_allowed_mime_type(mime_type):
-            errors.append({"filename": filename, "reason": "unsupported_type", "mime_type": mime_type})
+            errors.append(
+                {"filename": filename, "reason": "unsupported_type", "mime_type": mime_type}
+            )
             continue
 
         sha256 = hash_file(file_bytes)
 
         # Dedup check
         if not force:
-            existing = await db.execute(
-                select(Document).where(Document.sha256_hash == sha256)
-            )
+            existing = await db.execute(select(Document).where(Document.sha256_hash == sha256))
             doc = existing.scalars().first()
             if doc:
                 duplicates.append(uploaded_file.filename or "unknown")

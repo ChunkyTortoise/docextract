@@ -9,6 +9,7 @@ generate the key and its HMAC hash on your own machine, then pass only the
 hash through SEED_KEY_HASH so the raw key never reaches the remote logs:
     SEED_KEY_HASH=<hex> python -m scripts.seed_api_key --name bench-key
 """
+
 from __future__ import annotations
 
 import argparse
@@ -66,7 +67,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Seed a development API key")
     parser.add_argument("--name", default="dev-key", help="Key name (default: dev-key)")
     parser.add_argument(
-        "--rate-limit", type=int, default=60,
+        "--rate-limit",
+        type=int,
+        default=60,
         help="Requests per minute (default: 60)",
     )
     args = parser.parse_args()

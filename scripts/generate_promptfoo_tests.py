@@ -25,7 +25,7 @@ def _critical_fields_js(case: dict) -> list[dict]:
     critical = []
     for tag in case.get("tags", []):
         if tag.startswith("critical:"):
-            critical = tag[len("critical:"):].split(",")
+            critical = tag[len("critical:") :].split(",")
 
     expected = case.get("expected_output", {})
     for field in critical:
@@ -55,11 +55,13 @@ def _critical_fields_js(case: dict) -> list[dict]:
             )
         else:
             continue
-        assertions.append({
-            "type": "javascript",
-            "value": js,
-            "description": f"{case['id']}: {field} matches expected",
-        })
+        assertions.append(
+            {
+                "type": "javascript",
+                "value": js,
+                "description": f"{case['id']}: {field} matches expected",
+            }
+        )
 
     return assertions
 
@@ -69,7 +71,7 @@ def _rubric_assertion(case: dict) -> dict:
     critical = []
     for tag in case.get("tags", []):
         if tag.startswith("critical:"):
-            critical = tag[len("critical:"):].split(",")
+            critical = tag[len("critical:") :].split(",")
     fields_str = ", ".join(critical) if critical else "key fields"
     return {
         "type": "llm-rubric",

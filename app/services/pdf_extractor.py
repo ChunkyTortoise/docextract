@@ -1,4 +1,5 @@
 """PDF text and table extraction using PyMuPDF and pdfplumber."""
+
 from __future__ import annotations
 
 import io
@@ -65,7 +66,9 @@ def extract_pdf(data: bytes, deadline: float | None = None) -> ExtractedContent:
         if blocks:
             # Text-native page — extract text from blocks
             page_text = "\n".join(
-                block[4] for block in blocks if block[6] == 0  # type 0 = text
+                block[4]
+                for block in blocks
+                if block[6] == 0  # type 0 = text
             )
         else:
             # Scanned page — render to image for OCR. The render budget is
@@ -148,9 +151,7 @@ def extract_pdf(data: bytes, deadline: float | None = None) -> ExtractedContent:
     )
 
 
-def _table_to_structured(
-    table: list[list[str | None]], page: int = 1
-) -> dict | None:
+def _table_to_structured(table: list[list[str | None]], page: int = 1) -> dict | None:
     """Convert a pdfplumber table to structured dict with headers and rows.
 
     Returns None for empty or single-row tables.
@@ -159,10 +160,7 @@ def _table_to_structured(
         return None
 
     headers = [str(cell) if cell is not None else "" for cell in table[0]]
-    rows = [
-        [str(cell) if cell is not None else "" for cell in row]
-        for row in table[1:]
-    ]
+    rows = [[str(cell) if cell is not None else "" for cell in row] for row in table[1:]]
     if not any(headers) and not any(any(r) for r in rows):
         return None
 

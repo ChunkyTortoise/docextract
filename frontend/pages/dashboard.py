@@ -1,4 +1,5 @@
 """Screen 6: Analytics dashboard."""
+
 from __future__ import annotations
 
 import time
@@ -14,6 +15,7 @@ from frontend.theme import PLOTLY_DARK
 
 try:
     from streamlit_extras.stylable_container import stylable_container as _stylable
+
     _HAS_EXTRAS = True
 except ImportError:
     _HAS_EXTRAS = False
@@ -133,11 +135,13 @@ def render() -> None:
             in_progress = total - completed - failed
 
             if total > 0:
-                fig = go.Figure(go.Bar(
-                    x=["Completed", "Failed", "In Progress"],
-                    y=[completed, failed, max(0, in_progress)],
-                    marker_color=["#2ecc71", "#e74c3c", "#3498db"],
-                ))
+                fig = go.Figure(
+                    go.Bar(
+                        x=["Completed", "Failed", "In Progress"],
+                        y=[completed, failed, max(0, in_progress)],
+                        marker_color=["#2ecc71", "#e74c3c", "#3498db"],
+                    )
+                )
                 fig.update_layout(title="Job Status Overview", **PLOTLY_DARK)
                 st.plotly_chart(fig, use_container_width=True)
             else:
@@ -156,11 +160,13 @@ def render() -> None:
             proc_times = _compute_processing_times(jobs)
             if proc_times:
                 buckets = _bucket_processing_times(proc_times)
-                fig = go.Figure(go.Bar(
-                    x=list(buckets.keys()),
-                    y=list(buckets.values()),
-                    marker_color="#9b59b6",
-                ))
+                fig = go.Figure(
+                    go.Bar(
+                        x=list(buckets.keys()),
+                        y=list(buckets.values()),
+                        marker_color="#9b59b6",
+                    )
+                )
                 fig.update_layout(
                     xaxis_title="Duration",
                     yaxis_title="Jobs",
@@ -174,12 +180,14 @@ def render() -> None:
             st.subheader("Daily Processing Volume (30 days)")
             daily = _aggregate_daily_volume(jobs, days=30)
             if any(v > 0 for v in daily.values()):
-                fig = go.Figure(go.Scatter(
-                    x=list(daily.keys()),
-                    y=list(daily.values()),
-                    mode="lines+markers",
-                    line=dict(color="#3498db"),
-                ))
+                fig = go.Figure(
+                    go.Scatter(
+                        x=list(daily.keys()),
+                        y=list(daily.values()),
+                        mode="lines+markers",
+                        line=dict(color="#3498db"),
+                    )
+                )
                 fig.update_layout(
                     xaxis_title="Date",
                     yaxis_title="Jobs Submitted",

@@ -1,4 +1,5 @@
 """Streaming CSV/JSON export endpoint."""
+
 from __future__ import annotations
 
 import csv
@@ -86,9 +87,7 @@ async def export_records(
                         "id": str(record.id),
                         "document_type": record.document_type,
                         "extracted_data": (
-                            redact_pii(record.extracted_data)
-                            if redact
-                            else record.extracted_data
+                            redact_pii(record.extracted_data) if redact else record.extracted_data
                         ),
                         "confidence_score": record.confidence_score,
                         "needs_review": record.needs_review,

@@ -1,4 +1,5 @@
 """Document type classifier using Claude tool_use (with optional local LoRA adapter)."""
+
 from __future__ import annotations
 
 import logging
@@ -102,13 +103,17 @@ async def classify(text: str, db: AsyncSession | None = None) -> ClassificationR
     sample = text[: prompt_config.params.classify_text_limit]
 
     try:
+
         async def _classify_call(model: str) -> anthropic.types.Message:
             async with trace_llm_call(db, model, "classify") as trace_ctx:
                 response = await client.messages.create(
                     model=model,
                     max_tokens=256,
                     messages=[
-                        {"role": "user", "content": prompt_config.classify_prompt.format(text=sample)}
+                        {
+                            "role": "user",
+                            "content": prompt_config.classify_prompt.format(text=sample),
+                        }
                     ],
                     tools=[CLASSIFY_TOOL],
                     tool_choice={"type": "tool", "name": "classify_document"},
@@ -125,7 +130,11 @@ async def classify(text: str, db: AsyncSession | None = None) -> ClassificationR
         # Find tool_use block
         result = None
         for block in response.content:
-            if hasattr(block, "type") and block.type == "tool_use" and block.name == "classify_document":
+            if (
+                hasattr(block, "type")
+                and block.type == "tool_use"
+                and block.name == "classify_document"
+            ):
                 result = block.input
                 break
 
@@ -205,7 +214,9 @@ def _predict_with_adapter(text: str, adapter_entry: dict[str, Any]) -> Classific
                 doc_type = dt
                 break
 
-        return ClassificationResult(doc_type=doc_type, confidence=0.85, reasoning="Local adapter prediction")
+        return ClassificationResult(
+            doc_type=doc_type, confidence=0.85, reasoning="Local adapter prediction"
+        )
     except Exception as e:  # noqa: BLE001
         logger.warning("Local adapter inference failed: %s", e)
         return None
@@ -214,6 +225,7 @@ def _predict_with_adapter(text: str, adapter_entry: dict[str, Any]) -> Classific
 def _parse_legacy_response(response) -> dict | None:
     """Fallback: parse text JSON from response for backward compatibility."""
     import json
+
     try:
         for block in response.content:
             if hasattr(block, "text"):

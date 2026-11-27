@@ -1,4 +1,5 @@
 """DocExtract AI -- Streamlit frontend entry point."""
+
 import os
 
 import streamlit as st
@@ -25,9 +26,7 @@ def authenticate() -> bool:
     # Demo mode: skip login, auto-populate demo API key
     if DEMO_MODE:
         st.session_state["authenticated"] = True
-        st.session_state["api_key"] = os.getenv(
-            "DEMO_API_KEY", "demo-key-docextract-2026"
-        )
+        st.session_state["api_key"] = os.getenv("DEMO_API_KEY", "demo-key-docextract-2026")
         return True
 
     st.title("DocExtract AI")
@@ -115,48 +114,63 @@ def main() -> None:
     # Route to page
     if page == "Upload":
         from frontend.pages.upload import render
+
         render()
     elif page == "Batch Upload":
         from frontend.pages.batch_upload import render
+
         render()
     elif page == "Progress":
         from frontend.pages.progress import render
+
         render()
     elif page == "Results":
         from frontend.pages.results import render
+
         render()
     elif page == "Records":
         from frontend.pages.records import render
+
         render()
     elif page == "Review":
         from frontend.pages.review import render
+
         render()
     elif page == "ROI":
         from frontend.pages.roi import render
+
         render()
     elif page == "Dashboard":
         from frontend.pages.dashboard import render
+
         render()
     elif page == "Cost Dashboard":
         from frontend.pages.cost_dashboard import render
+
         render()
     elif page == "Demo":
         from frontend.pages.demo_sandbox import show
+
         show()
     elif page == "Architecture":
         from frontend.pages.architecture import show
+
         show()
     elif page == "Evaluation":
         from frontend.pages.evaluation import render
+
         render()
     elif page == "Prompt Lab":
         from frontend.pages.prompt_lab import render
+
         render()
     elif page == "Agent Trace":
         from frontend.pages.agent_trace import render
+
         render()
     elif page == "Quality Monitor":
         from frontend.pages import quality_monitor
+
         quality_monitor.render()
 
 

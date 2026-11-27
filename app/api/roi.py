@@ -1,4 +1,5 @@
 """ROI attribution and report generation endpoints."""
+
 from __future__ import annotations
 
 import json
@@ -114,7 +115,8 @@ async def _summary(db: AsyncSession, start: datetime, end: datetime) -> dict:
         await db.execute(
             select(
                 func.avg(
-                    func.extract('epoch', ExtractionJob.completed_at - ExtractionJob.started_at) * 1000
+                    func.extract("epoch", ExtractionJob.completed_at - ExtractionJob.started_at)
+                    * 1000
                 )
             ).where(
                 ExtractionJob.created_at >= start,

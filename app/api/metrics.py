@@ -1,4 +1,5 @@
 """LLM metrics endpoint."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -42,9 +43,7 @@ async def get_llm_metrics(
     """Get aggregated LLM call metrics for the last N hours."""
     since = datetime.now(UTC) - timedelta(hours=hours)
 
-    result = await db.execute(
-        select(LLMTrace).where(LLMTrace.created_at >= since)
-    )
+    result = await db.execute(select(LLMTrace).where(LLMTrace.created_at >= since))
     traces = result.scalars().all()
 
     if not traces:
@@ -74,21 +73,22 @@ async def get_llm_metrics(
         avg_lat = int(sum(latencies) / len(latencies)) if latencies else 0
         sorted_lat = sorted(latencies)
         p95_lat = sorted_lat[int(len(sorted_lat) * 0.95)] if sorted_lat else 0
-        avg_conf = (
-            sum(t.confidence for t in model_traces if t.confidence is not None) /
-            max(1, sum(1 for t in model_traces if t.confidence is not None))
+        avg_conf = sum(t.confidence for t in model_traces if t.confidence is not None) / max(
+            1, sum(1 for t in model_traces if t.confidence is not None)
         )
-        by_model.append(ModelStats(
-            model=model,
-            call_count=len(model_traces),
-            avg_latency_ms=avg_lat,
-            p95_latency_ms=p95_lat,
-            input_tokens=input_tok,
-            output_tokens=output_tok,
-            error_rate=len(errors) / len(model_traces),
-            avg_confidence=avg_conf,
-            estimated_cost_usd=round(cost, 6),
-        ))
+        by_model.append(
+            ModelStats(
+                model=model,
+                call_count=len(model_traces),
+                avg_latency_ms=avg_lat,
+                p95_latency_ms=p95_lat,
+                input_tokens=input_tok,
+                output_tokens=output_tok,
+                error_rate=len(errors) / len(model_traces),
+                avg_confidence=avg_conf,
+                estimated_cost_usd=round(cost, 6),
+            )
+        )
 
     # Aggregate by operation
     op_map: dict[str, list] = {}
@@ -129,9 +129,7 @@ async def get_business_metrics(
     since = datetime.now(UTC) - timedelta(days=30)
 
     # --- Jobs in last 30 days ---
-    jobs_result = await db.execute(
-        select(ExtractionJob).where(ExtractionJob.created_at >= since)
-    )
+    jobs_result = await db.execute(select(ExtractionJob).where(ExtractionJob.created_at >= since))
     jobs = jobs_result.scalars().all()
 
     docs_30d = len(jobs)
@@ -163,9 +161,7 @@ async def get_business_metrics(
             p95_ms = 0.0
 
     # --- LLM cost in last 30 days ---
-    traces_result = await db.execute(
-        select(LLMTrace).where(LLMTrace.created_at >= since)
-    )
+    traces_result = await db.execute(select(LLMTrace).where(LLMTrace.created_at >= since))
     traces = traces_result.scalars().all()
 
     cost_values = [t.cost_usd for t in traces if getattr(t, "cost_usd", None) is not None]
@@ -205,8 +201,15 @@ async def get_quality_trend(
         return QualityTrendResponse(
             days=days,
             ewma_composite=[],
-            per_dimension={d: [] for d in ("completeness", "field_accuracy",
-                                            "hallucination_absence", "format_compliance")},
+            per_dimension={
+                d: []
+                for d in (
+                    "completeness",
+                    "field_accuracy",
+                    "hallucination_absence",
+                    "format_compliance",
+                )
+            },
             escalation_rate=0.0,
             sample_count=0,
         )

@@ -13,8 +13,7 @@ autoresearch/
 ├── golden_responses/       # Recorded model outputs (one JSON per fixture)
 ├── fixtures.py             # Golden response loader
 ├── reporter.py             # Report generation (JSON, Markdown, delta comparison)
-├── baseline.json           # Current accuracy baseline for CI regression gate
-└── results.tsv             # Append-only score history
+└── baseline.json           # Current accuracy baseline for CI regression gate
 
 scripts/
 └── run_eval_ci.py          # CI gate: runs golden eval, checks regression, outputs markdown
@@ -156,7 +155,7 @@ The CI output includes per-doc-type breakdowns, calibration metrics, and model c
 
 ## Adversarial Fixtures
 
-8 adversarial test cases stress-test edge conditions:
+12 adversarial test cases stress-test edge conditions:
 
 | Fixture | Challenge | Doc Type |
 |---------|-----------|----------|
@@ -168,3 +167,7 @@ The CI output includes per-doc-type breakdowns, calibration metrics, and model c
 | `adv_long_document` | 20 line items, 50+ page reference | purchase_order |
 | `adv_handwritten_receipt` | Handwritten with OCR character substitutions | receipt |
 | `adv_redacted_statement` | [REDACTED] placeholders throughout | bank_statement |
+| `adv_prompt_injection_system` | Injected system-style instruction in the document body | invoice |
+| `adv_prompt_injection_hidden` | Hidden instruction text | receipt |
+| `adv_prompt_injection_roleplay` | Role-play instruction | medical_record |
+| `adv_prompt_injection_data_exfil` | Request to append system prompt, API key and records | bank_statement |

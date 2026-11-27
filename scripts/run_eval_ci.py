@@ -9,6 +9,7 @@ Usage:
     python scripts/run_eval_ci.py --update-baseline   # accept current score as new baseline
     python scripts/run_eval_ci.py --ci      # same as default but prints GitHub-flavoured output
 """
+
 from __future__ import annotations
 
 import argparse
@@ -40,6 +41,7 @@ REGRESSION_TOLERANCE: float = 0.02
 # ---------------------------------------------------------------------------
 # Baseline I/O
 # ---------------------------------------------------------------------------
+
 
 def load_baseline(path: Path = BASELINE_PATH) -> dict | None:
     """Load baseline JSON. Returns None if file missing or invalid."""
@@ -83,6 +85,7 @@ def save_baseline(
 # Regression check
 # ---------------------------------------------------------------------------
 
+
 def check_regression(
     current_score: float,
     baseline_score: float | None,
@@ -98,6 +101,7 @@ def check_regression(
 # ---------------------------------------------------------------------------
 # Markdown summary
 # ---------------------------------------------------------------------------
+
 
 def build_markdown_summary(
     overall_score: float,
@@ -135,17 +139,25 @@ def build_markdown_summary(
     # Calibration metrics
     bs = brier_score(case_results)
     cal_curve = calibration_curve(case_results)
-    cal_rows = "\n".join(
-        f"| {b['bin_lower']:.2f}-{b['bin_upper']:.2f} | {b['avg_confidence']:.3f} | {b['avg_accuracy']:.3f} | {b['count']} |"
-        for b in cal_curve
-    ) if cal_curve else "| - | - | - | 0 |"
+    cal_rows = (
+        "\n".join(
+            f"| {b['bin_lower']:.2f}-{b['bin_upper']:.2f} | {b['avg_confidence']:.3f} | {b['avg_accuracy']:.3f} | {b['count']} |"
+            for b in cal_curve
+        )
+        if cal_curve
+        else "| - | - | - | 0 |"
+    )
 
     # Model comparison
     model_rows_data = model_comparison_table(case_results)
-    model_rows = "\n".join(
-        f"| {r['model']} | {r['doc_type']} | {r['count']} | {r['accuracy']:.3f} | {r['avg_confidence']:.3f} | {r['avg_input_tokens']} | {r['avg_output_tokens']} | ${r['est_cost_usd']:.4f} |"
-        for r in model_rows_data
-    ) if model_rows_data else "| - | - | - | - | - | - | - | - |"
+    model_rows = (
+        "\n".join(
+            f"| {r['model']} | {r['doc_type']} | {r['count']} | {r['accuracy']:.3f} | {r['avg_confidence']:.3f} | {r['avg_input_tokens']} | {r['avg_output_tokens']} | ${r['est_cost_usd']:.4f} |"
+            for r in model_rows_data
+        )
+        if model_rows_data
+        else "| - | - | - | - | - | - | - | - |"
+    )
 
     return f"""## Eval Regression Gate — {status}
 
@@ -184,6 +196,7 @@ def build_markdown_summary(
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Docextract eval CI regression gate")

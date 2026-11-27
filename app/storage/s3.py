@@ -6,6 +6,7 @@ AWS_DEFAULT_REGION, which Fargate sets on every task.
 
 The Cloudflare R2 backend subclasses this one and only swaps the client.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -33,7 +34,9 @@ class S3StorageBackend(StorageBackend):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, partial(fn, *args, **kwargs))
 
-    async def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    async def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> str:
         await self._run_sync(
             self._client.upload_fileobj,
             io.BytesIO(data),

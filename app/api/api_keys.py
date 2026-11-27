@@ -1,4 +1,5 @@
 """Self-service API key management endpoints."""
+
 from __future__ import annotations
 
 import secrets

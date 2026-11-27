@@ -1,4 +1,5 @@
 """Async HTTP client for DocExtract AI API."""
+
 from __future__ import annotations
 
 import os
@@ -50,7 +51,11 @@ def upload_document(
             files={"file": (filename, file_bytes, mime_type)},
             data={
                 "priority": priority,
-                **({"document_type_override": document_type_override} if document_type_override else {}),
+                **(
+                    {"document_type_override": document_type_override}
+                    if document_type_override
+                    else {}
+                ),
             },
         )
         response.raise_for_status()

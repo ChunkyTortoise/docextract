@@ -5,6 +5,7 @@ Evaluates the reasoning trace of an agentic RAG run across three dimensions:
   - Iteration efficiency: did the agent converge before hitting the iteration limit?
   - Confidence calibration: is self-assessed confidence correlated with answer quality?
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -55,7 +56,9 @@ class AgentEvaluator:
         """Run all three evaluations and return a combined result."""
         tool_score, tool_reason = self.evaluate_tool_selection(result, expected_tools)
         iter_score, iter_reason = self.evaluate_iteration_efficiency(result)
-        calib_score, calib_reason = self.evaluate_confidence_calibration(result, ground_truth_answer)
+        calib_score, calib_reason = self.evaluate_confidence_calibration(
+            result, ground_truth_answer
+        )
 
         overall = (
             tool_score * self._WEIGHTS["tool_selection"]
@@ -99,7 +102,9 @@ class AgentEvaluator:
             intersection = used_set & expected_set
             union = used_set | expected_set
             score = len(intersection) / len(union) if union else 1.0
-            reason = f"Used {sorted(used_set)}, expected {sorted(expected_set)}, Jaccard={score:.2f}"
+            reason = (
+                f"Used {sorted(used_set)}, expected {sorted(expected_set)}, Jaccard={score:.2f}"
+            )
             return score, reason
 
         # No expected tools: penalize repeated identical (action, action_input) pairs
@@ -139,7 +144,9 @@ class AgentEvaluator:
         else:
             score = 0.5 * max_iterations / actual  # diminishing penalty
 
-        reason = f"{actual} iterations (max={max_iterations}), final confidence={result.confidence:.2f}"
+        reason = (
+            f"{actual} iterations (max={max_iterations}), final confidence={result.confidence:.2f}"
+        )
         return round(score, 4), reason
 
     def evaluate_confidence_calibration(
@@ -157,9 +164,7 @@ class AgentEvaluator:
 
         # Confidence trajectory from the trace
         confidences = [
-            step.confidence
-            for step in result.reasoning_trace
-            if step.confidence is not None
+            step.confidence for step in result.reasoning_trace if step.confidence is not None
         ]
         if not confidences:
             return 0.5, "No per-step confidence values in trace"
@@ -182,9 +187,7 @@ class AgentEvaluator:
             return round(max(0.0, score), 4), reason
 
         # No ground truth: reward non-decreasing confidence trajectory
-        improving = sum(
-            1 for a, b in zip(confidences, confidences[1:]) if b >= a
-        )
+        improving = sum(1 for a, b in zip(confidences, confidences[1:]) if b >= a)
         total_transitions = len(confidences) - 1
         if total_transitions == 0:
             return (
@@ -193,5 +196,7 @@ class AgentEvaluator:
             )
 
         trend_score = improving / total_transitions
-        reason = f"{improving}/{total_transitions} improving transitions, final={confidences[-1]:.2f}"
+        reason = (
+            f"{improving}/{total_transitions} improving transitions, final={confidences[-1]:.2f}"
+        )
         return round(trend_score, 4), reason

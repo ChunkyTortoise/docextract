@@ -1,4 +1,5 @@
 """Two-pass Claude document extraction service."""
+
 from __future__ import annotations
 
 import json
@@ -93,16 +94,27 @@ async def extract(
     # Shared router: breaker cooldowns persist across requests and jobs.
     router = get_shared_router("extract")
 
+    # Flag known injection markers in the text the model will see. Observability
+    # only: a hit is logged (pattern names, never document text) and does not
+    # block, because the output is sanitized whether or not the scan fires.
+    scan_hits = injection_guard.scan(text[: prompt_config.params.extract_text_limit])
+    if scan_hits:
+        logger.warning(
+            "injection_guard scan matched %d pattern(s) for %s: %s",
+            len(scan_hits),
+            doc_type,
+            scan_hits,
+        )
+
     # Inject few-shot correction examples if active learning enabled
     few_shot_prefix = ""
     if settings.active_learning_enabled and db is not None:
         from app.services.correction_store import get_few_shot_examples
+
         examples = await get_few_shot_examples(db, doc_type, limit=2)
         if examples:
             examples_json = json.dumps(examples, indent=2)
-            few_shot_prefix = (
-                f"Previous corrections for {doc_type} documents:\n{examples_json}\n\n"
-            )
+            few_shot_prefix = f"Previous corrections for {doc_type} documents:\n{examples_json}\n\n"
 
     # Pass 1: Extract using model router with automatic fallback.
     # When schema_class is available, instructor handles Pydantic validation
@@ -121,7 +133,8 @@ async def extract(
             system_blocks: list[dict[str, Any]] = [
                 {
                     "type": "text",
-                    "text": prompt_config.extract_system_prompt + injection_guard.DEFENSE_SYSTEM_CLAUSE,
+                    "text": prompt_config.extract_system_prompt
+                    + injection_guard.DEFENSE_SYSTEM_CLAUSE,
                     "cache_control": {"type": "ephemeral"},
                 }
             ]
@@ -129,7 +142,9 @@ async def extract(
             # followed by uncached document text (unique per request).
             doc_prompt = prompt_config.extract_prompt.format(
                 doc_type=doc_type,
-                text=injection_guard.wrap_untrusted(text[: prompt_config.params.extract_text_limit]),
+                text=injection_guard.wrap_untrusted(
+                    text[: prompt_config.params.extract_text_limit]
+                ),
             )
             if few_shot_prefix:
                 user_content: list[dict[str, Any]] = [
@@ -218,7 +233,12 @@ async def extract(
     )
     if confidence < threshold:
         extracted, corrections_applied = await _apply_corrections_pass(
-            client, text, doc_type, extracted, confidence, db=db,
+            client,
+            text,
+            doc_type,
+            extracted,
+            confidence,
+            db=db,
             router=router,
         )
         extracted = _sanitize(extracted)
@@ -317,6 +337,7 @@ async def _apply_corrections_pass(
     )
 
     try:
+
         async def _correct_call(model: str) -> anthropic.types.Message:
             async with trace_llm_call(db, model, "correct") as trace_ctx:
                 response = await client.messages.create(
@@ -325,7 +346,8 @@ async def _apply_corrections_pass(
                     system=[
                         {
                             "type": "text",
-                            "text": prompt_config.extract_system_prompt + injection_guard.DEFENSE_SYSTEM_CLAUSE,
+                            "text": prompt_config.extract_system_prompt
+                            + injection_guard.DEFENSE_SYSTEM_CLAUSE,
                             "cache_control": {"type": "ephemeral"},
                         }
                     ],
@@ -394,7 +416,9 @@ async def _ground_with_citations(
     # Only ground the top-level string/number fields (skip nested/complex)
     groundable = {k: v for k, v in extracted.items() if isinstance(v, str | int | float) and v}
     if not groundable:
-        return CitationGrounding(citations=[], grounded_fields=[], ungrounded_fields=list(extracted.keys()))
+        return CitationGrounding(
+            citations=[], grounded_fields=[], ungrounded_fields=list(extracted.keys())
+        )
 
     field_list = "\n".join(f"- {k}: {v}" for k, v in groundable.items())
     prompt_text = CITATION_GROUNDING_PROMPT.format(
@@ -418,7 +442,7 @@ async def _ground_with_citations(
                                 "source": {
                                     "type": "text",
                                     "media_type": "text/plain",
-                                    "data": text[: 8000],  # same limit as extraction pass
+                                    "data": text[:8000],  # same limit as extraction pass
                                 },
                                 "title": f"{doc_type} document",
                                 "citations": {"enabled": True},
@@ -529,7 +553,8 @@ async def _reflect_and_revise(
                 system=[
                     {
                         "type": "text",
-                        "text": prompt_config.extract_system_prompt + injection_guard.DEFENSE_SYSTEM_CLAUSE,
+                        "text": prompt_config.extract_system_prompt
+                        + injection_guard.DEFENSE_SYSTEM_CLAUSE,
                         "cache_control": {"type": "ephemeral"},
                     }
                 ],

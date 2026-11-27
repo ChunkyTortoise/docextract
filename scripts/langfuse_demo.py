@@ -12,6 +12,7 @@ Usage:
     python scripts/langfuse_demo.py            # 6 cases
     python scripts/langfuse_demo.py --limit 12
 """
+
 from __future__ import annotations
 
 import argparse

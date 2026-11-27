@@ -125,12 +125,14 @@ def run_ragas_eval(cases: list[dict]) -> dict:
     per_case = []
     for i, case_id in enumerate(case_ids):
         row = result_df.iloc[i]
-        per_case.append({
-            "id": case_id,
-            "faithfulness": round(float(row.get("faithfulness", 0)), 4),
-            "answer_relevancy": round(float(row.get("answer_relevancy", 0)), 4),
-            "context_precision": round(float(row.get("context_precision", 0)), 4),
-        })
+        per_case.append(
+            {
+                "id": case_id,
+                "faithfulness": round(float(row.get("faithfulness", 0)), 4),
+                "answer_relevancy": round(float(row.get("answer_relevancy", 0)), 4),
+                "context_precision": round(float(row.get("context_precision", 0)), 4),
+            }
+        )
 
     def safe_mean(col: str) -> float:
         vals = result_df[col].dropna().tolist()

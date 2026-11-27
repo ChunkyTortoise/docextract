@@ -14,6 +14,7 @@ Distributed tracing (OTLP):
     Sends gRPC spans to any OTLP-compatible backend (Jaeger, Tempo, Honeycomb).
     Local dev: docker compose -f docker-compose.yml -f docker-compose.observability.yml up
 """
+
 from __future__ import annotations
 
 import logging
@@ -85,8 +86,7 @@ def setup_telemetry(app: FastAPI) -> None:
             )
         except ImportError as e:
             logger.warning(
-                "opentelemetry-exporter-otlp-proto-grpc not installed, "
-                "span export disabled: %s",
+                "opentelemetry-exporter-otlp-proto-grpc not installed, " "span export disabled: %s",
                 e,
             )
 

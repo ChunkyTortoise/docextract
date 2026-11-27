@@ -5,6 +5,7 @@ extraction record, evaluates it across 4 quality dimensions with LLMJudge, and
 writes the result to the eval_log table. Failures are logged and swallowed —
 the sampling task must not affect the main job outcome.
 """
+
 from __future__ import annotations
 
 import json
@@ -57,9 +58,7 @@ async def judge_extraction_sample(ctx: dict[str, Any], job_id: str) -> None:
     """
     try:
         async with AsyncSessionLocal() as db:
-            job_result = await db.execute(
-                select(ExtractionJob).where(ExtractionJob.id == job_id)
-            )
+            job_result = await db.execute(select(ExtractionJob).where(ExtractionJob.id == job_id))
             job = job_result.scalar_one_or_none()
             if not job:
                 logger.warning("judge_extraction_sample: job %s not found", job_id)
@@ -92,18 +91,18 @@ async def judge_extraction_sample(ctx: dict[str, Any], job_id: str) -> None:
 
             composite = sum(dimension_scores.values()) / (5.0 * len(dimension_scores))
 
-            db.add(EvalLog(
-                job_id=job_id,
-                completeness=dimension_scores["completeness"],
-                field_accuracy=dimension_scores["field_accuracy"],
-                hallucination_absence=dimension_scores["hallucination_absence"],
-                format_compliance=dimension_scores["format_compliance"],
-                composite=round(composite, 4),
-            ))
-            await db.commit()
-            logger.info(
-                "judge_extraction_sample: scored job %s composite=%.3f", job_id, composite
+            db.add(
+                EvalLog(
+                    job_id=job_id,
+                    completeness=dimension_scores["completeness"],
+                    field_accuracy=dimension_scores["field_accuracy"],
+                    hallucination_absence=dimension_scores["hallucination_absence"],
+                    format_compliance=dimension_scores["format_compliance"],
+                    composite=round(composite, 4),
+                )
             )
+            await db.commit()
+            logger.info("judge_extraction_sample: scored job %s composite=%.3f", job_id, composite)
 
     except Exception as exc:
         # Sampling must not break the main job pipeline

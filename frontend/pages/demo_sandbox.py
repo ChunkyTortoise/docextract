@@ -40,8 +40,10 @@ def show() -> None:
             st.caption(LABEL)
             st.html(comparison)
             st.download_button(
-                "Download synthetic comparison HTML", comparison,
-                file_name=f"synthetic_{doc_type}_comparison.html", mime="text/html",
+                "Download synthetic comparison HTML",
+                comparison,
+                file_name=f"synthetic_{doc_type}_comparison.html",
+                mime="text/html",
                 key=f"comparison_download_{doc_type}",
             )
         st.table(
@@ -81,11 +83,18 @@ def show() -> None:
             "This recorded invoice question is independent of the Fields sample selection."
         )
         st.text_input("Recorded question", value=sample["query"], disabled=True)
-        st.button("Replay stored search", type="primary",
-                  on_click=_set_recorded_search_complete, args=(True,))
-        st.button("Reset recorded search",
-                  disabled=not st.session_state.get("recorded_search_complete", False),
-                  on_click=_set_recorded_search_complete, args=(False,))
+        st.button(
+            "Replay stored search",
+            type="primary",
+            on_click=_set_recorded_search_complete,
+            args=(True,),
+        )
+        st.button(
+            "Reset recorded search",
+            disabled=not st.session_state.get("recorded_search_complete", False),
+            on_click=_set_recorded_search_complete,
+            args=(False,),
+        )
         if st.session_state.get("recorded_search_complete", False):
             st.caption(
                 f"Stored mode: {sample['retrieval_mode']} | "

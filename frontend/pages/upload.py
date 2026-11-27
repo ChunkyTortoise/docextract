@@ -1,4 +1,5 @@
 """Screen 1: Document upload."""
+
 import os
 
 import streamlit as st
@@ -57,7 +58,9 @@ def render() -> None:
     if submitted and file:
         with st.spinner("Uploading document..."):
             try:
-                type_override = None if doc_type == "Auto-detect" else doc_type.lower().replace(" ", "_")
+                type_override = (
+                    None if doc_type == "Auto-detect" else doc_type.lower().replace(" ", "_")
+                )
                 result = api.upload_document(
                     file_bytes=file.read(),
                     filename=file.name,

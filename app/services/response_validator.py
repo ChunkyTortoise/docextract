@@ -1,4 +1,5 @@
 """Pydantic validation for LLM extraction responses."""
+
 from __future__ import annotations
 
 import logging

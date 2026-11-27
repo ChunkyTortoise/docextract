@@ -1,4 +1,5 @@
 """Architecture diagram page (Mermaid via st.markdown)."""
+
 import streamlit as st
 
 

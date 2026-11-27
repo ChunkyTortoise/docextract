@@ -8,6 +8,7 @@ The original 012 body created eval_log.id/job_id as String(36). Applied bodies
 are never rewritten, so the varchar -> uuid conversion and the FK rebuild live
 here for any database that ran the original shape (review P1 on PR #56).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -34,12 +35,9 @@ def upgrade() -> None:
         return
 
     inspector = sa.inspect(bind)
-    column_types = {
-        col["name"]: col["type"] for col in inspector.get_columns("eval_log")
-    }
+    column_types = {col["name"]: col["type"] for col in inspector.get_columns("eval_log")}
     if not (
-        _is_legacy_string(column_types.get("id"))
-        or _is_legacy_string(column_types.get("job_id"))
+        _is_legacy_string(column_types.get("id")) or _is_legacy_string(column_types.get("job_id"))
     ):
         return  # already uuid-shaped (the current 012 body)
 
@@ -49,12 +47,8 @@ def upgrade() -> None:
 
     op.execute("ALTER TABLE eval_log ALTER COLUMN id DROP DEFAULT")
     op.execute("ALTER TABLE eval_log ALTER COLUMN id TYPE uuid USING id::uuid")
-    op.execute(
-        "ALTER TABLE eval_log ALTER COLUMN job_id TYPE uuid USING job_id::uuid"
-    )
-    op.execute(
-        "ALTER TABLE eval_log ALTER COLUMN id SET DEFAULT gen_random_uuid()"
-    )
+    op.execute("ALTER TABLE eval_log ALTER COLUMN job_id TYPE uuid USING job_id::uuid")
+    op.execute("ALTER TABLE eval_log ALTER COLUMN id SET DEFAULT gen_random_uuid()")
     op.create_foreign_key(
         "eval_log_job_id_fkey",
         "eval_log",

@@ -3,6 +3,7 @@
 Usage:
     python -m scripts.seed_demo
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -94,9 +95,7 @@ async def seed_demo() -> None:
             doc_id = doc_spec["id"]
 
             # Check existence
-            existing = await db.execute(
-                select(Document).where(Document.id == doc_id)
-            )
+            existing = await db.execute(select(Document).where(Document.id == doc_id))
             if existing.scalar_one_or_none():
                 skipped += 1
                 continue

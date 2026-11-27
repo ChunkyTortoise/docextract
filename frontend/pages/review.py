@@ -1,11 +1,20 @@
 """Screen 5: Human review interface with queue workflow."""
+
 import os
 
 import streamlit as st
 
 import frontend.api_client as api
 
-DOCUMENT_TYPES = ["All", "Invoice", "Purchase Order", "Receipt", "Bank Statement", "Identity Document", "Medical Record"]
+DOCUMENT_TYPES = [
+    "All",
+    "Invoice",
+    "Purchase Order",
+    "Receipt",
+    "Bank Statement",
+    "Identity Document",
+    "Medical Record",
+]
 QUEUE_STATUSES = ["All", "pending", "claimed", "approved", "rejected"]
 
 
@@ -16,7 +25,9 @@ def _review_record_form(record_id: str, demo_mode: bool) -> None:
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Document Type", record.get("document_type", "Unknown").replace("_", " ").title())
+            st.metric(
+                "Document Type", record.get("document_type", "Unknown").replace("_", " ").title()
+            )
         with col2:
             conf = record.get("confidence_score", 0)
             st.metric("Confidence", f"{conf:.1%}")
@@ -160,7 +171,15 @@ def render() -> None:
                 st.info("No review items match your filters.")
             else:
                 import pandas as pd
-                df_cols = ["id", "document_type", "confidence_score", "status", "assignee", "created_at"]
+
+                df_cols = [
+                    "id",
+                    "document_type",
+                    "confidence_score",
+                    "status",
+                    "assignee",
+                    "created_at",
+                ]
                 df = pd.DataFrame(queue_items)
                 display_df = df[[c for c in df_cols if c in df.columns]]
 
@@ -256,7 +275,9 @@ def render() -> None:
                             notes = st.text_area("Reviewer Notes", key=f"qnotes_{item_id}")
                             if st.button("Submit Corrections", type="primary"):
                                 try:
-                                    api.correct_review_item(item_id, corrections, reviewer_notes=notes or None)
+                                    api.correct_review_item(
+                                        item_id, corrections, reviewer_notes=notes or None
+                                    )
                                     st.success("Corrections submitted.")
                                     st.session_state["correcting_item"] = None
                                     st.rerun()

@@ -22,7 +22,7 @@ complete and verified - `scripts/benchmark.py --limit 1` runs end to end and fai
    fixtures so CI replay covers all 72 cases.
 
 2. Propagate the measured numbers to the **three** reviewer-facing surfaces:
-   - `README.md` - the "30-second pitch" metric table (cost, p95, straight-through rows): change basis from *Modeled* to *Measured - <date>, N=72, <sha>*.
+   - `README.md` - the Results table has no cost, p95 or straight-through rows today: add them as *Measured - <date>, N=72, <sha>*.
    - `docs/portfolio-metrics.yaml` - set `basis: measured` and update `source:` for `avg_cost_per_document_usd`, `p95_latency_seconds`, `straight_through_rate_percent`.
    - Your resume - drop the "modeled … (metering runbook committed, run-once-ready)" qualifier, state the measured values.
 

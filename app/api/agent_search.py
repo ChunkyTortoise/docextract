@@ -4,6 +4,7 @@ Supports both batch (POST /agent-search) and streaming (POST /agent-search/strea
 execution. The streaming endpoint emits Server-Sent Events with real-time
 Think → Act → Observe reasoning steps.
 """
+
 from __future__ import annotations
 
 import json
@@ -108,7 +109,9 @@ async def agent_search_stream(
 
 
 class SynthesizeRequest(BaseModel):
-    question: str = Field(..., min_length=1, description="Question to answer across multiple documents")
+    question: str = Field(
+        ..., min_length=1, description="Question to answer across multiple documents"
+    )
     doc_ids: list[str] = Field(..., min_length=1, description="Document UUIDs to synthesize across")
 
 

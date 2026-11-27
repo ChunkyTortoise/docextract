@@ -1,4 +1,5 @@
 """Cloudflare R2 storage backend using boto3 (S3-compatible API)."""
+
 from __future__ import annotations
 
 import boto3

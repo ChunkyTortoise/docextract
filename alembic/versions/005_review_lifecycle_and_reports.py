@@ -4,6 +4,7 @@ Revision ID: 005
 Revises: 004
 Create Date: 2026-03-03
 """
+
 from __future__ import annotations
 
 from typing import Sequence
@@ -55,7 +56,9 @@ def upgrade() -> None:
         sa.Column("date_from", sa.DateTime(timezone=True), nullable=True),
         sa.Column("date_to", sa.DateTime(timezone=True), nullable=True),
         sa.Column("format", sa.String(length=20), nullable=False, server_default=sa.text("'both'")),
-        sa.Column("status", sa.String(length=20), nullable=False, server_default=sa.text("'generated'")),
+        sa.Column(
+            "status", sa.String(length=20), nullable=False, server_default=sa.text("'generated'")
+        ),
         sa.Column("files_json", JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
         sa.Column("summary_json", JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
         sa.Column("error_message", sa.Text(), nullable=True),

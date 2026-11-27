@@ -8,7 +8,7 @@ requires-python = ">=3.12"
 dependencies = [
     # Runtime stack (mirrors requirements_ci.txt; pyproject.toml is the single source of truth).
     "fastapi>=0.115.8,<0.140",
-    "starlette>=0.40.0,<0.42",
+    "starlette>=0.47.0,<0.48",
     "uvicorn[standard]==0.30.6",
     "sqlalchemy[asyncio]==2.0.35",
     "asyncpg==0.29.0",
@@ -39,8 +39,8 @@ dependencies = [
     "streamlit-extras>=0.4.0",
     "plotly==5.24.1",
     "locust==2.32.1",
-    "pytest==8.3.3",
-    "pytest-asyncio==0.24.0",
+    "pytest==9.2.0",
+    "pytest-asyncio==1.5.0",
     "anyio==4.14.2",
     "fakeredis==2.26.1",
     "respx==0.21.1",
@@ -86,6 +86,13 @@ demo = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+force-exclude = true
+# Frozen, hash-bound evidence package: bytes must stay identical to base.
+extend-exclude = ["docs/evidence"]
+
+[tool.ruff.format]
+# Commit gate blocks reformatted assertion lines; test files stay unformatted.
+exclude = ["**/test_*.py", "**/*_test.py", "**/*.test.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
@@ -102,7 +109,8 @@ ignore = ["E501"]
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true
-warn_unused_ignores = false
+check_untyped_defs = true
+warn_unused_ignores = true
 follow_imports = "silent"
 # Type-check is intentionally permissive at the project default while a gradual
 # strict-typing ratchet rolls out. New modules added under the override block
@@ -117,6 +125,104 @@ module = [
 disallow_untyped_defs = true
 disallow_untyped_calls = true
 no_implicit_optional = true
+
+# Legacy modules with findings that predate the hygiene standard. The relaxation is
+# per module and per error code; remove entries as the modules are typed (ratchet).
+[[tool.mypy.overrides]]
+module = [
+    "app.api.health",
+    "app.api.jobs",
+]
+disable_error_code = ["arg-type"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.api.documents",
+]
+disable_error_code = ["arg-type", "assignment"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.api.metrics",
+    "app.services.email_extractor",
+    "app.services.structured_extractor",
+]
+disable_error_code = ["arg-type", "attr-defined"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.claude_extractor",
+]
+disable_error_code = ["arg-type", "list-item", "misc", "union-attr"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.dependencies",
+]
+disable_error_code = ["assignment"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.classifier",
+]
+disable_error_code = ["assignment", "call-overload"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.llm_judge",
+]
+disable_error_code = ["assignment", "union-attr"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.api.extract_structured",
+    "app.services.pdf_extractor",
+    "app.services.reranker",
+    "app.services.response_validator",
+    "app.services.semantic_cache",
+    "worker.main",
+]
+disable_error_code = ["attr-defined"]
+
+[[tool.mypy.overrides]]
+module = [
+    "worker.tasks",
+]
+disable_error_code = ["attr-defined", "misc"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.prompt_config",
+    "app.storage.local",
+]
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.vision_extractor",
+]
+disable_error_code = ["list-item", "misc", "union-attr"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.webhook_sender",
+]
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.agentic_rag",
+    "app.services.graph_rag.extractor",
+    "app.services.multi_doc_synthesizer",
+    "app.services.rag_tools",
+]
+disable_error_code = ["union-attr"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.langsmith_tracing",
+]
+disable_error_code = ["unused-ignore"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -137,3 +243,6 @@ packages = ["app", "app.api", "app.models", "app.schemas", "app.services", "app.
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+[tool.coverage.run]
+omit = ["*/migrations/*", "*/alembic/*"]
